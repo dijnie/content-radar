@@ -47,6 +47,8 @@ Wrangler in cảnh báo chuẩn về binding AI; bộ test dùng embedder/fetche
 
 ## Việc còn lại / thông tin cần có
 
+Người dùng đã chọn hoàn tất local trước. Các mục dưới thuộc đợt tích hợp dịch vụ thật/triển khai sau, không còn là điều kiện chặn bàn giao local.
+
 1. Hostname Cloudflare, Access team domain, AUD, email chủ sở hữu và các secret được cấu hình qua đường bảo mật. Cấu hình production hiện chưa có route; không deploy trong phiên này.
 2. Áp migration và đồng bộ config remote; xác minh Access với mọi hostname; probe nguồn và vị trí Gemini trước/sau placement.
 3. Hạn mức Gemini thật, fixture ghi từ phản hồi thật và kiểm chứng quota reset.
@@ -54,3 +56,17 @@ Wrangler in cảnh báo chuẩn về binding AI; bộ test dùng embedder/fetche
 5. Rollback, tuần chạy thử 7 ngày, backfill từ ngày 3, quét gamma và kiểm tra chất lượng/lineage bằng dữ liệu thật.
 
 Không đánh dấu những việc này hoàn tất bằng kết quả test local. Chưa push hoặc tạo PR.
+
+## Chốt phạm vi local
+
+Ngày 2026-09-20, sau khi người dùng xác nhận chưa có hostname/Access:
+
+- Chạy đồng bộ cấu hình local hai lần; mỗi lần thành công, giữ nguyên 3 topic, 119 source và 13 author.
+- Khởi động bằng lệnh dev của workspace Worker, gắn `127.0.0.1:8787`, dùng D1 local hiện có và bundle web đã build.
+- Trang gốc cùng hai asset JS/CSS trả HTTP 200; `/api/stories` và `/api/status` trả HTTP 200; status đọc được cấu hình local.
+- `sort=constructor` trả HTTP 400. POST khác origin và POST thiếu origin đều trả HTTP 403; không thay đổi trạng thái thẻ.
+- API danh sách trả 0 thẻ. Không thêm dữ liệu giả hoặc kích pipeline gọi Gemini/Workers AI/nguồn ngoài để lấp giao diện.
+- Dừng dev server bằng Ctrl+C; cổng 8787 đã giải phóng và không còn tiến trình Wrangler/workerd của lượt kiểm tra.
+- Không thay đổi source sau các gate 408 test, typecheck, build và Worker dry-run đã đạt ở trên; không chạy lặp lại các gate đó chỉ để đổi thời điểm báo cáo.
+
+Phần bàn giao local hoàn tất trong phạm vi đã chốt. Có thể mở lại bằng `npm run dev` theo [README](../../README.md#phát-triển-local). Tích hợp dịch vụ thật và tiêu chí chạy 7 ngày vẫn chưa được chứng minh.

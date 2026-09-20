@@ -22,4 +22,8 @@ Plan còn in-progress. Cần hostname, Access và secret để deploy; sau đó 
 
 AgentWiki publish skipped.
 
+## Bổ sung sau khi chốt local trước
+
+Người dùng xác nhận chưa có hostname/Access và chọn hoàn tất local. Đồng bộ cấu hình hai lần giữ nguyên số dòng; khởi động dev server chứng minh web/asset/API trả 200, tham số sai trả 400 và POST khác/thiếu origin trả 403. Không tạo dữ liệu mẫu hoặc kích dịch vụ ngoài; danh sách thẻ hiện trống. Đã dừng server và giải phóng cổng sau kiểm tra. Giữ plan toàn bộ ở in-progress, phần deploy và chạy thử thật cho đợt sau.
+
 > Historical work record — not durable authority. Prefer docs/specs/ADRs for current decisions.

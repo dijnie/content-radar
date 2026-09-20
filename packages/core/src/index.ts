@@ -12,3 +12,8 @@ export * from "./clustering/leiden-clusterer.ts";
 export * from "./clustering/resolution-sweep.ts";
 export * from "./lineage/entity-signature.ts";
 export * from "./lineage/match-communities.ts";
+export * from "./relations/derive-relations.ts";
+export * from "./scoring/independence.ts";
+export * from "./scoring/robust-z.ts";
+export * from "./scoring/score-story.ts";
+export * from "./scoring/fallback-headline.ts";

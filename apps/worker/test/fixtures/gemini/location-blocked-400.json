@@ -1,0 +1,8 @@
+{
+ "_fixture_note": "Constructed from the documented generateContent REST contract, not recorded from the live API: no Gemini key was available when this was written. Replace with a recorded response once a key exists.",
+ "error": {
+  "code": 400,
+  "message": "User location is not supported for the API use.",
+  "status": "FAILED_PRECONDITION"
+ }
+}

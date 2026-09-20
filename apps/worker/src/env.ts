@@ -15,6 +15,8 @@ export interface Env {
   ACCESS_AUD: string;
   /** Exact deployed origin, e.g. https://radar.example.com. */
   APP_ORIGIN: string;
+  /** Optional AI Gateway base URL for Gemini; unset means Google's endpoint. */
+  GEMINI_BASE_URL?: string;
 }
 
 declare global {

@@ -1,0 +1,23 @@
+{
+ "_fixture_note": "Constructed from the documented generateContent REST contract, not recorded from the live API: no Gemini key was available when this was written. Replace with a recorded response once a key exists.",
+ "candidates": [
+  {
+   "content": {
+    "role": "model",
+    "parts": [
+     {
+      "text": "__TEXT__"
+     }
+    ]
+   },
+   "finishReason": "STOP",
+   "index": 0
+  }
+ ],
+ "usageMetadata": {
+  "promptTokenCount": 1840,
+  "candidatesTokenCount": 412,
+  "totalTokenCount": 2252
+ },
+ "modelVersion": "gemini-3.8-flash"
+}

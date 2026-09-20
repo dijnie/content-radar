@@ -1,7 +1,7 @@
 ---
 title: "Content Radar v1 trên Cloudflare"
 description: "Radar cá nhân crawl nguồn public, dùng Gemini free tier bóc claim, gom thành câu chuyện bằng graph và Leiden, chấm điểm, hiển thị thẻ lead và mở D1 cho Claude/Codex phân tích."
-status: pending
+status: in-progress
 priority: P1
 effort: 25d
 tags: [feature, backend, frontend, database, infra]

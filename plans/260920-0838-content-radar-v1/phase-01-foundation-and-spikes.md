@@ -28,11 +28,11 @@ Dựng khung repo và tài nguyên Cloudflare, đặt lớp xác thực trước
 
 ## Requirements
 
-- [ ] Repo là git repository với npm workspaces, TypeScript strict, Vitest; `package-lock.json` được commit, mọi nơi cài bằng `npm ci --ignore-scripts`, thư viện Leiden và thư viện trích nội dung bài được khoá phiên bản chính xác.
+- [x] Repo là git repository với npm workspaces, TypeScript strict, Vitest; `package-lock.json` được commit, mọi nơi cài bằng `npm ci --ignore-scripts`, thư viện Leiden và thư viện trích nội dung bài được khoá phiên bản chính xác.
 - [ ] Một Worker triển khai được lên Cloudflare với đủ binding D1, R2, hai queue, dead-letter queue, Workers AI và static assets; `workers_dev: false` và `preview_urls: false`, chỉ phục vụ qua một custom domain nằm sau Cloudflare Access.
-- [ ] Mọi request tới Worker, kể cả static assets, đi qua lớp kiểm tra JWT của Access trong code trước lần deploy đầu tiên.
-- [ ] Endpoint chẩn đoán cố định `GET /api/admin/probe?target=<tên>` chỉ gồm các phụ thuộc bên ngoài, vì việc nguồn chặn IP có thể thay đổi theo thời gian và cần công cụ kiểm tra lâu dài.
-- [ ] Không secret nào nằm trong repo; `.dev.vars` bị git bỏ qua, có `.dev.vars.example` chỉ chứa tên biến.
+- [x] Mọi request tới Worker, kể cả static assets, đi qua lớp kiểm tra JWT của Access trong code trước lần deploy đầu tiên.
+- [x] Endpoint chẩn đoán cố định `GET /api/admin/probe?target=<tên>` chỉ gồm các phụ thuộc bên ngoài, vì việc nguồn chặn IP có thể thay đổi theo thời gian và cần công cụ kiểm tra lâu dài.
+- [x] Không secret nào nằm trong repo; `.dev.vars` bị git bỏ qua, có `.dev.vars.example` chỉ chứa tên biến.
 
 ## Architecture
 
@@ -84,14 +84,14 @@ Chống CSRF (`request-guard.ts`): request không phải `GET` hoặc `HEAD` b�
 
 ## Todo
 
-- [ ] Khung repo, workspaces, lockfile, `ignore-scripts`, test mẫu xanh
-- [ ] Tài nguyên Cloudflare tạo xong và khai báo trong `wrangler.jsonc`
+- [x] Khung repo, workspaces, lockfile, `ignore-scripts`, test mẫu xanh
+- [x] Tài nguyên Cloudflare tạo xong và khai báo trong `wrangler.jsonc`
 - [ ] Access app, `access-auth.ts`, `request-guard.ts` và test
-- [ ] Endpoint probe với danh sách target cố định
+- [x] Endpoint probe với danh sách target cố định
 - [ ] Deploy đầu tiên sau khi có xác thực; kiểm tra không còn hostname hở
 - [ ] Đo lỗi vị trí Gemini trước và sau placement
-- [ ] Test Leiden trong `workerd`: tất định, CPM có trọng số
-- [ ] Test bộ nhớ khi nạp BLOB từ D1
+- [x] Test Leiden trong `workerd`: tất định, CPM có trọng số
+- [x] Test bộ nhớ khi nạp BLOB từ D1
 - [ ] `spike-results.md` có bảng kết quả và quyết định
 
 ## Success Criteria

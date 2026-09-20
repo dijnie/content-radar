@@ -2,6 +2,7 @@ import { handleBackfill } from "./api/admin-backfill";
 import { handleProbe } from "./api/admin-probe";
 import { verifyAccess } from "./api/access-auth";
 import { guardRequest } from "./api/request-guard";
+import { runClusterJob } from "./cluster/run-cluster-job";
 import type { Env } from "./env";
 import { dispatchPolls } from "./ingest/dispatch-polls";
 import { consumePollBatch } from "./ingest/poll-consumer";
@@ -9,8 +10,11 @@ import { consumeDeadLetters } from "./llm/dlq-consumer";
 import { drainBacklog } from "./llm/drain-backlog";
 import { consumeLlmBatch } from "./llm/llm-consumer";
 import type { LlmMessage, PollMessage } from "./llm/messages";
+import { runDailyMaintenance } from "./maintenance/run-daily-maintenance";
 
 const CRON_POLL = "*/30 * * * *";
+const CRON_CLUSTER = "5 * * * *";
+const CRON_MAINTENANCE = "20 8 * * *";
 const QUEUE_POLL = "radar-poll";
 const QUEUE_LLM = "radar-llm";
 const QUEUE_DEAD_LETTER = "radar-dlq";
@@ -40,7 +44,15 @@ export default {
       console.log(JSON.stringify({ event: "poll_tick", dispatched, ...backlog }));
       return;
     }
-    console.log(JSON.stringify({ event: "scheduled", cron: controller.cron }));
+    if (controller.cron === CRON_CLUSTER) {
+      await runClusterJob(env, { now });
+      return;
+    }
+    if (controller.cron === CRON_MAINTENANCE) {
+      await runDailyMaintenance(env.DB, now);
+      return;
+    }
+    console.error(JSON.stringify({ event: "unknown_cron", cron: controller.cron }));
   },
 
   async queue(batch, env): Promise<void> {

@@ -1,10 +1,8 @@
 import { entitySignature, entityStats, leidenClusterer, promoteSingletons, velocityZ, weightedEdges, type AuthorBaseline, type VectorMatrix } from "@radar/core";
+import { ENGAGEMENT_SQL, LATEST_SNAPSHOT_SQL } from "../db/engagement";
 import { getSetting } from "../db/settings-repo";
 import type { ClusterOutput, JobContext, WindowClaim } from "./job-context";
 import { windowStart } from "./job-context";
-
-/** One comparable number per item; reposts and quotes spread a post further than a like does. */
-const ENGAGEMENT_SQL = "COALESCE(m.likes, 0) + 2 * COALESCE(m.reposts, 0) + COALESCE(m.replies, 0) + 2 * COALESCE(m.quotes, 0) + COALESCE(m.points, 0) + COALESCE(m.comments, 0)";
 
 export async function loadWindowClaims(ctx: JobContext): Promise<WindowClaim[]> {
   const { results } = await ctx.db
@@ -23,7 +21,7 @@ async function velocityByClaim(ctx: JobContext, claims: readonly WindowClaim[]):
       `SELECT i.id AS item_id, i.platform, i.author_id, i.published_at, ${ENGAGEMENT_SQL} AS engagement
        FROM items i JOIN item_metrics m ON m.item_id = i.id
        WHERE i.id IN (SELECT DISTINCT item_id FROM claims WHERE published_at >= ?)
-         AND m.captured_at = (SELECT MAX(captured_at) FROM item_metrics WHERE item_id = i.id)`,
+         AND ${LATEST_SNAPSHOT_SQL}`,
     )
     .bind(windowStart(ctx))
     .all<{ item_id: number; platform: string; author_id: number | null; published_at: number; engagement: number }>();

@@ -6,44 +6,68 @@ const CHROME = "nav, aside, footer, header, form, script, style, noscript, templ
 /** An <article> or <main> body shorter than this is not trusted as the full text. */
 const MIN_FOCUSED_LENGTH = 500;
 
+/** Below this, the chrome-free text is not trusted either and everything on the page is used. */
+const MIN_CLEAN_LENGTH = 200;
+
 /**
- * Streaming extraction with HTMLRewriter, no DOM. Text is gathered from block
- * elements outside page chrome; when the page has an <article> or <main>, only
- * blocks inside it are used.
+ * Streaming extraction with HTMLRewriter, no DOM. Text is gathered per block
+ * element; when the page has an <article> or <main> with enough text, only
+ * blocks inside it are used, otherwise blocks outside page chrome.
+ *
+ * It never relies on end tags to close a block. HTML lets <p> and <li> omit
+ * them and the rewriter does not synthesise the missing ones, so a block ends
+ * when the next block starts, and once more at the end of the document. For the
+ * same reason an unclosed <nav> must not swallow the page: a focus element
+ * resets the chrome state, and text inside chrome is still kept as a last resort.
  */
 export async function extractArticleText(html: string): Promise<string> {
   const focused: string[] = [];
-  const all: string[] = [];
+  const clean: string[] = [];
+  const everything: string[] = [];
   let focusDepth = 0;
   let chromeDepth = 0;
-  let current: { text: string; focused: boolean } | null = null;
+  let current: { text: string; focused: boolean; chrome: boolean } | null = null;
+
+  const flush = () => {
+    const block = current;
+    current = null;
+    const text = block ? cleanText(block.text) : "";
+    if (!block || !text) return;
+    everything.push(text);
+    if (!block.chrome) clean.push(text);
+    if (block.focused && !block.chrome) focused.push(text);
+  };
+  /** End tags are used when they come, and never waited for. */
+  const onEnd = (element: Element, handler: () => void) => {
+    try {
+      element.onEndTag(handler);
+    } catch {
+      // Void elements have no end tag.
+    }
+  };
 
   const rewriter = new HTMLRewriter()
     .on("article, main, [role='main']", {
       element(element) {
+        flush();
         focusDepth++;
-        element.onEndTag(() => void focusDepth--);
+        // Real article markup does not sit inside navigation; an open count here means an unclosed tag.
+        chromeDepth = 0;
+        onEnd(element, () => void (flush(), (focusDepth = Math.max(0, focusDepth - 1))));
       },
     })
     .on(CHROME, {
       element(element) {
+        flush();
         chromeDepth++;
-        element.onEndTag(() => void chromeDepth--);
+        onEnd(element, () => void (flush(), (chromeDepth = Math.max(0, chromeDepth - 1))));
       },
     })
     .on(BLOCKS, {
       element(element) {
-        if (chromeDepth > 0 || current) return;
-        const block = { text: "", focused: focusDepth > 0 };
-        current = block;
-        element.onEndTag(() => {
-          const text = cleanText(block.text);
-          if (text) {
-            all.push(text);
-            if (block.focused) focused.push(text);
-          }
-          current = null;
-        });
+        flush();
+        current = { text: "", focused: focusDepth > 0, chrome: chromeDepth > 0 };
+        onEnd(element, flush);
       },
       text(chunk) {
         if (current) current.text += chunk.text;
@@ -51,8 +75,11 @@ export async function extractArticleText(html: string): Promise<string> {
     });
 
   await rewriter.transform(new Response(html)).arrayBuffer();
+  flush();
   const focusedText = focused.join("\n");
-  return focusedText.length >= MIN_FOCUSED_LENGTH ? focusedText : all.join("\n");
+  if (focusedText.length >= MIN_FOCUSED_LENGTH) return focusedText;
+  const chromeFree = clean.join("\n");
+  return chromeFree.length >= MIN_CLEAN_LENGTH || everything.length === clean.length ? chromeFree : everything.join("\n");
 }
 
 /** Downloads an article within the poll's budget. Returns null when it cannot be had. */

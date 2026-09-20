@@ -66,6 +66,30 @@ describe("lineage end to end", () => {
     expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM story_claims WHERE story_id = ? AND active = 0").bind(parent!.id).first()).toEqual({ n: 4 });
   });
 
+  it("when two stories merge, the absorbed one ends and a choice made on it moves to the heir", async () => {
+    const embedder = fakeEmbedder();
+    const big = await seedClaims(env.DB, Array.from({ length: 6 }, (_, k) => ({ tag: "S1", publishedAt: T0 - (k + 1) * HOUR })));
+    const small = await seedClaims(env.DB, Array.from({ length: 4 }, (_, k) => ({ tag: "S2", publishedAt: T0 - (k + 1) * HOUR })));
+    await runClusterJob(testEnv, { now: T0, embed: embedder.embed });
+    const before = await alive();
+    expect(before).toHaveLength(2);
+    const storyOf = async (claimId: number) => (await env.DB.prepare("SELECT story_id FROM story_claims WHERE claim_id = ? AND active = 1").bind(claimId).first<{ story_id: number }>())!.story_id;
+    const heir = await storyOf(big[0]!);
+    const absorbed = await storyOf(small[0]!);
+    await env.DB.prepare("UPDATE stories SET user_state = 'saved', user_state_at = ? WHERE id = ?").bind(T0, absorbed).run();
+
+    // The two conversations converge: the smaller story's claims now read like the bigger one's.
+    await env.DB.prepare(`UPDATE claims SET text_en = REPLACE(text_en, 'S2 ', 'S1 ') WHERE id IN (${small.join(",")})`).run();
+    await env.DB.prepare(`DELETE FROM claim_embeddings WHERE claim_id IN (${small.join(",")})`).run();
+    await env.DB.prepare(`DELETE FROM claim_edges WHERE claim_a IN (${small.join(",")}) OR claim_b IN (${small.join(",")})`).run();
+
+    const run = await runClusterJob(testEnv, { now: T0 + HOUR, embed: embedder.embed });
+    expect(await alive()).toEqual([expect.objectContaining({ id: heir, user_state: "saved" })]);
+    expect(await sizeOf(heir)).toBe(10);
+    expect(await env.DB.prepare("SELECT alive, died_at, (SELECT COUNT(*) FROM story_claims WHERE story_id = stories.id AND active = 1) AS active FROM stories WHERE id = ?").bind(absorbed).first()).toEqual({ alive: 0, died_at: T0 + HOUR, active: 0 });
+    expect(await eventsOf(run.status === "done" ? run.runId : 0)).toEqual([{ type: "merge", story_id: heir, related_story_id: absorbed }]);
+  });
+
   it("a READY story falls back to LEAD when its second source leaves the window", async () => {
     const embedder = fakeEmbedder();
     await seedClaims(env.DB, [

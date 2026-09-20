@@ -34,11 +34,14 @@ export async function applyRetention(db: D1Database, now: number, windowDays: nu
   // placeholder stories those runs reserved but never published.
   await db.batch([
     db.prepare("DELETE FROM run_members WHERE run_id IN (SELECT id FROM cluster_runs WHERE status = 'failed' AND started_at < ?)").bind(orphanCutoff),
+    db.prepare("DELETE FROM run_stories WHERE run_id IN (SELECT id FROM cluster_runs WHERE (status = 'failed' AND started_at < ?1) OR started_at < ?2)").bind(orphanCutoff, logCutoff),
+    db.prepare("DELETE FROM run_retirements WHERE run_id IN (SELECT id FROM cluster_runs WHERE (status = 'failed' AND started_at < ?1) OR started_at < ?2)").bind(orphanCutoff, logCutoff),
     db.prepare("DELETE FROM run_communities WHERE run_id IN (SELECT id FROM cluster_runs WHERE status = 'failed' AND started_at < ?)").bind(orphanCutoff),
     db
       .prepare(
         `DELETE FROM stories WHERE alive = 0 AND died_at IS NULL AND first_seen_at < ?
            AND id NOT IN (SELECT story_id FROM run_communities)
+           AND id NOT IN (SELECT story_id FROM run_stories)
            AND id NOT IN (SELECT story_id FROM user_actions)
            AND id NOT IN (SELECT story_id FROM story_claims)
            AND id NOT IN (SELECT story_id FROM lineage_events)

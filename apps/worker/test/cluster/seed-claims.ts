@@ -100,7 +100,7 @@ export async function seedClaims(db: D1Database, specs: readonly SeedClaim[]): P
 
 export async function wipeClusterState(db: D1Database): Promise<void> {
   await db.batch(
-    ["user_actions", "story_daily", "lineage_events", "story_claims", "run_members", "run_communities", "cluster_runs", "job_leases", "claim_edges", "claim_embeddings",
+    ["user_actions", "story_daily", "lineage_events", "story_claims", "run_retirements", "run_stories", "run_members", "run_communities", "cluster_runs", "job_leases", "claim_edges", "claim_embeddings",
      "entity_adjudications", "entity_mentions", "entity_embeddings", "entity_aliases", "entity_relations", "entity_daily", "claims", "stories", "entities", "item_metrics", "item_links", "items"]
       .map((table) => db.prepare(`DELETE FROM ${table}`)),
   );

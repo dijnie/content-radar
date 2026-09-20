@@ -69,7 +69,8 @@ describe("runClusterJob", () => {
     expect(await runClusterJob(testEnv, { now: T0, embed: fakeEmbedder().embed })).toEqual({ status: "skipped", reason: "lease_held" });
   });
 
-  it.each(["lineage", "score", "finalize"])("a job that dies during %s costs no story its id or its user state", async (dyingStage) => {
+  // "publish" fires inside finalizeStep, after staging and right before the single publishing transaction.
+  it.each(["lineage", "score", "finalize", "publish"])("a job that dies during %s costs no story its id or its user state", async (dyingStage) => {
     await seedClaims(env.DB, fiveStoriesAndNoise().slice(0, 60));
     const embedder = fakeEmbedder();
     await runClusterJob(testEnv, { now: T0, embed: embedder.embed });

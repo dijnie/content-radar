@@ -26,8 +26,9 @@ class LeaseLost extends Error {}
 
 /**
  * Hourly job: claims in, scored stories out. Steps are named and recorded in
- * `cluster_runs.stage`; the lease is renewed after each one. Nothing the run
- * writes is visible to readers until `finalize` flips it to `done`.
+ * `cluster_runs.stage`; the lease is renewed after each one. Everything before the
+ * publish is staged under the run id and invisible; the publish itself is one D1
+ * transaction (see finalize-step.ts).
  */
 export async function runClusterJob(env: ClusterEnv, deps: ClusterJobDeps = {}): Promise<ClusterJobResult> {
   const db = env.DB;
@@ -67,7 +68,7 @@ export async function runClusterJob(env: ClusterEnv, deps: ClusterJobDeps = {}):
     const stories = await stage("score", () => scoreStep(ctx, cluster, lineage));
     await db.prepare("UPDATE cluster_runs SET stage = 'finalize', heartbeat_at = ? WHERE id = ?").bind(now, ctx.runId).run();
     await deps.onStage?.("finalize");
-    await finalizeStep(ctx, cluster, lineage, stories);
+    await finalizeStep(ctx, cluster, lineage, stories, () => deps.onStage?.("publish"));
     const synthesisQueued = await enqueueSynthesisStep(ctx);
     console.log(JSON.stringify({ event: "cluster_run", runId: ctx.runId, claims: cluster.claims.length, communities: cluster.communities.length, embeddedTokens: tokens, synthesisQueued }));
     return { status: "done", runId: ctx.runId, communities: cluster.communities.length, synthesisQueued };

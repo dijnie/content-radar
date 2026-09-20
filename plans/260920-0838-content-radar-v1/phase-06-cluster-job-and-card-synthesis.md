@@ -29,13 +29,13 @@ Cron theo giờ biến claim thô thành câu chuyện có điểm: gộp entity
 
 ## Requirements
 
-- [ ] Job theo giờ chia thành các bước có tên, ghi tiến độ vào `cluster_runs.stage`; bước nào cũng idempotent theo `run_id`.
-- [ ] Khoá chống chạy chồng là một lease nguyên tử trong `job_leases`, dài 75 phút, được gia hạn sau mỗi bước; lần chạy có lease hết hạn bị đánh dấu `failed`.
-- [ ] Các bước chỉ đọc snapshot của lần chạy có `status = 'done'`.
-- [ ] `story_claims` phản ánh thành viên hiện tại: claim mới được thêm, claim rời cụm bị đặt `active = 0`, vai trò của claim ở lại được giữ nguyên. Chấm điểm, đếm nguồn độc lập và giao diện chỉ dùng claim `active`.
-- [ ] Hai loại việc LLM mới đi qua consumer và sổ ngân sách của phase 4 theo đúng dạng message đã khai báo: `adjudicate` (phía gửi gom tối đa 20 cặp mỗi message) và `synthesize` (một câu chuyện mỗi message, mang `membersHash`).
-- [ ] Trạng thái người dùng gắn với `story_id` và sống qua `continue`, `split`, `merge`, `revive`.
-- [ ] Job theo ngày cập nhật `author_baselines`, `story_daily`, `entity_daily`, dọn dữ liệu quá hạn và sửa trạng thái dở dang.
+- [x] Job theo giờ chia thành các bước có tên, ghi tiến độ vào `cluster_runs.stage`; bước nào cũng idempotent theo `run_id`.
+- [x] Khoá chống chạy chồng là một lease nguyên tử trong `job_leases`, dài 75 phút, được gia hạn sau mỗi bước; lần chạy có lease hết hạn bị đánh dấu `failed`.
+- [x] Các bước chỉ đọc snapshot của lần chạy có `status = 'done'`.
+- [x] `story_claims` phản ánh thành viên hiện tại: claim mới được thêm, claim rời cụm bị đặt `active = 0`, vai trò của claim ở lại được giữ nguyên. Chấm điểm, đếm nguồn độc lập và giao diện chỉ dùng claim `active`.
+- [x] Hai loại việc LLM mới đi qua consumer và sổ ngân sách của phase 4 theo đúng dạng message đã khai báo: `adjudicate` (phía gửi gom tối đa 20 cặp mỗi message) và `synthesize` (một câu chuyện mỗi message, mang `membersHash`).
+- [x] Trạng thái người dùng gắn với `story_id` và sống qua `continue`, `split`, `merge`, `revive`.
+- [x] Job theo ngày cập nhật `author_baselines`, `story_daily`, `entity_daily`, dọn dữ liệu quá hạn và sửa trạng thái dở dang.
 
 ## Architecture
 
@@ -82,14 +82,14 @@ Job theo ngày (`maintenance/run-daily-maintenance.ts`): baseline tác giả t�
 
 ## Todo
 
-- [ ] Lease nguyên tử và xử lý lần chạy treo
-- [ ] Kho vector và client embedding
-- [ ] Bảy bước tính toán của job theo giờ
-- [ ] Bước `finalize` công bố nguyên khối và test chết giữa chừng
-- [ ] Quy tắc chọn câu chuyện để tổng hợp và test
-- [ ] Việc `synthesize` và `adjudicate`
-- [ ] Job theo ngày: baseline, tổng hợp theo ngày xuất bản, lưu giữ, sửa trạng thái dở
-- [ ] Test tích hợp hai lần chạy, test lineage đầu cuối, test tải
+- [x] Lease nguyên tử và xử lý lần chạy treo
+- [x] Kho vector và client embedding
+- [x] Bảy bước tính toán của job theo giờ
+- [x] Bước `finalize` công bố nguyên khối và test chết giữa chừng
+- [x] Quy tắc chọn câu chuyện để tổng hợp và test
+- [x] Việc `synthesize` và `adjudicate`
+- [x] Job theo ngày: baseline, tổng hợp theo ngày xuất bản, lưu giữ, sửa trạng thái dở
+- [x] Test tích hợp hai lần chạy, test lineage đầu cuối, test tải
 
 ## Success Criteria
 

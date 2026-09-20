@@ -1,0 +1,7 @@
+# Copy to apps/worker/.dev.vars for local development. Never commit real values.
+GEMINI_API_KEY=
+GITHUB_TOKEN=
+OWNER_EMAIL=
+ACCESS_TEAM_DOMAIN=
+ACCESS_AUD=
+APP_ORIGIN=

@@ -1,9 +1,15 @@
 {
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true
   },
-  "include": ["./*.ts", "../config/*.ts"]
+  "include": [
+    "./*.ts",
+    "../config/*.ts",
+    "../packages/core/src/clustering/ngraph-leiden.d.ts"
+  ]
 }

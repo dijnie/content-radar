@@ -1,6 +1,6 @@
 import createGraph from "ngraph.graph";
 import { detectClusters } from "ngraph.leiden";
-import { canonicalClustering, splitDisconnected, type Clusterer } from "./clusterer.ts";
+import { canonicalClustering, mergeLinkedFragments, splitDisconnected, type Clusterer } from "./clusterer.ts";
 
 /**
  * Adapter for ngraph.leiden, chosen in the phase 1 spike because it runs in
@@ -12,6 +12,11 @@ import { canonicalClustering, splitDisconnected, type Clusterer } from "./cluste
  * gamma recovers five planted stories, while without it gamma 0.25 recovers all
  * five. Without refinement this is Louvain-style optimisation, so connected
  * communities are restored afterwards by `splitDisconnected`.
+ *
+ * CPM is a density threshold, and the neighbour cap keeps a large burst sparse,
+ * so CPM alone cuts a 300-claim story into dozens of pieces at any gamma that
+ * still separates stories glued by a popular entity. `mergeLinkedFragments`
+ * rejoins those pieces by link strength; see its comment for the rule.
  *
  * Nodes and edges are inserted in id order so the library never sees an order
  * that depends on the caller.
@@ -32,6 +37,7 @@ export const leidenClusterer: Clusterer = {
     const clusters = detectClusters(graph, { quality: options.quality, resolution: options.resolution, randomSeed: options.seed, refine: false });
     const assignment = new Map<number, number>();
     graph.forEachNode((node) => void assignment.set(node.id as number, clusters.getClass(node.id)));
-    return canonicalClustering(splitDisconnected(assignment, ordered), options.minCommunitySize, clusters.quality());
+    const connected = splitDisconnected(assignment, ordered);
+    return canonicalClustering(mergeLinkedFragments(connected, ordered), options.minCommunitySize, clusters.quality());
   },
 };

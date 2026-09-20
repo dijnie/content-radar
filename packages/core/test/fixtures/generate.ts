@@ -79,6 +79,39 @@ export function sparseSocial(seed = 23): GraphFixture {
   return { nodes, edges, truth };
 }
 
+/**
+ * A burst of 300 claims joined the way the neighbour cap joins them (each picks
+ * 30 of the others), 40 stories of five claims, 600 isolated claims, and weak
+ * hub-entity edges between unrelated stories and into the burst.
+ */
+export function knnBurst(seed = 3): GraphFixture {
+  const random = mulberry32(seed);
+  const truth = new Map<number, number>();
+  const edges: WeightedEdge[] = [];
+  const seen = new Set<string>();
+  const link = (a: number, b: number, weight: number) => {
+    const key = a < b ? `${a}:${b}` : `${b}:${a}`;
+    if (a === b || seen.has(key)) return;
+    seen.add(key);
+    addEdge(edges, a, b, weight);
+  };
+  for (let node = 1; node <= 300; node++) truth.set(node, 0);
+  for (let node = 1; node <= 300; node++) for (let k = 0; k < 30; k++) link(node, 1 + Math.floor(random() * 300), 0.55 + random() * 0.05);
+  let next = 301;
+  for (let story = 1; story <= 40; story++) {
+    const members = Array.from({ length: 5 }, () => next++);
+    for (const member of members) truth.set(member, story);
+    for (const a of members) for (const b of members) if (a < b) link(a, b, 0.55 + random() * 0.05);
+  }
+  for (let k = 0; k < 600; k++) truth.set(next++, -1);
+  for (let k = 0; k < 60; k++) {
+    const a = 301 + Math.floor(random() * 200);
+    const b = random() < 0.5 ? 1 + Math.floor(random() * 300) : 301 + Math.floor(random() * 200);
+    if (truth.get(a) !== truth.get(b)) link(a, b, 0.45 + random() * 0.03);
+  }
+  return { nodes: [...truth.keys()], edges, truth };
+}
+
 /** Newman modularity of a partition on an unweighted or weighted edge list. */
 export function modularity(edges: readonly WeightedEdge[], communityOf: ReadonlyMap<number, number>): number {
   let total = 0;

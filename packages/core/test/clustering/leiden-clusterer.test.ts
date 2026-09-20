@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_PARAMS, leidenClusterer, partitionKey, resolutionSweep, splitDisconnected, type Clustering, type WeightedEdge } from "../../src/index";
+import { DEFAULT_PARAMS, leidenClusterer, mergeLinkedFragments, partitionKey, resolutionSweep, splitDisconnected, type Clustering, type WeightedEdge } from "../../src/index";
 import football from "../fixtures/football.json";
 import karate from "../fixtures/karate-club.json";
-import { modularity, mulberry32, sparseSocial, syntheticStories } from "../fixtures/generate";
+import { knnBurst, modularity, mulberry32, sparseSocial, syntheticStories } from "../fixtures/generate";
 
 const unweighted = (edges: number[][]): WeightedEdge[] => edges.map(([a, b]) => ({ claimA: a! + 1, claimB: b! + 1, weight: 1 }));
 const nodesOf = (count: number) => Array.from({ length: count }, (_, index) => index + 1);
@@ -94,8 +94,16 @@ describe("the default resolution on weighted fixtures", () => {
     expect(communities.length).toBeGreaterThanOrEqual(12);
   });
 
+  it("keeps a 300-claim burst in one piece without merging the forty small stories beside it", () => {
+    const { nodes, edges, truth } = knnBurst();
+    const { communities } = leidenClusterer.cluster(nodes, edges, { ...CPM, resolution: DEFAULT_PARAMS.resolution });
+    expect(communities).toHaveLength(41);
+    expect(Math.max(...communities.map((members) => members.length))).toBe(300);
+    for (const members of communities) expect(new Set(members.map((member) => truth.get(member))).size).toBe(1);
+  });
+
   it("every community it returns is connected", () => {
-    for (const fixture of [syntheticStories(), sparseSocial()]) {
+    for (const fixture of [syntheticStories(), sparseSocial(), knnBurst()]) {
       const { communities } = leidenClusterer.cluster(fixture.nodes, fixture.edges, { ...CPM, resolution: DEFAULT_PARAMS.resolution });
       for (const members of communities) {
         const inside = new Set(members);
@@ -121,6 +129,35 @@ describe("splitDisconnected", () => {
     const expected = new Map([[1, 1], [2, 1], [3, 3], [4, 3], [5, 5]]);
     expect(splitDisconnected(assignment, edges)).toEqual(expected);
     expect(splitDisconnected(assignment, [...edges].reverse())).toEqual(expected);
+  });
+});
+
+describe("mergeLinkedFragments", () => {
+  const clique = (members: number[], weight: number): WeightedEdge[] => members.flatMap((a, i) => members.slice(i + 1).map((b) => ({ claimA: a, claimB: b, weight })));
+  const assignment = new Map([[1, 1], [2, 1], [3, 1], [4, 4], [5, 4], [6, 4], [7, 7]]);
+  const inside = [...clique([1, 2, 3], 0.8), ...clique([4, 5, 6], 0.8)];
+  const cross = (weight: number, count: number): WeightedEdge[] => [[1, 4], [2, 5], [3, 6], [1, 5]].slice(0, count).map(([a, b]) => ({ claimA: a!, claimB: b!, weight }));
+
+  it("joins two communities linked as strongly as they are held together", () => {
+    const merged = mergeLinkedFragments(assignment, [...inside, ...cross(0.78, 3)]);
+    expect(merged.get(4)).toBe(merged.get(1));
+  });
+
+  it("leaves communities apart when the links between them are weak glue", () => {
+    const merged = mergeLinkedFragments(assignment, [...inside, ...cross(0.46, 4)]);
+    expect(merged.get(4)).not.toBe(merged.get(1));
+  });
+
+  it("is not swayed by a couple of strong links between otherwise separate stories", () => {
+    const merged = mergeLinkedFragments(assignment, [...inside, ...cross(0.95, 2)]);
+    expect(merged.get(4)).not.toBe(merged.get(1));
+  });
+
+  it("never pulls in a lone claim, and does not depend on edge order", () => {
+    const edges = [...inside, ...cross(0.78, 3), { claimA: 3, claimB: 7, weight: 0.99 }];
+    const merged = mergeLinkedFragments(assignment, edges);
+    expect(merged.get(7)).toBe(7);
+    expect(mergeLinkedFragments(assignment, [...edges].reverse())).toEqual(merged);
   });
 });
 

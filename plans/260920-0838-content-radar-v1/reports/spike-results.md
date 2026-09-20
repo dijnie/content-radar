@@ -55,6 +55,21 @@ Các tuỳ chọn `candidateStrategy: "all"`, tăng `maxLocalPasses`, `maxLevels
 
 Quyết định: giữ CPM vì nó không có giới hạn phân giải, điều quan trọng khi cửa sổ có hàng nghìn claim mà câu chuyện chỉ 2 đến 3 claim; chạy `ngraph.leiden` với `refine: false` và gamma mặc định 0,25. Cái giá phải nêu rõ: không có refinement thì thuật toán thực chất là Louvain và mất bảo đảm cộng đồng liên thông của Leiden. Bảo đảm đó được khôi phục bằng bước `splitDisconnected`, có test chứng minh mọi cộng đồng trả về đều liên thông. `leiden-ts` vẫn là phương án dự phòng sau interface `Clusterer` nếu dữ liệu thật cho thấy CPM không phù hợp.
 
+### Bổ sung ở phase 6: CPM cắt vụn đợt bùng nổ lớn, cần bước gộp theo độ mạnh liên kết
+
+Test tải 3.500 claim cho thấy một đợt bùng nổ 300 claim gần giống nhau bị CPM cắt thành khoảng 59 mảnh, mảnh lớn nhất 11 claim. Nguyên nhân là hai quyết định của plan tương tác với nhau: trần `maxNeighboursPerClaim = 30` làm đồ thị bên trong đợt bùng nổ thưa đi (mật độ khoảng 0,08), còn CPM giữ cụm theo ngưỡng mật độ gamma. Không gamma nào giải được cả hai phía:
+
+| Cấu hình | Đợt bùng nổ kNN 300 claim + 40 cụm nhỏ | 5 câu chuyện dính một entity phổ biến |
+|---|---|---|
+| CPM gamma từ 0,02 đến 0,06 | 41/41 đúng | sụp thành 1 cụm |
+| CPM gamma 0,25 | vỡ thành 87 mảnh | 5/5 đúng |
+| Modularity | gộp lẫn 9 cụm, chỉ 6/41 đúng (giới hạn phân giải) | 5/5 đúng |
+| CPM gamma 0,25 cộng `mergeLinkedFragments` | 41/41 đúng, cụm 300 nguyên vẹn | 5/5 đúng |
+
+Mật độ không phân biệt được "thưa vì bị trần láng giềng" với "thưa vì không liên quan", nhưng độ mạnh của cạnh thì phân biệt được: cạnh giữa các mảnh của cùng một đợt bùng nổ mạnh ngang cạnh bên trong mảnh, còn cạnh keo dính do entity phổ biến chỉ vừa qua ngưỡng tối thiểu. Quy tắc gộp: hai cộng đồng nhập làm một khi số cạnh giữa chúng không ít hơn cỡ của cộng đồng nhỏ hơn, và trọng số trung bình của các cạnh đó đạt từ 90% trọng số trung bình bên trong của cộng đồng yếu hơn. Claim lẻ không bao giờ bị kéo vào. Kết quả trên fixture thưa cũng tốt lên, từ 11/13 lên 12/13, không lần nào gộp lẫn câu chuyện.
+
+Số đo của test tải sau khi sửa (local, `workerd`): 5,9 giây cho toàn bộ job trên 3.500 claim, 6.851 cạnh cosine (trần cho phép 105.000), 41 câu chuyện, cụm lớn nhất 300. Bộ nhớ đỉnh không đo được ở local vì `workerd` local không áp trần và không lộ số đo; phase 9 theo dõi trên Worker thật.
+
 ## Nạp vector từ BLOB của D1
 
 Bằng chứng: `apps/worker/test/spike/d1-blob-memory.test.ts`, 3.500 vector Float32 1.024 chiều (4.096 byte mỗi vector, 13,7 MB đóng gói) trên D1 local.

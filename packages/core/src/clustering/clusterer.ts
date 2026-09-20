@@ -70,6 +70,61 @@ export function splitDisconnected(assignment: ReadonlyMap<number, number>, edges
   return new Map([...assignment.keys()].map((node) => [node, find(node)]));
 }
 
+/** Two fragments are one story when the links between them are at least this strong relative to the links inside them. */
+const FRAGMENT_LINK_STRENGTH = 0.9;
+
+/**
+ * Rejoins fragments of one large story. The neighbour cap keeps a burst of
+ * hundreds of near-identical claims sparse, so a density-based quality function
+ * such as CPM cuts it into dense pieces. Density cannot tell those pieces from
+ * unrelated stories glued by a popular entity, but link strength can: between
+ * fragments of one burst the edges are as strong as inside them, while glue
+ * edges barely clear the minimum weight. Two communities are joined when they
+ * share at least as many edges as the smaller one has members and the mean
+ * weight of those edges reaches 90% of the weaker community's internal mean.
+ */
+export function mergeLinkedFragments(assignment: ReadonlyMap<number, number>, edges: readonly WeightedEdge[]): Map<number, number> {
+  const size = new Map<number, number>();
+  for (const label of assignment.values()) size.set(label, (size.get(label) ?? 0) + 1);
+  const internal = new Map<number, { sum: number; count: number }>();
+  const between = new Map<string, { a: number; b: number; sum: number; count: number }>();
+  for (const { claimA, claimB, weight } of edges) {
+    const labelA = assignment.get(claimA);
+    const labelB = assignment.get(claimB);
+    if (labelA === undefined || labelB === undefined) continue;
+    if (labelA === labelB) {
+      const entry = internal.get(labelA) ?? { sum: 0, count: 0 };
+      internal.set(labelA, { sum: entry.sum + weight, count: entry.count + 1 });
+      continue;
+    }
+    const [a, b] = labelA < labelB ? [labelA, labelB] : [labelB, labelA];
+    const entry = between.get(`${a}:${b}`) ?? { a, b, sum: 0, count: 0 };
+    between.set(`${a}:${b}`, { a, b, sum: entry.sum + weight, count: entry.count + 1 });
+  }
+
+  const parent = new Map<number, number>([...size.keys()].map((label) => [label, label]));
+  const find = (label: number): number => {
+    let root = label;
+    while (parent.get(root) !== root) root = parent.get(root)!;
+    parent.set(label, root);
+    return root;
+  };
+  for (const link of [...between.values()].sort((x, y) => x.a - y.a || x.b - y.b)) {
+    const inA = internal.get(link.a);
+    const inB = internal.get(link.b);
+    // Only real communities take part; a lone claim has no internal links to compare with.
+    if (!inA || !inB) continue;
+    const enoughLinks = link.count >= Math.min(size.get(link.a)!, size.get(link.b)!);
+    const strongLinks = link.sum / link.count >= FRAGMENT_LINK_STRENGTH * Math.min(inA.sum / inA.count, inB.sum / inB.count);
+    if (enoughLinks && strongLinks) {
+      const rootA = find(link.a);
+      const rootB = find(link.b);
+      if (rootA !== rootB) parent.set(Math.max(rootA, rootB), Math.min(rootA, rootB));
+    }
+  }
+  return new Map([...assignment].map(([node, label]) => [node, find(label)]));
+}
+
 /** Stable fingerprint of a partition, for determinism checks and `members_hash`-style comparisons. */
 export function partitionKey(clustering: Pick<Clustering, "communities" | "singletons">): string {
   return `${clustering.communities.map((members) => members.join(",")).join("|")}#${clustering.singletons.join(",")}`;

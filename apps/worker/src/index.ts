@@ -1,7 +1,6 @@
-import { handleBackfill } from "./api/admin-backfill";
-import { handleProbe } from "./api/admin-probe";
 import { verifyAccess } from "./api/access-auth";
 import { guardRequest } from "./api/request-guard";
+import { routeApi } from "./api/router";
 import { runClusterJob } from "./cluster/run-cluster-job";
 import type { Env } from "./env";
 import { dispatchPolls } from "./ingest/dispatch-polls";
@@ -29,10 +28,7 @@ export default {
     const rejection = guardRequest(request, env.APP_ORIGIN);
     if (rejection) return rejection;
 
-    const { pathname } = new URL(request.url);
-    if (pathname === "/api/admin/probe") return handleProbe(request, env);
-    if (pathname === "/api/admin/backfill") return handleBackfill(request, env);
-    if (pathname.startsWith("/api/")) return Response.json({ error: "not_found" }, { status: 404 });
+    if (new URL(request.url).pathname.startsWith("/api/")) return routeApi(request, env);
     return env.ASSETS.fetch(request);
   },
 

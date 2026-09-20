@@ -68,6 +68,15 @@ Khi quota không đủ, chỉnh theo thứ tự: siết bộ lọc rẻ (`filter
 
 ## Cấu hình
 
+Sau khi cập nhật code, chạy migration trước khi khởi động Worker. Với local:
+
+```bash
+cd apps/worker
+npx wrangler d1 migrations apply content-radar --local --config wrangler.dev.jsonc
+```
+
+Migration `0008_cluster_publication.sql` bổ sung hai bảng dàn dựng để công bố cluster nguyên khối cho database đã chạy migration graph cũ. Nó cũng chạy được khi hai bảng đã tồn tại, không xoá dữ liệu. Với remote, áp dụng migration theo quy trình deploy ở trên.
+
 Sửa file trong `config/` rồi chạy `npm run config:sync -- --remote`. Lệnh kiểm tra bằng schema trước khi ghi, không đụng `next_poll_at` hay `cursor_json`, và mục bị gỡ khỏi file thì bị tắt (`enabled = 0`) chứ không bị xoá, để lịch sử còn nguyên.
 
 - **Thêm tài khoản X:** thêm một dòng `type: "x"` vào `sources.json`. Handle phải khớp `^[A-Za-z0-9_]{1,15}$`. Kiểm tra handle tồn tại trước (`curl https://api.fxtwitter.com/<handle>`); lúc soạn danh sách ban đầu, 2 trong 58 handle nhớ theo trí nhớ là sai.

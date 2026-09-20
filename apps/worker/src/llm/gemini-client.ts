@@ -33,7 +33,10 @@ interface GenerateContentResponse {
   error?: { code?: number; message?: string; status?: string };
 }
 
-/** The only function that talks to Gemini. It never logs the key or any header. */
+/**
+ * The pipeline's only way to Gemini, always called through budgetedCall. The one other caller is the manual
+ * diagnostic probe in api/admin-probe.ts, which spends one unbudgeted request per click. Never logs the key or a header.
+ */
 export async function generateJson(request: GeminiRequest): Promise<GeminiResult> {
   const started = Date.now();
   const elapsed = () => Date.now() - started;

@@ -94,6 +94,25 @@ describe("retention and repair", () => {
     expect(await db().prepare("SELECT status, error FROM cluster_runs WHERE id = ?").bind(hungRun!.id).first()).toEqual({ status: "failed", error: "lease expired" });
   });
 
+  it("keeps the members of a living story's latest sighting however old, so lineage can still match it", async () => {
+    const [claimId] = await seedClaims(db(), [{ tag: "S1", publishedAt: NOW - DAY }]);
+    const story = (alive: number) => db().prepare("INSERT INTO stories (headline_vi, first_seen_at, last_claim_at, members_hash, alive) VALUES ('h', ?, ?, 'x', ?) RETURNING id").bind(NOW, NOW, alive).first<{ id: number }>();
+    const living = await story(1);
+    const dead = await story(0);
+    const run = (at: number) => db().prepare("INSERT INTO cluster_runs (started_at, heartbeat_at, status, params_json, seed) VALUES (?, ?, 'done', '{}', 42) RETURNING id").bind(at, at).first<{ id: number }>();
+    const older = await run(NOW - 30 * DAY);
+    const latest = await run(NOW - 20 * DAY);
+    const sighting = (runId: number, idx: number, storyId: number) => [
+      db().prepare("INSERT INTO run_communities (run_id, community_idx, story_id, size, members_hash) VALUES (?, ?, ?, 1, 'x')").bind(runId, idx, storyId),
+      db().prepare("INSERT INTO run_members (run_id, community_idx, claim_id) VALUES (?, ?, ?)").bind(runId, idx, claimId),
+    ];
+    await db().batch([...sighting(older!.id, 0, living!.id), ...sighting(latest!.id, 0, living!.id), ...sighting(latest!.id, 1, dead!.id)]);
+
+    await runDailyMaintenance(db(), NOW);
+    const left = (await db().prepare("SELECT run_id, community_idx FROM run_members WHERE run_id IN (?, ?) ORDER BY run_id, community_idx").bind(older!.id, latest!.id).all()).results;
+    expect(left).toEqual([{ run_id: latest!.id, community_idx: 0 }]);
+  });
+
   it("removes placeholder stories of failed runs but never a story a user acted on", async () => {
     const insert = (first: number) => db().prepare("INSERT INTO stories (headline_vi, first_seen_at, last_claim_at, members_hash, alive) VALUES ('', ?, ?, 'x', 0) RETURNING id").bind(first, first).first<{ id: number }>();
     const orphan = await insert(NOW - 3 * DAY);

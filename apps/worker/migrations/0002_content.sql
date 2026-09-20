@@ -26,6 +26,7 @@ CREATE TABLE items (
   ingest_mode TEXT NOT NULL DEFAULT 'live' CHECK (ingest_mode IN ('live', 'backfill')),
   -- Time of the most recent wake-up message sent for this item.
   queued_at INTEGER,
+  -- Extraction calls that actually reached the LLM for this item. Wake-ups are not counted.
   enqueue_attempts INTEGER NOT NULL DEFAULT 0,
   claims_returned INTEGER,
   claims_accepted INTEGER,

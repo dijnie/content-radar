@@ -15,7 +15,18 @@ export async function applyRetention(db: D1Database, now: number, windowDays: nu
   const orphanCutoff = now - ORPHAN_GRACE_DAYS * DAY;
 
   await db.batch([
-    db.prepare("DELETE FROM run_members WHERE run_id IN (SELECT id FROM cluster_runs WHERE started_at < ?)").bind(logCutoff),
+    // Lineage matches a living story against its latest finished sighting however old, so that
+    // sighting's members are kept for as long as the story lives.
+    db
+      .prepare(
+        `DELETE FROM run_members WHERE run_id IN (SELECT id FROM cluster_runs WHERE started_at < ?)
+           AND NOT EXISTS (
+             SELECT 1 FROM run_communities rc JOIN stories s ON s.id = rc.story_id AND s.alive = 1
+             WHERE rc.run_id = run_members.run_id AND rc.community_idx = run_members.community_idx
+               AND rc.run_id = (SELECT MAX(rc2.run_id) FROM run_communities rc2 JOIN cluster_runs r2 ON r2.id = rc2.run_id
+                                WHERE rc2.story_id = rc.story_id AND r2.status = 'done'))`,
+      )
+      .bind(logCutoff),
     db.prepare("DELETE FROM poll_log WHERE at < ?").bind(logCutoff),
     db.prepare("DELETE FROM llm_calls WHERE at < ?").bind(logCutoff),
     db.prepare("DELETE FROM claim_embeddings WHERE claim_id IN (SELECT id FROM claims WHERE published_at < ?)").bind(derivedCutoff),

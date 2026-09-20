@@ -1,5 +1,5 @@
 import { matchCommunities, type DeadStory, type LineageResult, type PreviousCommunity } from "@radar/core";
-import { chunkedBatch } from "../db/batch";
+import { chunkedBatch, chunkForParams, placeholders } from "../db/batch";
 import { sha256Hex } from "../util/hash";
 import type { ClusterOutput, JobContext } from "./job-context";
 
@@ -31,14 +31,20 @@ async function previousCommunities(ctx: JobContext): Promise<PreviousCommunity[]
     )
     .all<{ story_id: number; run_id: number; community_idx: number; finished_at: number }>();
 
-  const latest = new Map<number, (typeof results)[number]>();
-  for (const row of results) if (!latest.has(row.story_id)) latest.set(row.story_id, row);
-
-  const previous: PreviousCommunity[] = [];
-  for (const row of latest.values()) {
-    const { results: members } = await ctx.db.prepare("SELECT claim_id FROM run_members WHERE run_id = ? AND community_idx = ?").bind(row.run_id, row.community_idx).all<{ claim_id: number }>();
-    previous.push({ storyId: row.story_id, members: members.map((member) => member.claim_id), lastSeenAt: row.finished_at });
+  // One batched read for all members instead of one query per story.
+  const byCommunity = new Map<string, number[]>();
+  const runIds = [...new Set(results.map((row) => row.run_id))];
+  for (const chunk of chunkForParams(runIds)) {
+    const { results: members } = await ctx.db
+      .prepare(`SELECT run_id, community_idx, claim_id FROM run_members WHERE run_id IN (${placeholders(chunk.length)})`)
+      .bind(...chunk)
+      .all<{ run_id: number; community_idx: number; claim_id: number }>();
+    for (const member of members) {
+      const key = `${member.run_id}:${member.community_idx}`;
+      byCommunity.set(key, [...(byCommunity.get(key) ?? []), member.claim_id]);
+    }
   }
+  const previous: PreviousCommunity[] = results.map((row) => ({ storyId: row.story_id, members: byCommunity.get(`${row.run_id}:${row.community_idx}`) ?? [], lastSeenAt: row.finished_at }));
   return previous;
 }
 

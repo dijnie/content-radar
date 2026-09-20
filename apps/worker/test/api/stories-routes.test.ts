@@ -94,7 +94,7 @@ describe("GET /api/stories", () => {
   });
 
   it("rejects bad parameters", async () => {
-    for (const query of ["?tab=all", "?sort=random", "?cursor=abc", "?cursor=1:2;DROP"]) {
+    for (const query of ["?tab=all", "?sort=random", "?cursor=abc", "?cursor=1:2;DROP", "?sort=constructor", "?tab=__proto__", "?tab=toString", "?sort=hasOwnProperty"]) {
       expect((await handleStoryList(new Request(`https://radar.example.com/api/stories${query}`), env)).status, query).toBe(400);
     }
   });

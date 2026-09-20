@@ -38,14 +38,14 @@ describe("upsertItem", () => {
     const { id, status } = await upsertItem(env.DB, itemInput({ sourceId, externalId: "tweet-200" }));
     expect(status).toBe("queued");
     let [row] = await getItemsByIds(env.DB, [id]);
-    expect(row).toMatchObject({ status: "queued", queued_at: 1_790_000_100, enqueue_attempts: 1 });
+    expect(row).toMatchObject({ status: "queued", queued_at: 1_790_000_100, enqueue_attempts: 0 });
 
     await env.DB.prepare("UPDATE items SET status = 'extracted' WHERE id = ?").bind(id).run();
     const again = await upsertItem(env.DB, itemInput({ sourceId, externalId: "tweet-200", fetchedAt: 1_790_009_999 }));
     expect(again.status).toBe("extracted");
     await touchEnqueued(env.DB, id, 1_790_009_999).run();
     [row] = await getItemsByIds(env.DB, [id]);
-    expect(row).toMatchObject({ status: "extracted", queued_at: 1_790_000_100, enqueue_attempts: 1 });
+    expect(row).toMatchObject({ status: "extracted", queued_at: 1_790_000_100, enqueue_attempts: 0 });
   });
 
   it("stores a filtered item without a queue timestamp", async () => {

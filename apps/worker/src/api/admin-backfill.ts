@@ -1,4 +1,5 @@
 import { X_HANDLE_PATTERN } from "@radar/core";
+import { acquireLease, releaseLeaseStatement } from "../cluster/job-lease";
 import type { SourceRow } from "../db/sources-repo";
 import { buildAdapterContext, ingestPollResult, type IngestEnv } from "../ingest/poll-consumer";
 import { HttpError } from "../sources/http-client";
@@ -8,6 +9,7 @@ const MAX_DAYS = 15;
 const MAX_PAGES = 30;
 /** FxTwitter is a community service with no published quota; pages are spaced out. */
 const PAGE_DELAY_MS = 2000;
+const BACKFILL_LEASE_SECONDS = 10 * 60;
 
 export interface BackfillDeps {
   now?: number;
@@ -79,5 +81,15 @@ export async function handleBackfill(request: Request, env: IngestEnv, deps: Bac
   }
   const source = await env.DB.prepare("SELECT * FROM sources WHERE type = 'x' AND LOWER(key) = LOWER(?)").bind(handle).first<SourceRow>();
   if (!source) return Response.json({ error: "unknown_source" }, { status: 404 });
-  return Response.json(await backfillX(env, source, days, deps));
+  // One backfill per account at a time: a second one would only double the load on a community service.
+  const lease = `backfill:${source.key.toLowerCase()}`;
+  const holder = crypto.randomUUID();
+  if (!(await acquireLease(env.DB, lease, holder, deps.now ?? Math.floor(Date.now() / 1000), BACKFILL_LEASE_SECONDS))) {
+    return Response.json({ error: "backfill_in_progress" }, { status: 409 });
+  }
+  try {
+    return Response.json(await backfillX(env, source, days, deps));
+  } finally {
+    await releaseLeaseStatement(env.DB, lease, holder).run();
+  }
 }

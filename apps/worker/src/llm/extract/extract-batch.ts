@@ -1,6 +1,7 @@
 import { normalizeEntity } from "@radar/core";
 import { insertClaim, insertMentions, type ClaimInput, type MentionInput } from "../../db/claims-repo";
-import type { ItemRow } from "../../db/items-repo";
+import { chunkedBatch } from "../../db/batch";
+import { countExtractionAttempt, type ItemRow } from "../../db/items-repo";
 import { insertLlmCall, type LlmKind } from "../../db/llm-repo";
 import { TEXT_EXCERPT_MAX } from "../../sources/source-adapter";
 import { sha256Hex } from "../../util/hash";
@@ -111,6 +112,8 @@ export async function extractBatch(env: LlmEnv, items: ItemRow[], kind: Extract<
     { ...deps, now },
     attempt,
   );
+  // Only a call that reached Gemini counts against the item; a parked or postponed batch costs it nothing.
+  if (call.status === "ok" || call.status === "rejected") await chunkedBatch(env.DB, itemIds.map((id) => countExtractionAttempt(env.DB, id)));
   if (call.status === "rejected") return splitAndRetry(env, prepared, kind, deps, attempt);
   if (call.status !== "ok") return call;
 
@@ -136,6 +139,8 @@ export async function extractBatch(env: LlmEnv, items: ItemRow[], kind: Extract<
   const llmCallId = await insertLlmCall(env.DB, { ...call.log, claimsReturned: returned, claimsAccepted: acceptedCount, rejectReasons: rejected });
 
   const done: number[] = [];
+  // One db.batch per item, on purpose: insertMentions dedupes by counting the claim's mentions, which is only
+  // right while its statements run in order inside one transaction. Do not route these through chunkedBatch.
   for (const outcome of outcomes) {
     const { item } = outcome.prepared;
     await env.DB.batch([

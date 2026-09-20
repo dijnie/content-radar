@@ -73,6 +73,15 @@ describe("handleBackfill", () => {
     expect(requested).toEqual([]);
   });
 
+  it("refuses a second backfill of the same account while one is running", async () => {
+    await seedSource(env.DB, "x", "busy_acct").catch(() => undefined);
+    await env.DB.prepare("INSERT INTO job_leases (name, holder, expires_at) VALUES ('backfill:busy_acct', 'first', ?)").bind(NOW + 300).run();
+    const { testEnv, requested, deps } = setup();
+    const response = await handleBackfill(post({ handle: "busy_acct", days: 3 }), testEnv, deps);
+    expect(response.status).toBe(409);
+    expect(requested).toEqual([]);
+  });
+
   it("rejects other methods and malformed JSON", async () => {
     const { testEnv, deps } = setup();
     expect((await handleBackfill(new Request("https://radar.example.com/api/admin/backfill"), testEnv, deps)).status).toBe(405);

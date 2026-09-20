@@ -62,8 +62,9 @@ export async function handleStoryList(request: Request, env: Env): Promise<Respo
   const url = new URL(request.url);
   const tab = (url.searchParams.get("tab") ?? "inbox") as Tab;
   const sort = (url.searchParams.get("sort") ?? "score") as Sort;
-  if (!(tab in TABS)) return jsonError(400, "invalid_tab");
-  if (!(sort in SORTS)) return jsonError(400, "invalid_sort");
+  // hasOwn, not `in`: "constructor" and "__proto__" are keys of every object through the prototype chain.
+  if (!Object.hasOwn(TABS, tab)) return jsonError(400, "invalid_tab");
+  if (!Object.hasOwn(SORTS, sort)) return jsonError(400, "invalid_sort");
   const limit = Math.min(MAX_LIMIT, Math.max(1, Number(url.searchParams.get("limit")) || DEFAULT_LIMIT));
   const minScore = (await getSetting<number>(env.DB, "display_min_score")) ?? 40;
 

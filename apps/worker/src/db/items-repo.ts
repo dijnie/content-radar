@@ -102,7 +102,7 @@ export function upsertItemStatement(db: D1Database, item: ItemInput): D1Prepared
       item.sourceId, item.platform, item.externalId, item.url, item.canonicalUrl, item.authorId, item.title,
       item.textExcerpt, item.lang, item.kind, item.parentExternalId, item.publishedAt, item.fetchedAt,
       item.rawR2Key, item.contentHash, item.topicHint, item.ingestMode,
-      item.status, item.filterReason, queued ? item.fetchedAt : null, queued ? 1 : 0,
+      item.status, item.filterReason, queued ? item.fetchedAt : null, 0,
     );
 }
 
@@ -155,9 +155,14 @@ export function insertMetricSnapshot(db: D1Database, platform: SourceType, metri
     );
 }
 
-/** Records another wake-up message for an item that is still waiting. */
+/** Records another wake-up message for an item that is still waiting. It does not count as an attempt: a wake-up may never reach the LLM. */
 export function touchEnqueued(db: D1Database, itemId: number, at: number): D1PreparedStatement {
-  return db.prepare("UPDATE items SET queued_at = ?, enqueue_attempts = enqueue_attempts + 1 WHERE id = ? AND status = 'queued'").bind(at, itemId);
+  return db.prepare("UPDATE items SET queued_at = ? WHERE id = ? AND status = 'queued'").bind(at, itemId);
+}
+
+/** Counts one real extraction call against the item. */
+export function countExtractionAttempt(db: D1Database, itemId: number): D1PreparedStatement {
+  return db.prepare("UPDATE items SET enqueue_attempts = enqueue_attempts + 1 WHERE id = ? AND status = 'queued'").bind(itemId);
 }
 
 export async function getItemsByIds(db: D1Database, ids: readonly number[]): Promise<ItemRow[]> {

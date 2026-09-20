@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ClusterEnv } from "../../src/cluster/job-context";
 import { runClusterJob } from "../../src/cluster/run-cluster-job";
 import { fakeEmbedder, fakeLlmQueue, seedClaims, wipeClusterState, type SeedClaim } from "./seed-claims";
@@ -9,6 +9,8 @@ const T0 = Date.UTC(2026, 8, 20, 12, 5, 0) / 1000;
 
 let llm: ReturnType<typeof fakeLlmQueue>;
 let testEnv: ClusterEnv;
+
+afterEach(() => vi.useRealTimers());
 
 beforeEach(async () => {
   await wipeClusterState(env.DB);
@@ -90,6 +92,37 @@ describe("runClusterJob", () => {
     // The half-written run produced no birth and no death; the recovery run only continues.
     expect(await events(recovered.status === "done" ? recovered.runId : 0)).toEqual([{ type: "continue", n: 5 }]);
     expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM lineage_events e JOIN cluster_runs r ON r.id = e.run_id WHERE r.status = 'done' AND e.type IN ('birth', 'death')").first()).toEqual({ n: 5 });
+  });
+
+  it("moves the heartbeat and the lease expiry with the wall clock while the run is in progress", async () => {
+    await seedClaims(env.DB, [{ tag: "S1", publishedAt: T0 - HOUR }, { tag: "S1", publishedAt: T0 - 2 * HOUR }]);
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const seen: { stage: string; heartbeat: number; leaseExpires: number }[] = [];
+    await runClusterJob(testEnv, {
+      now: T0,
+      embed: fakeEmbedder().embed,
+      onStage: async (stage) => {
+        const row = await env.DB.prepare("SELECT (SELECT heartbeat_at FROM cluster_runs ORDER BY id DESC LIMIT 1) AS heartbeat, (SELECT expires_at FROM job_leases WHERE name = 'cluster') AS leaseExpires").first<{ heartbeat: number; leaseExpires: number }>();
+        seen.push({ stage, ...row! });
+        vi.advanceTimersByTime(20 * 60 * 1000); // every stage "takes" twenty minutes
+      },
+    });
+    const first = seen.find((entry) => entry.stage === "resolve_entities")!;
+    const late = seen.find((entry) => entry.stage === "score")!;
+    expect(late.heartbeat - first.heartbeat).toBe(6 * 20 * 60);
+    expect(late.leaseExpires - first.leaseExpires).toBe(6 * 20 * 60);
+    // Two hours of work on a 75-minute lease, and the run still finished as its holder.
+    expect(await env.DB.prepare("SELECT status FROM cluster_runs ORDER BY id DESC LIMIT 1").first()).toEqual({ status: "done" });
+  });
+
+  it("stops writing when another run has taken the lease", async () => {
+    await seedClaims(env.DB, [{ tag: "S1", publishedAt: T0 - HOUR }, { tag: "S1", publishedAt: T0 - 2 * HOUR }]);
+    await expect(
+      runClusterJob(testEnv, { now: T0, embed: fakeEmbedder().embed, onStage: async (stage) => { if (stage === "cluster") await env.DB.prepare("UPDATE job_leases SET holder = 'someone-else' WHERE name = 'cluster'").run(); } }),
+    ).rejects.toThrow(/lease lost/);
+    expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM stories WHERE alive = 1").first()).toEqual({ n: 0 });
+    // The new holder's lease is left alone.
+    expect(await env.DB.prepare("SELECT holder FROM job_leases WHERE name = 'cluster'").first()).toEqual({ holder: "someone-else" });
   });
 
   it("takes over an expired lease and marks the run it belonged to as failed", async () => {

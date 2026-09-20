@@ -32,7 +32,7 @@ export type BudgetedResult =
   | { status: "rejected" };
 
 /**
- * The single door to Gemini. Reserves budget, calls, then commits when the call
+ * The pipeline's single door to Gemini (the manual diagnostic probe is the only thing outside it). Reserves budget, calls, then commits when the call
  * counted against Google's quota and releases when it did not. A 429 parks the
  * model and moves down the chain. The successful call is logged by the caller,
  * which knows how many results it accepted; every failure is logged here.

@@ -244,6 +244,30 @@ describe("consumeLlmBatch", () => {
 
 });
 
+describe("extraction attempts", () => {
+  it("are not spent by wake-ups that never reach Gemini, only by real calls", async () => {
+    const ids = await seedItems(2);
+    const attempts = async () => (await env.DB.prepare(`SELECT MAX(enqueue_attempts) AS n FROM items WHERE id IN (${ids.join(",")})`).first<{ n: number }>())!.n;
+    const gemini = fakeGemini();
+
+    // A day without budget: thirty drains and thirty parked batches later the items are untouched.
+    await env.DB.prepare("UPDATE llm_models SET rpd = 0").run();
+    for (let tick = 0; tick < 30; tick++) {
+      await env.DB.prepare(`UPDATE items SET queued_at = 0 WHERE id IN (${ids.join(",")})`).run();
+      await drainBacklog(testEnv, NOW + tick * 1800);
+      await consumeLlmBatch(fakeBatch(ids.map((itemId) => ({ kind: "extract", itemId }))).batch, testEnv, { now: NOW + tick * 1800, fetcher: gemini.fetcher });
+    }
+    expect(await attempts()).toBe(0);
+    expect(await statuses(ids)).toEqual({ queued: 2 });
+
+    // A call Gemini rejects is a real attempt.
+    await env.DB.prepare("UPDATE llm_models SET rpd = 1000").run();
+    const rejecting = fakeGemini(() => ({ status: 200, body: { candidates: [{ content: { parts: [{ text: "not json" }] } }] } }));
+    await consumeLlmBatch(fakeBatch([{ kind: "extract", itemId: ids[0]! }]).batch, testEnv, { now: NOW, fetcher: rejecting.fetcher });
+    expect(await env.DB.prepare("SELECT status, enqueue_attempts FROM items WHERE id = ?").bind(ids[0]).first()).toEqual({ status: "failed", enqueue_attempts: 1 });
+  });
+});
+
 describe("drainBacklog", () => {
   it("serves live items before backfill, oldest first, and gives up after 20 attempts", async () => {
     await env.DB.prepare("UPDATE llm_models SET rpd = 0").run();
@@ -258,7 +282,8 @@ describe("drainBacklog", () => {
     expect(sent.slice(0, 3).map((message) => (message as { itemId: number }).itemId)).toEqual(live);
     expect(sent.slice(3)).toEqual(backfill.map((itemId) => ({ kind: "extract", itemId, backfill: true })));
     expect(await env.DB.prepare("SELECT status, filter_reason FROM items WHERE id = ?").bind(stuck).first()).toEqual({ status: "failed", filter_reason: "enqueue_attempts_exceeded" });
-    expect(await env.DB.prepare("SELECT enqueue_attempts, queued_at FROM items WHERE id = ?").bind(live[0]).first()).toEqual({ enqueue_attempts: 2, queued_at: NOW });
+    // A wake-up is recorded, but it is not an attempt.
+    expect(await env.DB.prepare("SELECT enqueue_attempts, queued_at FROM items WHERE id = ?").bind(live[0]).first()).toEqual({ enqueue_attempts: 0, queued_at: NOW });
   });
 });
 

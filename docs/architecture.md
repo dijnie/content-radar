@@ -40,7 +40,7 @@ Một Worker duy nhất xử lý `fetch`, `scheduled` và `queue`, và phục v�
 Queues giao message ít nhất một lần, chỉ giữ 14 ngày, và message hết hạn thì biến mất chứ không vào dead-letter. Vì vậy không công việc nào chỉ tồn tại trong queue:
 
 - Item mới được ghi **cùng trạng thái cuối của nó** (`queued` kèm `queued_at`, hoặc `filtered_out` kèm lý do) trong một câu lệnh, rồi message mới được gửi. Consumer chết giữa chừng thì item vẫn nằm đó ở trạng thái `queued`.
-- Mỗi 30 phút `drain-backlog` gửi lại message cho các item `queued` có lần đánh thức gần nhất quá 30 phút, trong phạm vi ngân sách còn lại của ngày, item trực tiếp trước item backfill. Sau 20 lần thì item thành `failed`.
+- Mỗi 30 phút `drain-backlog` gửi lại message cho các item `queued` có lần đánh thức gần nhất quá 30 phút, trong phạm vi ngân sách còn lại của ngày, item trực tiếp trước item backfill. Item chỉ thành `failed` sau 20 lần gọi Gemini **thật sự diễn ra** cho nó; tín hiệu đánh thức không tới được Gemini (hết ngân sách, ngắt mạch mở, lô bị cắt) không bị tính.
 - Message của item không còn `queued` được ack mà không gọi Gemini. Nhờ đó message giao trùng hay một lô bị phát lại đều vô hại; khoá `(item_id, content_hash)` chặn claim trùng.
 - Một nguồn được "thuê" trong D1 (đẩy `next_poll_at` lên 15 phút) trước khi message poll được gửi, nên tick kế tiếp không gửi trùng và message mất thì nguồn tự đến hạn lại.
 
@@ -52,7 +52,7 @@ Tài nguyên khan hiếm của free tier là số request mỗi ngày, không ph
 
 - `budgeted-call` là cửa duy nhất tới Gemini cho cả ba loại việc (`extract`, `synthesize`, `adjudicate`). Nó đặt chỗ trong `llm_usage` trước khi gọi, **xác nhận** khi call đã tính vào quota của Google (200, 429, request bị từ chối) và **hoàn chỗ** khi call không tới nơi (lỗi mạng, 5xx, lỗi vị trí). Không hoàn chỗ thì sổ sách tự cạn trong khi quota thật vẫn còn.
 - Dòng sổ được chính câu lệnh đặt chỗ tạo ra theo ngày Pacific, nên sang ngày mới không cần seed gì.
-- 20% RPD của mỗi model dành riêng cho tổng hợp và phân xử; bóc claim dùng tối đa 80%, trong đó backfill tối đa 25% tổng RPD. Bước xếp hàng tổng hợp chỉ lên kế hoạch trong phần 20% đó.
+- Mỗi ngày chia làm hai phần không vay mượn lẫn nhau, và việc chia được ép ngay trong câu lệnh đặt chỗ chứ không chỉ ở bước lập kế hoạch: bóc claim dùng tối đa 80% RPD của mỗi model (trong đó backfill tối đa 25% tổng RPD), tổng hợp và phân xử dùng chung tối đa 20%. Phần 20% là trần, vì quota là thứ khan hiếm và bóc claim là xương sống của pipeline. Số message phân xử gửi đi và số câu chuyện được xếp hàng tổng hợp đều được tính trong phần đó.
 - Hết RPM thì chờ 60 giây; hết RPD thì ack message và để item lại trong D1. Gặp 429 thì model bị "đỗ" tới nửa đêm Pacific kế tiếp và call chuyển sang model sau trong chuỗi. Nếu 429 tới ngay sau một lần đặt lại mà hệ thống tin là đã xảy ra, model chỉ bị đỗ thêm một giờ: đó là dấu hiệu giờ đặt lại thật khác giả định.
 - Năm lỗi liên tiếp cùng loại không phải hết quota (ví dụ lỗi vị trí) mở ngắt mạch 15 phút.
 
@@ -94,9 +94,9 @@ Thư viện phân cụm nằm sau interface `Clusterer`; thay thư viện chỉ 
 
 ### Công bố nguyên khối
 
-Một lần chạy ghi dở trông giống hệt một cộng đồng bị co lại dưới con mắt của Jaccard. Vì vậy mọi thứ một lần chạy ghi đều gắn `run_id`; câu chuyện mới được chèn dưới dạng bản giữ chỗ vô hình (`alive = 0`) chỉ để lấy id; câu lệnh **cuối cùng** lật `cluster_runs.status` sang `done` và nhả lease. Job chết ở bất kỳ bước nào thì lần chạy sau bỏ qua snapshot đó. Mọi truy vấn đọc lineage đều lọc theo lần chạy `done`.
+Một lần chạy ghi dở trông giống hệt một cộng đồng bị co lại dưới con mắt của Jaccard, và API đọc thẳng bảng `stories`. Vì vậy công bố gồm hai pha. Pha dàn dựng ghi theo khúc vào các bảng gắn `run_id` mà không ai đọc (`run_communities`, `run_members`, `run_stories`, `run_retirements`, `lineage_events`); câu chuyện mới được chèn dưới dạng bản giữ chỗ vô hình (`alive = 0`) chỉ để lấy id. Pha công bố là **một** `db.batch` duy nhất, tức một transaction của D1: vài câu lệnh theo tập hợp chép dữ liệu đã dàn dựng sang `stories` và `story_claims`, cho các câu chuyện bị nhập hoặc đã chết nghỉ, lật `cluster_runs.status` sang `done` và nhả lease. Hoặc tất cả cùng hiện ra, hoặc không gì cả. Lưu ý khi sửa: `chunkedBatch` là nhiều transaction rời nhau, nên không được dùng nó cho bất cứ thứ gì người đọc nhìn thấy. Mọi truy vấn đọc lineage đều lọc theo lần chạy `done`.
 
-Khoá chống chạy chồng là một lease lấy bằng một câu lệnh upsert có điều kiện, dài 75 phút và được gia hạn sau mỗi bước.
+Khoá chống chạy chồng là một lease lấy bằng một câu lệnh upsert có điều kiện, dài 75 phút, được kiểm tra trước và gia hạn sau mỗi bước theo đồng hồ thật; lần chạy mất lease thì dừng ghi ngay.
 
 ## Chấm điểm
 

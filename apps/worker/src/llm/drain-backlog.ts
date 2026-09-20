@@ -16,7 +16,8 @@ const SEND_BATCH_SIZE = 100;
 /**
  * D1 is the backlog. Every 30 minutes, items still `queued` whose last wake-up
  * is older than 30 minutes are announced again, as many as today's remaining
- * budget can serve: live items first, oldest first.
+ * budget can serve: live items first, oldest first. An item is given up only after
+ * 20 extraction calls really made for it, never for wake-ups that went nowhere.
  */
 export async function drainBacklog(env: Pick<Env, "DB" | "LLM_QUEUE">, now: number): Promise<{ sent: number; failed: number }> {
   const gaveUp = await env.DB
@@ -45,7 +46,7 @@ export async function drainBacklog(env: Pick<Env, "DB" | "LLM_QUEUE">, now: numb
       .all<{ id: number }>();
     if (results.length === 0) continue;
 
-    // Ledger first: the attempt is recorded before the wake-up goes out.
+    // Ledger first: the wake-up time is recorded before the message goes out.
     await chunkedBatch(env.DB, results.map((row) => touchEnqueued(env.DB, row.id, now)));
     const messages = results.map((row) => ({ body: { kind: "extract", itemId: row.id, ...(mode === "backfill" ? { backfill: true } : {}) } satisfies LlmMessage }));
     for (let start = 0; start < messages.length; start += SEND_BATCH_SIZE) await env.LLM_QUEUE.sendBatch(messages.slice(start, start + SEND_BATCH_SIZE));

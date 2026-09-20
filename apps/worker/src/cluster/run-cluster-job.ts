@@ -34,6 +34,10 @@ export async function runClusterJob(env: ClusterEnv, deps: ClusterJobDeps = {}):
   const db = env.DB;
   const now = deps.now ?? Math.floor(Date.now() / 1000);
   const holder = crypto.randomUUID();
+  // `now` is the logical time of the run. The lease and the heartbeat follow the wall clock,
+  // otherwise a renewal rewrites the expiry it already had and a long run loses its own lease.
+  const startedMs = Date.now();
+  const clock = () => now + Math.floor((Date.now() - startedMs) / 1000);
   if (!(await acquireLease(db, CLUSTER_LEASE, holder, now))) return { status: "skipped", reason: "lease_held" };
 
   // Holding the lease proves any run still marked `running` is dead.
@@ -50,11 +54,16 @@ export async function runClusterJob(env: ClusterEnv, deps: ClusterJobDeps = {}):
     env, db, runId: run!.id, holder, now, params, lastDoneRunStartedAt: lastDone?.at ?? 0,
     embed: deps.embed ?? workersAiEmbedder(env.AI, (count) => void (tokens += count)),
   };
+  const holdLease = async (where: string) => {
+    if (!(await renewLease(db, CLUSTER_LEASE, holder, clock()))) throw new LeaseLost(`lease lost ${where}`);
+  };
   const stage = async <T>(name: string, work: () => Promise<T>): Promise<T> => {
-    await db.prepare("UPDATE cluster_runs SET stage = ?, heartbeat_at = ? WHERE id = ?").bind(name, now, ctx.runId).run();
+    // Checked before the stage writes anything, not only after it.
+    await holdLease(`before ${name}`);
+    await db.prepare("UPDATE cluster_runs SET stage = ?, heartbeat_at = ? WHERE id = ?").bind(name, clock(), ctx.runId).run();
     await deps.onStage?.(name);
     const result = await work();
-    if (!(await renewLease(db, CLUSTER_LEASE, holder, now))) throw new LeaseLost(`lease lost after ${name}`);
+    await holdLease(`after ${name}`);
     return result;
   };
 
@@ -66,7 +75,8 @@ export async function runClusterJob(env: ClusterEnv, deps: ClusterJobDeps = {}):
     const cluster = await stage("cluster", () => clusterStep(ctx, vectors));
     const lineage = await stage("lineage", () => lineageStep(ctx, cluster));
     const stories = await stage("score", () => scoreStep(ctx, cluster, lineage));
-    await db.prepare("UPDATE cluster_runs SET stage = 'finalize', heartbeat_at = ? WHERE id = ?").bind(now, ctx.runId).run();
+    await holdLease("before finalize");
+    await db.prepare("UPDATE cluster_runs SET stage = 'finalize', heartbeat_at = ? WHERE id = ?").bind(clock(), ctx.runId).run();
     await deps.onStage?.("finalize");
     await finalizeStep(ctx, cluster, lineage, stories, () => deps.onStage?.("publish"));
     const synthesisQueued = await enqueueSynthesisStep(ctx);

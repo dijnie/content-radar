@@ -28,13 +28,13 @@ Consumer của `radar-llm` là cửa duy nhất gọi Gemini. Nó gom lô item, 
 
 ## Requirements
 
-- [ ] Một module client Gemini duy nhất: gọi REST `generateContent` với `responseMimeType: application/json` và `responseJsonSchema`, định tuyến theo cấu hình placement hoặc AI Gateway đã chốt ở phase 1.
-- [ ] Sổ ngân sách theo từng model, từng loại việc và từng ngày Pacific: `reserve` tạo dòng khi chưa có, `commit` khi Gemini đã phản hồi 200 hoặc 429, `release` khi call không tới được Gemini hoặc bị từ chối trước khi tính quota. Kết quả `reserve` phân biệt rõ `ok`, `rpm_exhausted`, `rpd_exhausted`, `kind_cap_reached`.
-- [ ] Chia ngân sách ngày: `synthesize` và `adjudicate` có 20% dành riêng; `extract` dùng tối đa 80%, trong đó backfill tối đa 25% tổng RPD.
-- [ ] Chuỗi fallback: model đầu tiên còn ngân sách theo `priority`; gặp 429 thì đánh dấu `exhausted_until` cho model đó và thử model kế tiếp.
-- [ ] Ngắt mạch: 5 call liên tiếp hỏng cùng một loại lỗi không phải hết quota (ví dụ `location_blocked`) làm tạm dừng mọi việc LLM 15 phút.
-- [ ] Ack từng message sau khi kết quả của item đó đã commit; item lỗi không kéo cả lô; xử lý lại một message không tạo claim trùng và không gọi lại Gemini cho item đã xong.
-- [ ] Bước rút backlog chạy trong cron 30 phút và gửi lại message cho item `queued` khi có ngân sách.
+- [x] Một module client Gemini duy nhất: gọi REST `generateContent` với `responseMimeType: application/json` và `responseJsonSchema`, định tuyến theo cấu hình placement hoặc AI Gateway đã chốt ở phase 1.
+- [x] Sổ ngân sách theo từng model, từng loại việc và từng ngày Pacific: `reserve` tạo dòng khi chưa có, `commit` khi Gemini đã phản hồi 200 hoặc 429, `release` khi call không tới được Gemini hoặc bị từ chối trước khi tính quota. Kết quả `reserve` phân biệt rõ `ok`, `rpm_exhausted`, `rpd_exhausted`, `kind_cap_reached`.
+- [x] Chia ngân sách ngày: `synthesize` và `adjudicate` có 20% dành riêng; `extract` dùng tối đa 80%, trong đó backfill tối đa 25% tổng RPD.
+- [x] Chuỗi fallback: model đầu tiên còn ngân sách theo `priority`; gặp 429 thì đánh dấu `exhausted_until` cho model đó và thử model kế tiếp.
+- [x] Ngắt mạch: 5 call liên tiếp hỏng cùng một loại lỗi không phải hết quota (ví dụ `location_blocked`) làm tạm dừng mọi việc LLM 15 phút.
+- [x] Ack từng message sau khi kết quả của item đó đã commit; item lỗi không kéo cả lô; xử lý lại một message không tạo claim trùng và không gọi lại Gemini cho item đã xong.
+- [x] Bước rút backlog chạy trong cron 30 phút và gửi lại message cho item `queued` khi có ngân sách.
 
 ## Architecture
 
@@ -107,13 +107,13 @@ Ghi kết quả của một item trong một `db.batch`: `INSERT OR IGNORE` các
 
 ## Todo
 
-- [ ] Sổ ngân sách có `reserve`, `commit`, `release` và test ngày mới
-- [ ] Chuỗi model, trần theo loại việc, ngắt mạch
-- [ ] Client Gemini với phân loại lỗi
-- [ ] Prompt, schema, phiên bản prompt
-- [ ] Khớp `quote` có chuẩn hoá Unicode và khớp mờ
-- [ ] Consumer lô với ack từng message
-- [ ] Bước rút backlog và consumer dead-letter
+- [x] Sổ ngân sách có `reserve`, `commit`, `release` và test ngày mới
+- [x] Chuỗi model, trần theo loại việc, ngắt mạch
+- [x] Client Gemini với phân loại lỗi
+- [x] Prompt, schema, phiên bản prompt
+- [x] Khớp `quote` có chuẩn hoá Unicode và khớp mờ
+- [x] Consumer lô với ack từng message
+- [x] Bước rút backlog và consumer dead-letter
 - [ ] Fixture và test, gồm ca phát lại lô
 
 ## Success Criteria

@@ -7,3 +7,6 @@ export * from "./vector/cosine.ts";
 export * from "./graph/cosine-neighbours.ts";
 export * from "./graph/entity-idf.ts";
 export * from "./graph/weighted-edges.ts";
+export * from "./clustering/clusterer.ts";
+export * from "./clustering/leiden-clusterer.ts";
+export * from "./clustering/resolution-sweep.ts";

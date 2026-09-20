@@ -51,8 +51,9 @@ export const DEFAULT_PARAMS: Readonly<CoreParams> = Object.freeze({
   hubEntityShare: 0.15,
 
   quality: "cpm",
-  // Chosen by the resolution sweep over the weighted fixtures; see resolution-sweep.test.ts.
-  resolution: 0.5,
+  // CPM density threshold, in the unit of the edge weights. 0.25 is where both weighted
+  // fixtures recover their planted stories; real data is re-swept during the soak week.
+  resolution: 0.25,
   seed: 42,
   minCommunitySize: 2,
   singletonMinVelocityZ: 3,

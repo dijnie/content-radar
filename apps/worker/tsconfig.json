@@ -5,5 +5,5 @@
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true
   },
-  "include": ["src", "test"]
+  "include": ["src", "test", "../../packages/core/src/clustering/ngraph-leiden.d.ts"]
 }

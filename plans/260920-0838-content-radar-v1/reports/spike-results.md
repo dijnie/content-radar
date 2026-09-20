@@ -8,7 +8,7 @@ Trạng thái: các mục chạy local đã có kết quả dứt khoát. Các m
 
 | Câu hỏi | Trạng thái | Quyết định |
 |---|---|---|
-| Thư viện Leiden chính và dự phòng | Đã đo | Chính: `ngraph.leiden` 0.3.0 với CPM. Dự phòng: `leiden-ts` 0.1.0 (modularity). |
+| Thư viện Leiden chính và dự phòng | Đã đo, sửa ở phase 5 | Chính: `ngraph.leiden` 0.3.0 với CPM và **tắt refinement**, cộng bước tách thành phần không liên thông. Dự phòng: `leiden-ts` 0.1.0 (modularity). |
 | CPM có tôn trọng trọng số cạnh không | Đã đo | Có. Phase 5 dùng CPM, không cần nhánh modularity hay tự viết Leiden. |
 | Cách lưu embedding | Đã đo local | BLOB trong D1, nạp theo khúc 500 dòng. Không cần nhánh R2. |
 | Tỉ lệ lỗi vị trí Gemini trước và sau placement | Chưa đo | Chờ deploy. |
@@ -40,6 +40,20 @@ Quét gamma của CPM trên `ngraph.leiden`:
 Hành vi này khớp lý thuyết CPM: gamma là ngưỡng mật độ có trọng số. Hệ quả cho phase 5: gamma phải được chọn theo thang trọng số cạnh thực tế của graph claim, nên tham số này thuộc `params.ts` và cần quét lại trên dữ liệu thật ở tuần chạy thử.
 
 Ghi chú thêm cho phase 5: `leiden-ts` có tuỳ chọn `initialPartition` (khởi động từ phân hoạch trước) và `ngraph.leiden` có `preserveLabels`; cả hai chưa được thử ở đây. Lineage vẫn dựa vào khớp Jaccard sau khi chạy như plan đã chốt. `ngraph.leiden` không kèm khai báo kiểu TypeScript, nên repo tự khai báo phần API đang dùng.
+
+### Bổ sung ở phase 5: pha refinement của `ngraph.leiden` làm giảm chất lượng
+
+Spike ban đầu chỉ kiểm tra số cộng đồng của `ngraph.leiden`, chưa kiểm tra chất lượng phân hoạch. Khi phase 5 đo trên mạng tham chiếu và fixture có trọng số, kết quả như sau (seed 42):
+
+| Phép đo | `ngraph.leiden` mặc định | `ngraph.leiden` với `refine: false` | `leiden-ts` (modularity) |
+|---|---|---|---|
+| Modularity karate club (tối ưu đã biết 0,4198) | 0,364; từ 0,364 đến 0,397 qua 5 seed | 0,415 | 0,4188 |
+| Năm câu chuyện chung một entity phổ biến | Không gamma nào khôi phục đủ 5 | 5/5 ở gamma 0,25 | 5/5 ở resolution 1 |
+| Dữ liệu thưa: đợt bùng nổ 300 claim, 12 cụm nhỏ, 70% cô lập | — | 11/13, không cụm nào lẫn câu chuyện (gamma 0,15 đến 0,25) | 11/13, không lẫn |
+
+Các tuỳ chọn `candidateStrategy: "all"`, tăng `maxLocalPasses`, `maxLevels` và `allowNewCommunity` không cải thiện gì; chỉ việc tắt refinement là có tác dụng. Hai cụm không khôi phục được ở cả hai thư viện là do đợt bùng nổ 300 claim có dạng dải dài nên bị chia khúc, không phải do gộp nhầm.
+
+Quyết định: giữ CPM vì nó không có giới hạn phân giải, điều quan trọng khi cửa sổ có hàng nghìn claim mà câu chuyện chỉ 2 đến 3 claim; chạy `ngraph.leiden` với `refine: false` và gamma mặc định 0,25. Cái giá phải nêu rõ: không có refinement thì thuật toán thực chất là Louvain và mất bảo đảm cộng đồng liên thông của Leiden. Bảo đảm đó được khôi phục bằng bước `splitDisconnected`, có test chứng minh mọi cộng đồng trả về đều liên thông. `leiden-ts` vẫn là phương án dự phòng sau interface `Clusterer` nếu dữ liệu thật cho thấy CPM không phù hợp.
 
 ## Nạp vector từ BLOB của D1
 

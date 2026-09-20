@@ -31,7 +31,7 @@ dependencies: [7, 8]
 - [ ] Báo cáo chạy thử 7 ngày với số liệu theo từng tiêu chí chấp nhận, gồm ngưỡng ổn định lineage.
 - [ ] Backfill 15 ngày cho danh sách KOL ban đầu, chạy từ ngày thứ 3 của tuần chạy thử, có giãn cách.
 - [ ] Quy trình rollback được thử ít nhất một lần.
-- [ ] Tài liệu: `README.md`, `docs/architecture.md`, `docs/operations.md`; `docs/analyst-runbook.md` đã có từ phase 8.
+- [x] Tài liệu: `README.md`, `docs/architecture.md`, `docs/operations.md`; `docs/analyst-runbook.md` đã có từ phase 8.
 
 ## Architecture
 
@@ -83,8 +83,8 @@ Số liệu đo trong tuần chạy thử, lấy từ D1 bằng `scripts/soak-re
 - [ ] Backfill KOL từ ngày thứ 3
 - [ ] Quét lại gamma và hiệu chỉnh ngày 3, ngày 7
 - [ ] Thử payload canary
-- [ ] Script sao lưu
-- [ ] `README.md`, `docs/architecture.md`, `docs/operations.md`
+- [x] Script sao lưu
+- [x] `README.md`, `docs/architecture.md`, `docs/operations.md`
 - [ ] `soak-report.md` đối chiếu đủ năm tiêu chí chấp nhận
 
 ## Success Criteria

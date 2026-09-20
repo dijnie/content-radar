@@ -29,9 +29,9 @@ dependencies: [1]
 
 ## Requirements
 
-- [ ] Migration tạo đủ các nhóm bảng dưới đây, có khoá ngoại, ràng buộc `CHECK` cho cột enum và index cho mọi đường truy vấn của pipeline và giao diện.
-- [ ] Lệnh `npm run config:sync` đọc `config/*.json`, kiểm tra bằng schema, rồi upsert vào D1 (local hoặc remote) mà không xoá trạng thái vận hành như `next_poll_at`, `cursor_json`.
-- [ ] Cấu hình khởi đầu có ba chủ đề, danh sách feed đã được probe trong báo cáo nghiên cứu, danh sách KOL khởi đầu cho X, truy vấn HN, repo GitHub, và bảng tác giả nối các handle, feed của cùng một người. Không có nguồn Reddit trong v1 theo quyết định của người dùng.
+- [x] Migration tạo đủ các nhóm bảng dưới đây, có khoá ngoại, ràng buộc `CHECK` cho cột enum và index cho mọi đường truy vấn của pipeline và giao diện.
+- [x] Lệnh `npm run config:sync` đọc `config/*.json`, kiểm tra bằng schema, rồi upsert vào D1 (local hoặc remote) mà không xoá trạng thái vận hành như `next_poll_at`, `cursor_json`.
+- [x] Cấu hình khởi đầu có ba chủ đề, danh sách feed đã được probe trong báo cáo nghiên cứu, danh sách KOL khởi đầu cho X, truy vấn HN, repo GitHub, và bảng tác giả nối các handle, feed của cùng một người. Không có nguồn Reddit trong v1 theo quyết định của người dùng.
 
 ## Architecture
 
@@ -69,12 +69,12 @@ Lớp truy cập dữ liệu nằm ở `apps/worker/src/db/`, mỗi nhóm bảng
 
 ## Todo
 
-- [ ] Năm file migration áp dụng sạch trên D1 local
-- [ ] Lớp repo và `chunkedBatch`
-- [ ] Năm file cấu hình và schema kiểm tra
+- [x] Năm file migration áp dụng sạch trên D1 local
+- [x] Lớp repo và `chunkedBatch`
+- [x] Năm file cấu hình và schema kiểm tra
 - [ ] `npm run config:sync` cho local và remote
-- [ ] Seed `llm_models`
-- [ ] Test tích hợp D1 gồm các ca chống trùng và chống ghi đè
+- [x] Seed `llm_models`
+- [x] Test tích hợp D1 gồm các ca chống trùng và chống ghi đè
 
 ## Success Criteria
 

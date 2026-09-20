@@ -1,0 +1,192 @@
+[
+  {
+    "authorKey": "simon-willison",
+    "name": "Simon Willison",
+    "handles": [
+      {
+        "platform": "x",
+        "handle": "simonw"
+      },
+      {
+        "platform": "rss",
+        "handle": "simonwillison.net"
+      },
+      {
+        "platform": "hn",
+        "handle": "simonw"
+      }
+    ]
+  },
+  {
+    "authorKey": "swyx",
+    "name": "swyx",
+    "handles": [
+      {
+        "platform": "x",
+        "handle": "swyx"
+      },
+      {
+        "platform": "rss",
+        "handle": "www.latent.space"
+      }
+    ]
+  },
+  {
+    "authorKey": "nathan-lambert",
+    "name": "Nathan Lambert",
+    "handles": [
+      {
+        "platform": "x",
+        "handle": "natolambert"
+      },
+      {
+        "platform": "rss",
+        "handle": "www.interconnects.ai"
+      }
+    ]
+  },
+  {
+    "authorKey": "anthropic",
+    "name": "Anthropic",
+    "handles": [
+      {
+        "platform": "x",
+        "handle": "AnthropicAI"
+      },
+      {
+        "platform": "rss",
+        "handle": "tim-hilde.github.io"
+      },
+      {
+        "platform": "rss",
+        "handle": "conoro.github.io"
+      }
+    ]
+  },
+  {
+    "authorKey": "openai",
+    "name": "OpenAI",
+    "handles": [
+      {
+        "platform": "x",
+        "handle": "OpenAI"
+      },
+      {
+        "platform": "rss",
+        "handle": "openai.com"
+      }
+    ]
+  },
+  {
+    "authorKey": "google-deepmind",
+    "name": "Google DeepMind",
+    "handles": [
+      {
+        "platform": "x",
+        "handle": "GoogleDeepMind"
+      },
+      {
+        "platform": "rss",
+        "handle": "deepmind.google"
+      }
+    ]
+  },
+  {
+    "authorKey": "hugging-face",
+    "name": "Hugging Face",
+    "handles": [
+      {
+        "platform": "x",
+        "handle": "huggingface"
+      },
+      {
+        "platform": "rss",
+        "handle": "huggingface.co"
+      }
+    ]
+  },
+  {
+    "authorKey": "julia-evans",
+    "name": "🔎Julia Evans🔍",
+    "handles": [
+      {
+        "platform": "x",
+        "handle": "b0rk"
+      },
+      {
+        "platform": "rss",
+        "handle": "jvns.ca"
+      }
+    ]
+  },
+  {
+    "authorKey": "gergely-orosz",
+    "name": "Gergely Orosz",
+    "handles": [
+      {
+        "platform": "x",
+        "handle": "GergelyOrosz"
+      },
+      {
+        "platform": "rss",
+        "handle": "blog.pragmaticengineer.com"
+      }
+    ]
+  },
+  {
+    "authorKey": "bytebytego",
+    "name": "Alex Xu",
+    "handles": [
+      {
+        "platform": "x",
+        "handle": "alexxubyte"
+      },
+      {
+        "platform": "rss",
+        "handle": "blog.bytebytego.com"
+      }
+    ]
+  },
+  {
+    "authorKey": "brendan-gregg",
+    "name": "Brendan Gregg",
+    "handles": [
+      {
+        "platform": "x",
+        "handle": "brendangregg"
+      },
+      {
+        "platform": "rss",
+        "handle": "www.brendangregg.com"
+      }
+    ]
+  },
+  {
+    "authorKey": "marc-brooker",
+    "name": "Marc Brooker",
+    "handles": [
+      {
+        "platform": "x",
+        "handle": "MarcJBrooker"
+      },
+      {
+        "platform": "rss",
+        "handle": "brooker.co.za"
+      }
+    ]
+  },
+  {
+    "authorKey": "werner-vogels",
+    "name": "Werner Vogels",
+    "handles": [
+      {
+        "platform": "x",
+        "handle": "Werner"
+      },
+      {
+        "platform": "rss",
+        "handle": "www.allthingsdistributed.com"
+      }
+    ]
+  }
+]

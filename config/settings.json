@@ -1,0 +1,13 @@
+{
+  "display_min_score": 40,
+  "synthesis_min_score": 30,
+  "synthesis_reserved_share": 0.2,
+  "backfill_max_share": 0.25,
+  "display_timezone": "Asia/Ho_Chi_Minh",
+  "llm_safe_default_rpm": 5,
+  "llm_safe_default_rpd": 100,
+  "filter_languages": ["en", "vi"],
+  "filter_min_text_length": 40,
+  "hn_min_points": 20,
+  "core_overrides": {}
+}

@@ -1,0 +1,919 @@
+[
+  {
+    "type": "x",
+    "key": "karpathy",
+    "label": "Andrej Karpathy (@karpathy)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "sama",
+    "label": "Sam Altman (@sama)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "ylecun",
+    "label": "Yann LeCun (@ylecun)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "AndrewYNg",
+    "label": "Andrew Ng (@AndrewYNg)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "DrJimFan",
+    "label": "Jim Fan (@DrJimFan)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "simonw",
+    "label": "Simon Willison (@simonw)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30,
+    "authorKey": "simon-willison"
+  },
+  {
+    "type": "x",
+    "key": "swyx",
+    "label": "swyx (@swyx)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30,
+    "authorKey": "swyx"
+  },
+  {
+    "type": "x",
+    "key": "hwchase17",
+    "label": "Harrison Chase (@hwchase17)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "jerryjliu0",
+    "label": "Jerry Liu (@jerryjliu0)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "omarsar0",
+    "label": "elvis (@omarsar0)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "_akhaliq",
+    "label": "AK (@_akhaliq)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "rasbt",
+    "label": "Sebastian Raschka (@rasbt)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "jeremyphoward",
+    "label": "Jeremy Howard (@jeremyphoward)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "natolambert",
+    "label": "Nathan Lambert (@natolambert)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30,
+    "authorKey": "nathan-lambert"
+  },
+  {
+    "type": "x",
+    "key": "giffmana",
+    "label": "Lucas Beyer (bl16) (@giffmana)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "alexalbert__",
+    "label": "Alex Albert (@alexalbert__)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "AnthropicAI",
+    "label": "Anthropic (@AnthropicAI)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30,
+    "authorKey": "anthropic"
+  },
+  {
+    "type": "x",
+    "key": "OpenAI",
+    "label": "OpenAI (@OpenAI)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30,
+    "authorKey": "openai"
+  },
+  {
+    "type": "x",
+    "key": "GoogleDeepMind",
+    "label": "Google DeepMind (@GoogleDeepMind)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30,
+    "authorKey": "google-deepmind"
+  },
+  {
+    "type": "x",
+    "key": "huggingface",
+    "label": "Hugging Face (@huggingface)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30,
+    "authorKey": "hugging-face"
+  },
+  {
+    "type": "x",
+    "key": "MistralAI",
+    "label": "Mistral AI (@MistralAI)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "deepseek_ai",
+    "label": "DeepSeek (@deepseek_ai)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "Alibaba_Qwen",
+    "label": "Qwen (@Alibaba_Qwen)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "cursor_ai",
+    "label": "Cursor (@cursor_ai)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "llama_index",
+    "label": "LlamaIndex 🦙 (@llama_index)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "OfficialLoganK",
+    "label": "Logan Kilpatrick (@OfficialLoganK)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "jxnlco",
+    "label": "jason (@jxnlco)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "eugeneyan",
+    "label": "Eugene Yan (@eugeneyan)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "HamelHusain",
+    "label": "Hamel Husain (@HamelHusain)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "ClementDelangue",
+    "label": "clem 🤗 (@ClementDelangue)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "Thom_Wolf",
+    "label": "Thomas Wolf (@Thom_Wolf)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "soumithchintala",
+    "label": "Soumith Chintala (@soumithchintala)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "tri_dao",
+    "label": "Tri Dao (@tri_dao)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "_philschmid",
+    "label": "Philipp Schmid (@_philschmid)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "kelseyhightower",
+    "label": "Kelsey Hightower (@kelseyhightower)",
+    "topicHint": "backend",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "b0rk",
+    "label": "🔎Julia Evans🔍 (@b0rk)",
+    "topicHint": "backend",
+    "pollIntervalMin": 30,
+    "authorKey": "julia-evans"
+  },
+  {
+    "type": "x",
+    "key": "mipsytipsy",
+    "label": "Charity Majors (@mipsytipsy)",
+    "topicHint": "system-design",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "copyconstruct",
+    "label": "Cindy Sridharan (@copyconstruct)",
+    "topicHint": "system-design",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "martinkl",
+    "label": "Martin Kleppmann (@martinkl)",
+    "topicHint": "system-design",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "GergelyOrosz",
+    "label": "Gergely Orosz (@GergelyOrosz)",
+    "topicHint": "backend",
+    "pollIntervalMin": 30,
+    "authorKey": "gergely-orosz"
+  },
+  {
+    "type": "x",
+    "key": "alexxubyte",
+    "label": "Alex Xu (@alexxubyte)",
+    "topicHint": "system-design",
+    "pollIntervalMin": 30,
+    "authorKey": "bytebytego"
+  },
+  {
+    "type": "x",
+    "key": "brendangregg",
+    "label": "Brendan Gregg (@brendangregg)",
+    "topicHint": "backend",
+    "pollIntervalMin": 30,
+    "authorKey": "brendan-gregg"
+  },
+  {
+    "type": "x",
+    "key": "mitchellh",
+    "label": "Mitchell Hashimoto (@mitchellh)",
+    "topicHint": "backend",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "antirez",
+    "label": "antirez (@antirez)",
+    "topicHint": "backend",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "danluu",
+    "label": "Dan Luu (@danluu)",
+    "topicHint": "backend",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "rakyll",
+    "label": "Jaana Dogan ヤナ ドガン (@rakyll)",
+    "topicHint": "backend",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "eatonphil",
+    "label": "Phil Eaton (@eatonphil)",
+    "topicHint": "backend",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "MarcJBrooker",
+    "label": "Marc Brooker (@MarcJBrooker)",
+    "topicHint": "system-design",
+    "pollIntervalMin": 30,
+    "authorKey": "marc-brooker"
+  },
+  {
+    "type": "x",
+    "key": "Werner",
+    "label": "Werner Vogels (@Werner)",
+    "topicHint": "system-design",
+    "pollIntervalMin": 30,
+    "authorKey": "werner-vogels"
+  },
+  {
+    "type": "rss",
+    "key": "https://openai.com/news/rss.xml",
+    "label": "OpenAI News",
+    "topicHint": "ai",
+    "pollIntervalMin": 120,
+    "alwaysPass": true,
+    "authorKey": "openai"
+  },
+  {
+    "type": "rss",
+    "key": "https://deepmind.google/blog/rss.xml",
+    "label": "Google DeepMind Blog",
+    "topicHint": "ai",
+    "pollIntervalMin": 120,
+    "alwaysPass": true,
+    "authorKey": "google-deepmind"
+  },
+  {
+    "type": "rss",
+    "key": "https://blog.research.google/feeds/posts/default",
+    "label": "Google Research Blog",
+    "topicHint": "ai",
+    "pollIntervalMin": 120,
+    "alwaysPass": true
+  },
+  {
+    "type": "rss",
+    "key": "https://huggingface.co/blog/feed.xml",
+    "label": "Hugging Face Blog",
+    "topicHint": "ai",
+    "pollIntervalMin": 120,
+    "alwaysPass": true,
+    "authorKey": "hugging-face"
+  },
+  {
+    "type": "rss",
+    "key": "https://stability.ai/news?format=rss",
+    "label": "Stability AI News",
+    "topicHint": "ai",
+    "pollIntervalMin": 120,
+    "alwaysPass": true
+  },
+  {
+    "type": "rss",
+    "key": "https://cohere.com/blog/rss.xml",
+    "label": "Cohere Blog",
+    "topicHint": "ai",
+    "pollIntervalMin": 120,
+    "alwaysPass": true
+  },
+  {
+    "type": "rss",
+    "key": "https://www.microsoft.com/en-us/research/feed/",
+    "label": "Microsoft Research",
+    "topicHint": "ai",
+    "pollIntervalMin": 120,
+    "alwaysPass": false
+  },
+  {
+    "type": "rss",
+    "key": "https://aws.amazon.com/blogs/machine-learning/feed/",
+    "label": "AWS Machine Learning Blog",
+    "topicHint": "ai",
+    "pollIntervalMin": 120,
+    "alwaysPass": false
+  },
+  {
+    "type": "rss",
+    "key": "https://blogs.nvidia.com/feed/",
+    "label": "NVIDIA Blog",
+    "topicHint": "ai",
+    "pollIntervalMin": 120,
+    "alwaysPass": false
+  },
+  {
+    "type": "rss",
+    "key": "https://bair.berkeley.edu/blog/feed.xml",
+    "label": "Berkeley BAIR Blog",
+    "topicHint": "ai",
+    "pollIntervalMin": 120,
+    "alwaysPass": true
+  },
+  {
+    "type": "rss",
+    "key": "https://news.mit.edu/rss/topic/artificial-intelligence2",
+    "label": "MIT News: AI",
+    "topicHint": "ai",
+    "pollIntervalMin": 120,
+    "alwaysPass": false
+  },
+  {
+    "type": "rss",
+    "key": "https://www.together.ai/blog/rss.xml",
+    "label": "Together AI Blog",
+    "topicHint": "ai",
+    "pollIntervalMin": 120,
+    "alwaysPass": true
+  },
+  {
+    "type": "rss",
+    "key": "https://blog.langchain.dev/rss/",
+    "label": "LangChain Blog",
+    "topicHint": "ai",
+    "pollIntervalMin": 120,
+    "alwaysPass": true
+  },
+  {
+    "type": "rss",
+    "key": "https://simonwillison.net/atom/everything/",
+    "label": "Simon Willison",
+    "topicHint": "ai",
+    "pollIntervalMin": 120,
+    "alwaysPass": true,
+    "authorKey": "simon-willison"
+  },
+  {
+    "type": "rss",
+    "key": "https://www.interconnects.ai/feed",
+    "label": "Interconnects",
+    "topicHint": "ai",
+    "pollIntervalMin": 120,
+    "alwaysPass": true,
+    "authorKey": "nathan-lambert"
+  },
+  {
+    "type": "rss",
+    "key": "https://www.latent.space/feed",
+    "label": "Latent Space",
+    "topicHint": "ai",
+    "pollIntervalMin": 120,
+    "alwaysPass": true,
+    "authorKey": "swyx"
+  },
+  {
+    "type": "rss",
+    "key": "https://tim-hilde.github.io/anthropic-rss/rss.xml",
+    "label": "Anthropic News (unofficial mirror)",
+    "topicHint": "ai",
+    "pollIntervalMin": 120,
+    "alwaysPass": true,
+    "authorKey": "anthropic"
+  },
+  {
+    "type": "rss",
+    "key": "https://conoro.github.io/anthropic-engineering-rss-feed/anthropic_engineering_rss.xml",
+    "label": "Anthropic Engineering (unofficial mirror)",
+    "topicHint": "ai",
+    "pollIntervalMin": 120,
+    "alwaysPass": true,
+    "authorKey": "anthropic"
+  },
+  {
+    "type": "rss",
+    "key": "https://martinfowler.com/feed.atom",
+    "label": "Martin Fowler",
+    "topicHint": "system-design",
+    "pollIntervalMin": 120,
+    "alwaysPass": true
+  },
+  {
+    "type": "rss",
+    "key": "https://aws.amazon.com/blogs/architecture/feed/",
+    "label": "AWS Architecture Blog",
+    "topicHint": "system-design",
+    "pollIntervalMin": 120,
+    "alwaysPass": true
+  },
+  {
+    "type": "rss",
+    "key": "https://netflixtechblog.com/feed",
+    "label": "Netflix Tech Blog",
+    "topicHint": "system-design",
+    "pollIntervalMin": 120,
+    "alwaysPass": true
+  },
+  {
+    "type": "rss",
+    "key": "https://blog.cloudflare.com/rss/",
+    "label": "Cloudflare Blog",
+    "topicHint": "backend",
+    "pollIntervalMin": 120,
+    "alwaysPass": false
+  },
+  {
+    "type": "rss",
+    "key": "https://discord.com/blog/rss.xml",
+    "label": "Discord Blog",
+    "topicHint": "backend",
+    "pollIntervalMin": 120,
+    "alwaysPass": false
+  },
+  {
+    "type": "rss",
+    "key": "https://dropbox.tech/feed",
+    "label": "Dropbox Tech",
+    "topicHint": "backend",
+    "pollIntervalMin": 120,
+    "alwaysPass": true
+  },
+  {
+    "type": "rss",
+    "key": "https://shopify.engineering/blog.atom",
+    "label": "Shopify Engineering",
+    "topicHint": "backend",
+    "pollIntervalMin": 120,
+    "alwaysPass": true
+  },
+  {
+    "type": "rss",
+    "key": "https://engineering.atspotify.com/feed/",
+    "label": "Spotify Engineering",
+    "topicHint": "backend",
+    "pollIntervalMin": 120,
+    "alwaysPass": true
+  },
+  {
+    "type": "rss",
+    "key": "https://slack.engineering/feed/",
+    "label": "Slack Engineering",
+    "topicHint": "backend",
+    "pollIntervalMin": 120,
+    "alwaysPass": true
+  },
+  {
+    "type": "rss",
+    "key": "https://github.blog/engineering.atom",
+    "label": "GitHub Engineering",
+    "topicHint": "backend",
+    "pollIntervalMin": 120,
+    "alwaysPass": true
+  },
+  {
+    "type": "rss",
+    "key": "https://engineering.fb.com/feed/",
+    "label": "Meta Engineering",
+    "topicHint": "system-design",
+    "pollIntervalMin": 120,
+    "alwaysPass": true
+  },
+  {
+    "type": "rss",
+    "key": "https://blog.bytebytego.com/feed",
+    "label": "ByteByteGo",
+    "topicHint": "system-design",
+    "pollIntervalMin": 120,
+    "alwaysPass": true,
+    "authorKey": "bytebytego"
+  },
+  {
+    "type": "rss",
+    "key": "https://blog.pragmaticengineer.com/feed",
+    "label": "The Pragmatic Engineer",
+    "topicHint": "backend",
+    "pollIntervalMin": 120,
+    "alwaysPass": true,
+    "authorKey": "gergely-orosz"
+  },
+  {
+    "type": "rss",
+    "key": "https://feed.infoq.com/",
+    "label": "InfoQ",
+    "topicHint": "system-design",
+    "pollIntervalMin": 120,
+    "alwaysPass": false
+  },
+  {
+    "type": "rss",
+    "key": "https://www.brendangregg.com/blog/rss.xml",
+    "label": "Brendan Gregg",
+    "topicHint": "backend",
+    "pollIntervalMin": 120,
+    "alwaysPass": true,
+    "authorKey": "brendan-gregg"
+  },
+  {
+    "type": "rss",
+    "key": "https://jvns.ca/atom.xml",
+    "label": "Julia Evans",
+    "topicHint": "backend",
+    "pollIntervalMin": 120,
+    "alwaysPass": true,
+    "authorKey": "julia-evans"
+  },
+  {
+    "type": "rss",
+    "key": "https://brooker.co.za/blog/rss.xml",
+    "label": "Marc Brooker",
+    "topicHint": "system-design",
+    "pollIntervalMin": 120,
+    "alwaysPass": true,
+    "authorKey": "marc-brooker"
+  },
+  {
+    "type": "rss",
+    "key": "https://www.allthingsdistributed.com/atom.xml",
+    "label": "All Things Distributed",
+    "topicHint": "system-design",
+    "pollIntervalMin": 120,
+    "alwaysPass": true,
+    "authorKey": "werner-vogels"
+  },
+  {
+    "type": "rss",
+    "key": "https://stripe.com/blog/feed.rss",
+    "label": "Stripe Blog",
+    "topicHint": "backend",
+    "pollIntervalMin": 120,
+    "alwaysPass": false
+  },
+  {
+    "type": "rss",
+    "key": "https://www.linkedin.com/blog/engineering/feed",
+    "label": "LinkedIn Engineering",
+    "topicHint": "backend",
+    "pollIntervalMin": 120,
+    "alwaysPass": true
+  },
+  {
+    "type": "hn",
+    "key": "LLM",
+    "label": "HN: LLM",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "hn",
+    "key": "AI agent",
+    "label": "HN: AI agent",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "hn",
+    "key": "Claude",
+    "label": "HN: Claude",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "hn",
+    "key": "GPT",
+    "label": "HN: GPT",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "hn",
+    "key": "open weights",
+    "label": "HN: open weights",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "hn",
+    "key": "distributed systems",
+    "label": "HN: distributed systems",
+    "topicHint": "system-design",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "hn",
+    "key": "system design",
+    "label": "HN: system design",
+    "topicHint": "system-design",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "hn",
+    "key": "Postgres",
+    "label": "HN: Postgres",
+    "topicHint": "backend",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "hn",
+    "key": "database",
+    "label": "HN: database",
+    "topicHint": "backend",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "hn",
+    "key": "Kubernetes",
+    "label": "HN: Kubernetes",
+    "topicHint": "backend",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "github",
+    "key": "vllm-project/vllm",
+    "label": "vllm-project/vllm releases",
+    "topicHint": "ai",
+    "pollIntervalMin": 360,
+    "alwaysPass": true
+  },
+  {
+    "type": "github",
+    "key": "ggml-org/llama.cpp",
+    "label": "ggml-org/llama.cpp releases",
+    "topicHint": "ai",
+    "pollIntervalMin": 360,
+    "alwaysPass": true
+  },
+  {
+    "type": "github",
+    "key": "langchain-ai/langchain",
+    "label": "langchain-ai/langchain releases",
+    "topicHint": "ai",
+    "pollIntervalMin": 360,
+    "alwaysPass": true
+  },
+  {
+    "type": "github",
+    "key": "langchain-ai/langgraph",
+    "label": "langchain-ai/langgraph releases",
+    "topicHint": "ai",
+    "pollIntervalMin": 360,
+    "alwaysPass": true
+  },
+  {
+    "type": "github",
+    "key": "run-llama/llama_index",
+    "label": "run-llama/llama_index releases",
+    "topicHint": "ai",
+    "pollIntervalMin": 360,
+    "alwaysPass": true
+  },
+  {
+    "type": "github",
+    "key": "huggingface/transformers",
+    "label": "huggingface/transformers releases",
+    "topicHint": "ai",
+    "pollIntervalMin": 360,
+    "alwaysPass": true
+  },
+  {
+    "type": "github",
+    "key": "ollama/ollama",
+    "label": "ollama/ollama releases",
+    "topicHint": "ai",
+    "pollIntervalMin": 360,
+    "alwaysPass": true
+  },
+  {
+    "type": "github",
+    "key": "openai/openai-agents-python",
+    "label": "openai/openai-agents-python releases",
+    "topicHint": "ai",
+    "pollIntervalMin": 360,
+    "alwaysPass": true
+  },
+  {
+    "type": "github",
+    "key": "modelcontextprotocol/typescript-sdk",
+    "label": "modelcontextprotocol/typescript-sdk releases",
+    "topicHint": "ai",
+    "pollIntervalMin": 360,
+    "alwaysPass": true
+  },
+  {
+    "type": "github",
+    "key": "cloudflare/workers-sdk",
+    "label": "cloudflare/workers-sdk releases",
+    "topicHint": "backend",
+    "pollIntervalMin": 360,
+    "alwaysPass": true
+  },
+  {
+    "type": "github",
+    "key": "redis/redis",
+    "label": "redis/redis releases",
+    "topicHint": "backend",
+    "pollIntervalMin": 360,
+    "alwaysPass": true
+  },
+  {
+    "type": "github",
+    "key": "kubernetes/kubernetes",
+    "label": "kubernetes/kubernetes releases",
+    "topicHint": "backend",
+    "pollIntervalMin": 360,
+    "alwaysPass": true
+  },
+  {
+    "type": "github",
+    "key": "nodejs/node",
+    "label": "nodejs/node releases",
+    "topicHint": "backend",
+    "pollIntervalMin": 360,
+    "alwaysPass": true
+  },
+  {
+    "type": "github",
+    "key": "denoland/deno",
+    "label": "denoland/deno releases",
+    "topicHint": "backend",
+    "pollIntervalMin": 360,
+    "alwaysPass": true
+  },
+  {
+    "type": "github",
+    "key": "oven-sh/bun",
+    "label": "oven-sh/bun releases",
+    "topicHint": "backend",
+    "pollIntervalMin": 360,
+    "alwaysPass": true
+  },
+  {
+    "type": "github",
+    "key": "tigerbeetle/tigerbeetle",
+    "label": "tigerbeetle/tigerbeetle releases",
+    "topicHint": "system-design",
+    "pollIntervalMin": 360,
+    "alwaysPass": true
+  },
+  {
+    "type": "github",
+    "key": "duckdb/duckdb",
+    "label": "duckdb/duckdb releases",
+    "topicHint": "backend",
+    "pollIntervalMin": 360,
+    "alwaysPass": true
+  },
+  {
+    "type": "github",
+    "key": "grafana/grafana",
+    "label": "grafana/grafana releases",
+    "topicHint": "backend",
+    "pollIntervalMin": 360,
+    "alwaysPass": true
+  },
+  {
+    "type": "github",
+    "key": "etcd-io/etcd",
+    "label": "etcd-io/etcd releases",
+    "topicHint": "system-design",
+    "pollIntervalMin": 360,
+    "alwaysPass": true
+  },
+  {
+    "type": "github",
+    "key": "search:topic:llm stars:>200",
+    "label": "GitHub trending: LLM",
+    "topicHint": "ai",
+    "pollIntervalMin": 720
+  },
+  {
+    "type": "github",
+    "key": "search:topic:ai-agents stars:>100",
+    "label": "GitHub trending: AI agents",
+    "topicHint": "ai",
+    "pollIntervalMin": 720
+  },
+  {
+    "type": "github",
+    "key": "search:topic:distributed-systems stars:>100",
+    "label": "GitHub trending: distributed systems",
+    "topicHint": "system-design",
+    "pollIntervalMin": 720
+  }
+]

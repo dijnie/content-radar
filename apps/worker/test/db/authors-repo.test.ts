@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
-import { normalizeHandle, upsertAuthorByHandle } from "../../src/db/authors-repo";
+import { upsertAuthorByHandle } from "../../src/db/authors-repo";
 
 describe("upsertAuthorByHandle", () => {
   it("links handles on different platforms to one author through the author key", async () => {
@@ -21,10 +21,5 @@ describe("upsertAuthorByHandle", () => {
     const owner = await upsertAuthorByHandle(env.DB, { platform: "hn", handle: "pg", authorKey: "paul-graham" });
     const attempt = await upsertAuthorByHandle(env.DB, { platform: "hn", handle: "pg", authorKey: "someone-else" });
     expect(attempt).toBe(owner);
-  });
-
-  it("keeps HN handles case-sensitive", () => {
-    expect(normalizeHandle("hn", "PG")).toBe("PG");
-    expect(normalizeHandle("x", "@PG")).toBe("pg");
   });
 });

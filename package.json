@@ -2,17 +2,25 @@
   "name": "content-radar",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22" },
-  "workspaces": ["packages/*", "apps/*"],
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present",
+    "typecheck": "tsc -p scripts/tsconfig.json && npm run typecheck --workspaces --if-present",
     "dev": "npm run dev --workspace @radar/worker",
-    "deploy": "npm run build --workspace @radar/web && npm run deploy --workspace @radar/worker"
+    "deploy": "npm run build --workspace @radar/web && npm run deploy --workspace @radar/worker",
+    "config:sync": "node scripts/sync-config.ts"
   },
   "devDependencies": {
+    "@types/node": "24.13.6",
     "typescript": "7.0.2",
-    "vitest": "4.1.11"
+    "vitest": "4.1.11",
+    "zod": "4.4.3"
   }
 }

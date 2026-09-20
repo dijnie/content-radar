@@ -1,4 +1,6 @@
-export type SourceType = "x" | "hn" | "rss" | "github";
+import type { Platform } from "@radar/core";
+
+export type SourceType = Platform;
 
 export interface SourceRow {
   id: number;

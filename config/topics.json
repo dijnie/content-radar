@@ -1,0 +1,32 @@
+[
+  {
+    "slug": "ai",
+    "name": "AI & Agent",
+    "keywords": [
+      "ai", "llm", "agent", "agentic", "model", "gpt", "claude", "gemini", "llama", "qwen", "deepseek", "mistral",
+      "transformer", "inference", "fine-tuning", "finetune", "rag", "embedding", "benchmark", "eval", "reasoning",
+      "prompt", "context window", "mcp", "tool use", "multimodal", "diffusion", "rlhf", "reinforcement learning",
+      "open weights", "token", "gpu", "cuda", "vllm", "quantization", "distillation", "alignment", "neural"
+    ]
+  },
+  {
+    "slug": "system-design",
+    "name": "System Design",
+    "keywords": [
+      "system design", "architecture", "distributed", "scalability", "scale", "consistency", "consensus", "raft",
+      "paxos", "replication", "sharding", "partition", "latency", "throughput", "availability", "reliability",
+      "fault tolerance", "load balancer", "cache", "caching", "cdn", "event-driven", "microservices", "monolith",
+      "queue", "stream", "kafka", "outage", "postmortem", "incident", "capacity", "observability", "slo"
+    ]
+  },
+  {
+    "slug": "backend",
+    "name": "Backend",
+    "keywords": [
+      "backend", "api", "rest", "grpc", "graphql", "database", "postgres", "postgresql", "mysql", "sqlite", "redis",
+      "index", "query", "transaction", "migration", "orm", "golang", "rust", "java", "node.js", "python", "kubernetes",
+      "docker", "serverless", "edge", "workers", "performance", "profiling", "memory", "concurrency", "async",
+      "websocket", "http", "tcp", "linux", "kernel", "ebpf", "auth", "oauth"
+    ]
+  }
+]

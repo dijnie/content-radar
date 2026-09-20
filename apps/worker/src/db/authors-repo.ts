@@ -1,3 +1,4 @@
+import { normalizeHandle } from "@radar/core";
 import type { SourceType } from "./sources-repo";
 
 export interface AuthorHandleInput {
@@ -6,12 +7,6 @@ export interface AuthorHandleInput {
   displayName?: string | null;
   /** `author_key` of the configured source, linking this handle to a known author. */
   authorKey?: string | null;
-}
-
-/** X and GitHub handles are case-insensitive on their platforms. */
-export function normalizeHandle(platform: SourceType, handle: string): string {
-  const trimmed = handle.trim().replace(/^@/, "");
-  return platform === "x" || platform === "github" ? trimmed.toLowerCase() : trimmed;
 }
 
 /**

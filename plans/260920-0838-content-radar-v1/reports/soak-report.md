@@ -28,6 +28,8 @@ Hai việc phải chủ động làm trong tuần: hạ `rpd` của mọi model 
 
 Các ngưỡng phụ: dead-letter dưới 1% số message; không lần chạy cluster nào `failed` quá hai lần liên tiếp; trong 20 câu chuyện kiểm tra thủ công ít nhất 16 câu chuyện là một chủ đề nhất quán; chi phí Cloudflare trong tuần không vượt gói 5 USD và chi phí Gemini bằng 0.
 
+Tiêu chí "một người mới làm theo `README.md` dựng được môi trường local và chạy test xanh" đã được thử ngày 2026-09-20 trên một bản clone sạch: `npm ci --ignore-scripts`, `npm run typecheck`, `npm test` (98 + 10 + 285 test) và `bash analyst/test/run-query.test.sh` đều đạt, không cần build web trước.
+
 ## Việc cần đo mà ở local không đo được
 
 - Tỉ lệ lỗi vị trí của Gemini trước và sau khi đặt placement.

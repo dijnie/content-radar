@@ -10,3 +10,5 @@ export * from "./graph/weighted-edges.ts";
 export * from "./clustering/clusterer.ts";
 export * from "./clustering/leiden-clusterer.ts";
 export * from "./clustering/resolution-sweep.ts";
+export * from "./lineage/entity-signature.ts";
+export * from "./lineage/match-communities.ts";

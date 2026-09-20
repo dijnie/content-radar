@@ -53,6 +53,8 @@ Cần có trước: một custom domain trên Cloudflare, và một ứng dụng
 
    Nếu vẫn lỗi vị trí sau khi đặt placement, đặt secret `GEMINI_BASE_URL` thành URL AI Gateway của nhà cung cấp Google AI Studio.
 
+   Probe Gemini gọi API thật nhưng chưa đi qua sổ ngân sách của pipeline. Khi đối chiếu hạn mức ngày, tính cả số call probe đã chạy; `llm_usage` không chứa các call này.
+
 ## Đọc trang trạng thái
 
 | Mục | Bình thường | Cần xem |
@@ -115,7 +117,7 @@ Cho một item thử lại: `UPDATE items SET status = 'queued', enqueue_attempt
 
 ## Job bảo trì theo ngày (08:20 UTC)
 
-Cập nhật baseline tác giả; dựng lại `story_daily` và `entity_daily` cho 16 ngày theo ngày xuất bản; sửa trạng thái dở dang (lần chạy cluster còn `running` mà lease đã hết, phân xử entity bị mất message); áp chính sách lưu giữ: `run_members`, `poll_log`, `llm_calls` 14 ngày; embedding và `claim_edges` của claim đã ra khỏi cửa sổ quá 30 ngày; `item_metrics` cũ hơn 14 ngày gộp còn một snapshot mỗi ngày. `items`, `claims`, `stories`, `lineage_events` và hai chuỗi theo ngày được giữ vĩnh viễn; câu chuyện có thao tác của người dùng không bao giờ bị xoá. Mỗi phần chạy độc lập, một phần lỗi không chặn phần khác.
+Cập nhật baseline tác giả; dựng lại `story_daily` và `entity_daily` cho 16 ngày theo ngày xuất bản; sửa trạng thái dở dang (lần chạy cluster còn `running` mà lease đã hết, phân xử entity bị mất message); áp chính sách lưu giữ: `run_members`, `poll_log`, `llm_calls` 14 ngày, riêng membership của lần chạy hoàn tất gần nhất của mỗi câu chuyện còn sống được giữ để khớp lineage sau gián đoạn dài. Các bảng dàn dựng `run_stories` và `run_retirements` được dọn sau 14 ngày, hoặc sau một ngày với run thất bại. Embedding và `claim_edges` của claim đã ra khỏi cửa sổ quá 30 ngày được dọn; `item_metrics` cũ hơn 14 ngày gộp còn một snapshot mỗi ngày. `items`, `claims`, `stories`, `lineage_events` và hai chuỗi theo ngày được giữ vĩnh viễn; câu chuyện có thao tác của người dùng không bao giờ bị xoá. Mỗi phần chạy độc lập, một phần lỗi không chặn phần khác.
 
 ## Nâng phiên bản phụ thuộc
 

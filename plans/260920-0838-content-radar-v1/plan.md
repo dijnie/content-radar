@@ -14,6 +14,8 @@ created: 2026-09-20
 
 ## Overview
 
+**Cập nhật thực thi 2026-09-20:** tiếp nối phiên cook sau khi hết hạn mức; xem [báo cáo tiếp tục](../reports/cook-260920-1837-session-continuation.md). Checkbox hiện ghi nhận 99/122 việc, phase 3, 5, 6, 7 hoàn tất; các nhãn Pending/todo ở bảng kế hoạch gốc chưa phản ánh tiến độ này. Đã bổ sung migration nâng cấp database cũ và chặn công bố cluster khi mất lease. Toàn bộ plan vẫn `in-progress`: deploy, xác minh dịch vụ thật và chạy thử 7 ngày còn chờ cấu hình của chủ tài khoản.
+
 Xây một radar cá nhân trả lời câu hỏi "Giới nghiên cứu và ứng dụng AI/Agent đang có gì thú vị, và đang dịch chuyển về hướng nào?", mở rộng sang System Design và Backend. Contract đã chốt nằm ở [brainstorm report](./research/brainstorm-260920-0730-content-radar-contract.md). Hai báo cáo nghiên cứu làm nền cho mọi quyết định kỹ thuật: [nền tảng Cloudflare và Gemini](./research/researcher-260920-0735-cloudflare-gemini-platform.md), [graph, Leiden và nguồn dữ liệu](./research/researcher-260920-0735-graph-leiden-and-sources.md). Ảnh chụp hệ thống tham chiếu nằm ở [`assets/reference-ui.jpg`](./assets/reference-ui.jpg).
 
 ## Goals

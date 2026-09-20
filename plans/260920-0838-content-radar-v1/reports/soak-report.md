@@ -32,6 +32,8 @@ Tiêu chí "một người mới làm theo `README.md` dựng được môi trư
 
 ## Việc cần đo mà ở local không đo được
 
+Kiểm chứng bổ sung khi tiếp tục phiên cook ngày 2026-09-20: 408 test (98 core, 10 web, 300 worker), typecheck, build web và 18 kiểm tra analyst đều đạt. Đã nâng cấp D1 local bằng migration 0008, giữ nguyên 35 bảng có trước; test takeover lease sát lúc công bố cũng đạt. Chi tiết ở [báo cáo tiếp tục](../../reports/cook-260920-1837-session-continuation.md). Đây vẫn chỉ là bằng chứng local; tuần chạy thử chưa bắt đầu.
+
 - Tỉ lệ lỗi vị trí của Gemini trước và sau khi đặt placement.
 - Nguồn nào chặn IP của Workers, nhất là FxTwitter.
 - Bộ nhớ đỉnh của job cluster trên Worker thật (local không áp trần 128 MB). Ở local, 3.500 claim chạy trong 5,9 giây.

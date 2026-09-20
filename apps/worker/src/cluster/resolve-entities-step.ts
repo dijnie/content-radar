@@ -1,12 +1,15 @@
 import { cosine, normalizeEntity, resolveMention, type NearestEntity } from "@radar/core";
 import { chunkedBatch } from "../db/batch";
 import { addAlias, createEntity, type EntityType } from "../db/entities-repo";
+import { listEnabledModels } from "../db/llm-repo";
+import { reservedRemainingToday } from "../llm/budget-ledger";
 import type { LlmMessage } from "../llm/messages";
+import { loadBudgetSettings } from "../llm/model-chain";
 import type { JobContext } from "./job-context";
 import { loadEntityVectors, putVectors } from "./vector-store";
 
 const MENTIONS_PER_RUN = 2000;
-const ADJUDICATIONS_PER_MESSAGE = 20;
+export const ADJUDICATIONS_PER_MESSAGE = 20;
 const ENTITY_TYPES = new Set<string>(["org", "person", "product", "model", "paper", "repo", "concept", "other"]);
 
 interface KnownEntity {
@@ -88,8 +91,16 @@ export async function resolveEntitiesStep(ctx: JobContext): Promise<{ resolved: 
     }
   }
 
+  // One message is one Gemini call, drawn from the share adjudication and synthesis split.
+  // What does not fit today stays `pending` and is picked up by a later run.
+  const settings = await loadBudgetSettings(db);
+  let calls = 0;
+  for (const model of await listEnabledModels(db)) calls += await reservedRemainingToday(db, model, now, settings);
+  const { results: pending } = await db
+    .prepare("SELECT id FROM entity_adjudications WHERE status = 'pending' ORDER BY id LIMIT ?")
+    .bind(Math.max(0, calls) * ADJUDICATIONS_PER_MESSAGE)
+    .all<{ id: number }>();
   // Ledger first: rows are marked queued, then the wake-ups go out in groups of twenty.
-  const { results: pending } = await db.prepare("SELECT id FROM entity_adjudications WHERE status = 'pending' ORDER BY id LIMIT 200").all<{ id: number }>();
   for (let start = 0; start < pending.length; start += ADJUDICATIONS_PER_MESSAGE) {
     const ids = pending.slice(start, start + ADJUDICATIONS_PER_MESSAGE).map((row) => row.id);
     await chunkedBatch(db, ids.map((id) => db.prepare("UPDATE entity_adjudications SET status = 'queued' WHERE id = ? AND status = 'pending'").bind(id)));

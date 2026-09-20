@@ -4,6 +4,7 @@ import { reservedRemainingToday } from "../llm/budget-ledger";
 import type { LlmMessage } from "../llm/messages";
 import { loadBudgetSettings } from "../llm/model-chain";
 import type { JobContext } from "./job-context";
+import { ADJUDICATIONS_PER_MESSAGE } from "./resolve-entities-step";
 
 const MIN_HOURS_BETWEEN_SYNTHESES = 6;
 const NEW_STORY_HOURS = 6;
@@ -31,6 +32,9 @@ export async function enqueueSynthesisStep(ctx: JobContext): Promise<number> {
   let budget = 0;
   // Only the reserved share is planned for, and adjudication draws on the same share.
   for (const model of await listEnabledModels(db)) budget += await reservedRemainingToday(db, model, now, settings);
+  // Adjudications already queued will spend from the same share before these run.
+  const queued = await db.prepare("SELECT COUNT(*) AS n FROM entity_adjudications WHERE status = 'queued'").first<{ n: number }>();
+  budget -= Math.ceil((queued?.n ?? 0) / ADJUDICATIONS_PER_MESSAGE);
   if (budget <= 0) return 0;
   const minScore = (await getSetting<number>(db, "synthesis_min_score")) ?? 30;
 

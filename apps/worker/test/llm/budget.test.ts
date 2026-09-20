@@ -67,6 +67,16 @@ describe("budget ledger", () => {
     expect(await reserve(env.DB, model(), "synthesize", NOW, SETTINGS)).toEqual({ ok: false, reason: "rpd_exhausted" });
   });
 
+  it("holds synthesis and adjudication to their 20% even while extraction budget is untouched", async () => {
+    // rpd 10: the shared share of synthesize + adjudicate is 2 calls, and it is a ceiling.
+    expect((await reserve(env.DB, model(), "adjudicate", NOW, SETTINGS)).ok).toBe(true);
+    expect((await reserve(env.DB, model(), "synthesize", NOW, SETTINGS)).ok).toBe(true);
+    expect(await reserve(env.DB, model(), "synthesize", NOW, SETTINGS)).toEqual({ ok: false, reason: "kind_cap_reached" });
+    expect(await reserve(env.DB, model(), "adjudicate", NOW, SETTINGS)).toEqual({ ok: false, reason: "kind_cap_reached" });
+    // Extraction still has its full 80%.
+    expect(await remainingToday(env.DB, model(), "extract", NOW, SETTINGS)).toBe(8);
+  });
+
   it("gives the slot back on release and keeps it on commit", async () => {
     const first = await reserve(env.DB, model(), "extract", NOW, SETTINGS);
     if (!first.ok) throw new Error("expected a reservation");

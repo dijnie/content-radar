@@ -33,25 +33,29 @@ async function usageByKind(db: D1Database, dayPt: string, model: string): Promis
   return usage;
 }
 
-/** Requests of this kind still allowed today on this model, ignoring the per-minute limit. */
+/**
+ * Requests of this kind still allowed today on this model, ignoring the per-minute
+ * limit. The day is split into two shares that never borrow from each other:
+ * extraction (live plus backfill) gets `1 - synthesisReservedShare`, synthesis and
+ * adjudication together get `synthesisReservedShare`. Quota is the scarce resource
+ * and extraction is the pipeline, so the smaller share is a ceiling for its kinds,
+ * not only a floor. Backfill is further capped inside the extraction share.
+ */
 export function remainingForKind(usage: Record<LlmKind, number>, kind: LlmKind, rpd: number, settings: BudgetSettings): number {
   const total = Object.values(usage).reduce((sum, value) => sum + value, 0);
   const overall = rpd - total;
-  if (!EXTRACT_KINDS.includes(kind)) return Math.max(0, overall);
-  // Extraction may never eat into the share reserved for synthesis and adjudication.
+  if (!EXTRACT_KINDS.includes(kind)) {
+    return Math.max(0, Math.min(overall, Math.floor(rpd * settings.synthesisReservedShare) - usage.synthesize - usage.adjudicate));
+  }
   const extractCap = Math.floor(rpd * (1 - settings.synthesisReservedShare));
   let remaining = Math.min(overall, extractCap - usage.extract - usage.extract_backfill);
   if (kind === "extract_backfill") remaining = Math.min(remaining, Math.floor(rpd * settings.backfillMaxShare) - usage.extract_backfill);
   return Math.max(0, remaining);
 }
 
-/** What is left today of the share reserved for synthesis and adjudication. Planning sticks to it so synthesis never crowds out extraction. */
-export async function reservedRemainingToday(db: D1Database, model: LlmModelRow, now: number, settings: BudgetSettings): Promise<number> {
-  if (model.exhausted_until !== null && model.exhausted_until > now) return 0;
-  const { rpd } = limitsOf(model, settings);
-  const usage = await usageByKind(db, pacificDay(now), model.model);
-  const overall = rpd - Object.values(usage).reduce((sum, value) => sum + value, 0);
-  return Math.max(0, Math.min(overall, Math.floor(rpd * settings.synthesisReservedShare) - usage.synthesize - usage.adjudicate));
+/** What is left today of the share that synthesis and adjudication draw on together. */
+export function reservedRemainingToday(db: D1Database, model: LlmModelRow, now: number, settings: BudgetSettings): Promise<number> {
+  return remainingToday(db, model, "synthesize", now, settings);
 }
 
 export async function remainingToday(db: D1Database, model: LlmModelRow, kind: LlmKind, now: number, settings: BudgetSettings): Promise<number> {

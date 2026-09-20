@@ -1,0 +1,82 @@
+import { matchCommunities, type DeadStory, type LineageResult, type PreviousCommunity } from "@radar/core";
+import { chunkedBatch } from "../db/batch";
+import { sha256Hex } from "../util/hash";
+import type { ClusterOutput, JobContext } from "./job-context";
+
+export interface LineageOutput extends LineageResult {
+  /** Story of every community, by community index, after new ids were allocated. */
+  storyIdByIndex: Map<number, number>;
+  membersHashByIndex: Map<number, string>;
+}
+
+export function membersHash(members: readonly number[]): Promise<string> {
+  return sha256Hex([...members].sort((a, b) => a - b).join(","));
+}
+
+/**
+ * The latest sighting of every living story in a finished run, however old. The
+ * lookback is a grace period before a story is declared dead, not a filter on
+ * what counts as the past: after an outage longer than the lookback, stories
+ * must still be matched or buried, never left alive next to a newborn copy.
+ */
+async function previousCommunities(ctx: JobContext): Promise<PreviousCommunity[]> {
+  const { results } = await ctx.db
+    .prepare(
+      `SELECT rc.story_id, rc.run_id, rc.community_idx, r.finished_at
+       FROM run_communities rc JOIN cluster_runs r ON r.id = rc.run_id JOIN stories s ON s.id = rc.story_id
+       WHERE r.status = 'done' AND s.alive = 1
+         AND rc.run_id = (SELECT MAX(rc2.run_id) FROM run_communities rc2 JOIN cluster_runs r2 ON r2.id = rc2.run_id
+                          WHERE rc2.story_id = rc.story_id AND r2.status = 'done')
+       ORDER BY rc.story_id`,
+    )
+    .all<{ story_id: number; run_id: number; community_idx: number; finished_at: number }>();
+
+  const latest = new Map<number, (typeof results)[number]>();
+  for (const row of results) if (!latest.has(row.story_id)) latest.set(row.story_id, row);
+
+  const previous: PreviousCommunity[] = [];
+  for (const row of latest.values()) {
+    const { results: members } = await ctx.db.prepare("SELECT claim_id FROM run_members WHERE run_id = ? AND community_idx = ?").bind(row.run_id, row.community_idx).all<{ claim_id: number }>();
+    previous.push({ storyId: row.story_id, members: members.map((member) => member.claim_id), lastSeenAt: row.finished_at });
+  }
+  return previous;
+}
+
+/**
+ * Gives every community its story. New stories are inserted as invisible
+ * placeholders (`alive = 0`) purely to obtain an id; they only become visible in
+ * the finalize step, so a run that dies here leaves nothing a reader can see.
+ */
+export async function lineageStep(ctx: JobContext, cluster: ClusterOutput): Promise<LineageOutput> {
+  const previous = await previousCommunities(ctx);
+  const { results: dead } = await ctx.db
+    .prepare("SELECT id, entity_signature_json, died_at FROM stories WHERE alive = 0 AND died_at IS NOT NULL AND died_at >= ?")
+    .bind(ctx.now - ctx.params.reviveHorizonDays * 86_400)
+    .all<{ id: number; entity_signature_json: string; died_at: number }>();
+  const deadStories: DeadStory[] = dead.map((row) => ({ storyId: row.id, signature: JSON.parse(row.entity_signature_json) as number[], diedAt: row.died_at }));
+
+  const lineage = matchCommunities(cluster.communities, previous, deadStories, new Set(cluster.claims.map((claim) => claim.id)), ctx.now, ctx.params);
+
+  const storyIdByIndex = new Map<number, number>();
+  const membersHashByIndex = new Map<number, string>();
+  for (const assignment of lineage.assignments) {
+    const community = cluster.communities[assignment.index]!;
+    const hash = await membersHash(community.members);
+    membersHashByIndex.set(assignment.index, hash);
+    if (assignment.storyId === null) {
+      const row = await ctx.db
+        .prepare("INSERT INTO stories (headline_vi, first_seen_at, last_claim_at, members_hash, alive) VALUES ('', ?, ?, ?, 0) RETURNING id")
+        .bind(ctx.now, ctx.now, hash)
+        .first<{ id: number }>();
+      assignment.storyId = row!.id;
+    }
+    storyIdByIndex.set(assignment.index, assignment.storyId);
+  }
+
+  // Snapshot rows carry the run id and stay invisible until the run is marked done.
+  const community = ctx.db.prepare("INSERT INTO run_communities (run_id, community_idx, story_id, size, members_hash) VALUES (?, ?, ?, ?, ?) ON CONFLICT(run_id, community_idx) DO NOTHING");
+  const member = ctx.db.prepare("INSERT INTO run_members (run_id, community_idx, claim_id) VALUES (?, ?, ?) ON CONFLICT(run_id, community_idx, claim_id) DO NOTHING");
+  await chunkedBatch(ctx.db, cluster.communities.map((draft) => community.bind(ctx.runId, draft.index, storyIdByIndex.get(draft.index)!, draft.members.length, membersHashByIndex.get(draft.index)!)));
+  await chunkedBatch(ctx.db, cluster.communities.flatMap((draft) => draft.members.map((claimId) => member.bind(ctx.runId, draft.index, claimId))));
+  return { ...lineage, storyIdByIndex, membersHashByIndex };
+}

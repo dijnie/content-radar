@@ -54,8 +54,12 @@ CREATE TABLE stories (
   first_seen_at INTEGER NOT NULL,
   last_claim_at INTEGER NOT NULL,
   members_hash TEXT NOT NULL,
+  -- State at the last LLM synthesis, used to decide whether the story changed enough to deserve another call.
   synthesized_hash TEXT,
   synthesized_at INTEGER,
+  synthesized_sources INTEGER,
+  synthesized_run_id INTEGER,
+  -- Attempts for the current members_hash; reset when membership changes.
   synthesis_attempts INTEGER NOT NULL DEFAULT 0,
   alive INTEGER NOT NULL DEFAULT 1 CHECK (alive IN (0, 1)),
   died_at INTEGER

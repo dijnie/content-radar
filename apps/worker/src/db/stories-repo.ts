@@ -24,6 +24,8 @@ export interface StoryRow {
   members_hash: string;
   synthesized_hash: string | null;
   synthesized_at: number | null;
+  synthesized_sources: number | null;
+  synthesized_run_id: number | null;
   synthesis_attempts: number;
   alive: number;
   died_at: number | null;

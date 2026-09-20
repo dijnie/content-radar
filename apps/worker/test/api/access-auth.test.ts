@@ -99,6 +99,13 @@ describe("verifyAccess", () => {
     expect(result).toMatchObject({ ok: false, status: 503 });
   });
 
+  it("answers 503 rather than crashing when nothing is configured and no key set is injected", async () => {
+    const unconfigured = { ACCESS_TEAM_DOMAIN: "", ACCESS_AUD: "", OWNER_EMAIL: "" };
+    expect(await verifyAccess(request(await token()), unconfigured)).toMatchObject({ ok: false, status: 503, reason: "access_not_configured" });
+    const malformed = { ...CONFIG, ACCESS_TEAM_DOMAIN: "not a url" };
+    expect(await verifyAccess(request(await token()), malformed)).toMatchObject({ ok: false, status: 503 });
+  });
+
   it("fails closed with 503 when Access is not configured", async () => {
     const result = await verifyAccess(request(await token()), { ...CONFIG, ACCESS_AUD: "" }, keySet);
     expect(result).toMatchObject({ ok: false, status: 503 });

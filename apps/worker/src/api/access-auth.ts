@@ -33,7 +33,7 @@ function keySetFor(teamDomain: string): JWTVerifyGetKey {
 export async function verifyAccess(
   request: Request,
   env: Pick<Env, "ACCESS_TEAM_DOMAIN" | "ACCESS_AUD" | "OWNER_EMAIL">,
-  keySet: JWTVerifyGetKey = keySetFor(env.ACCESS_TEAM_DOMAIN),
+  keySetOverride?: JWTVerifyGetKey,
 ): Promise<AccessResult> {
   if (__DEV_AUTH_BYPASS__) return { ok: true, email: env.OWNER_EMAIL };
 
@@ -44,6 +44,8 @@ export async function verifyAccess(
   if (!token) return { ok: false, status: 401, reason: "missing_token" };
 
   try {
+    // Resolved only now: building the key set needs a valid team domain, which was just checked.
+    const keySet = keySetOverride ?? keySetFor(env.ACCESS_TEAM_DOMAIN);
     const { payload } = await jwtVerify(token, keySet, {
       algorithms: ["RS256"],
       issuer: env.ACCESS_TEAM_DOMAIN,

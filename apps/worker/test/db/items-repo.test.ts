@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
-import { feedExternalId, getItemsByIds, markFiltered, markQueued, upsertItem } from "../../src/db/items-repo";
+import { feedExternalId, getItemsByIds, getItemStates, insertItemLinks, insertMetricSnapshot, touchEnqueued, upsertItem, upsertItemStatement } from "../../src/db/items-repo";
 import { itemInput, seedSource } from "./seed";
 
 describe("upsertItem", () => {
@@ -33,17 +33,46 @@ describe("upsertItem", () => {
     expect(count?.n).toBe(1);
   });
 
-  it("does not reopen an item that already left the `new` state", async () => {
+  it("writes the ledger state with the row and never reopens finished work", async () => {
     const sourceId = await seedSource(env.DB, "x", "upsert-c");
-    const { id } = await upsertItem(env.DB, itemInput({ sourceId, externalId: "tweet-200" }));
-    await markQueued(env.DB, id, 1_790_000_200).run();
+    const { id, status } = await upsertItem(env.DB, itemInput({ sourceId, externalId: "tweet-200" }));
+    expect(status).toBe("queued");
+    let [row] = await getItemsByIds(env.DB, [id]);
+    expect(row).toMatchObject({ status: "queued", queued_at: 1_790_000_100, enqueue_attempts: 1 });
 
-    const again = await upsertItem(env.DB, itemInput({ sourceId, externalId: "tweet-200" }));
-    expect(again.status).toBe("queued");
-    // Neither transition applies any more, so a second poll cannot re-enqueue or re-filter it.
-    await env.DB.batch([markQueued(env.DB, id, 1_790_000_999), markFiltered(env.DB, id, "too_short")]);
+    await env.DB.prepare("UPDATE items SET status = 'extracted' WHERE id = ?").bind(id).run();
+    const again = await upsertItem(env.DB, itemInput({ sourceId, externalId: "tweet-200", fetchedAt: 1_790_009_999 }));
+    expect(again.status).toBe("extracted");
+    await touchEnqueued(env.DB, id, 1_790_009_999).run();
+    [row] = await getItemsByIds(env.DB, [id]);
+    expect(row).toMatchObject({ status: "extracted", queued_at: 1_790_000_100, enqueue_attempts: 1 });
+  });
+
+  it("stores a filtered item without a queue timestamp", async () => {
+    const sourceId = await seedSource(env.DB, "x", "upsert-d");
+    const { id } = await upsertItem(env.DB, itemInput({ sourceId, externalId: "tweet-300", status: "filtered_out", filterReason: "repost" }));
     const [row] = await getItemsByIds(env.DB, [id]);
-    expect(row).toMatchObject({ status: "queued", queued_at: 1_790_000_200, enqueue_attempts: 1, filter_reason: null });
+    expect(row).toMatchObject({ status: "filtered_out", filter_reason: "repost", queued_at: null, enqueue_attempts: 0 });
+  });
+
+  it("writes an item, its links and its metrics in one batch, idempotently", async () => {
+    const sourceId = await seedSource(env.DB, "x", "upsert-e");
+    const write = () =>
+      env.DB.batch([
+        upsertItemStatement(env.DB, itemInput({ sourceId, externalId: "tweet-400" })),
+        ...insertItemLinks(env.DB, "x", "tweet-400", ["https://a.example/x", "https://a.example/x", "https://b.example/y"]),
+        insertMetricSnapshot(env.DB, "x", { externalId: "tweet-400", capturedAt: 1_790_000_100, likes: 10 }),
+      ]);
+    await write();
+    await write();
+    const states = await getItemStates(env.DB, "x", ["tweet-400", "tweet-unknown"]);
+    expect([...states.keys()]).toEqual(["tweet-400"]);
+    const itemId = states.get("tweet-400")!.id;
+    const counts = await env.DB
+      .prepare("SELECT (SELECT COUNT(*) FROM item_links WHERE item_id = ?1) AS links, (SELECT COUNT(*) FROM item_metrics WHERE item_id = ?1) AS metrics")
+      .bind(itemId)
+      .first();
+    expect(counts).toEqual({ links: 2, metrics: 1 });
   });
 
   it("keeps two feeds with the same guid as two items", async () => {

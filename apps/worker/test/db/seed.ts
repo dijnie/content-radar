@@ -26,6 +26,8 @@ export function itemInput(overrides: Partial<ItemInput> & Pick<ItemInput, "sourc
     contentHash: "hash-1",
     topicHint: null,
     ingestMode: "live",
+    status: "queued",
+    filterReason: null,
     ...overrides,
   };
 }

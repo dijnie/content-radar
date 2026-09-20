@@ -32,7 +32,8 @@
       { "binding": "LLM_QUEUE", "queue": "radar-llm" }
     ],
     "consumers": [
-      { "queue": "radar-poll", "max_batch_size": 10, "max_retries": 5, "dead_letter_queue": "radar-dlq" },
+      // One poll at a time: sources are community services and must not be hit in a burst.
+      { "queue": "radar-poll", "max_batch_size": 10, "max_concurrency": 1, "max_retries": 5, "dead_letter_queue": "radar-dlq" },
       { "queue": "radar-llm", "max_batch_size": 10, "max_retries": 5, "dead_letter_queue": "radar-dlq" }
     ]
   },

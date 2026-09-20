@@ -26,11 +26,11 @@ Chuẩn bị D1 để Claude hoặc Codex, do người dùng gọi tay, trả l�
 
 ## Requirements
 
-- [ ] Migration thêm các view và hai bảng `analyst_signals`, `analyst_hypotheses`.
-- [ ] Bộ truy vấn mẫu có tham số, mỗi file một câu hỏi phân tích.
+- [x] Migration thêm các view và hai bảng `analyst_signals`, `analyst_hypotheses`.
+- [x] Bộ truy vấn mẫu có tham số, mỗi file một câu hỏi phân tích.
 - [ ] Phiên phân tích chạy bằng một Cloudflare API token riêng chỉ có quyền D1, không có quyền Workers Scripts, R2, secret hay Access; token nằm trong một file môi trường ngoài repo và chỉ được nạp bởi script bọc. [UNVERIFIED: quyền D1 của API token giới hạn được tới từng database hay chỉ tới cấp tài khoản; kiểm tra khi tạo token và ghi kết quả vào runbook.]
-- [ ] Một bộ quy tắc duy nhất trong `docs/analyst-runbook.md`; `SKILL.md` và `analyst/AGENTS.md` chỉ là con trỏ vài dòng tới runbook.
-- [ ] Tầng này chỉ đọc bảng của pipeline và chỉ ghi vào hai bảng `analyst_*`.
+- [x] Một bộ quy tắc duy nhất trong `docs/analyst-runbook.md`; `SKILL.md` và `analyst/AGENTS.md` chỉ là con trỏ vài dòng tới runbook.
+- [x] Tầng này chỉ đọc bảng của pipeline và chỉ ghi vào hai bảng `analyst_*`.
 
 ## Architecture
 
@@ -75,11 +75,11 @@ Quy tắc an toàn trong runbook: phiên phân tích chỉ chạy với token gi
 
 ## Todo
 
-- [ ] Migration view và bảng ghi ngược có trigger
-- [ ] Test view
+- [x] Migration view và bảng ghi ngược có trigger
+- [x] Test view
 - [ ] API token giới hạn phạm vi, kiểm chứng các lệnh bị từ chối
-- [ ] Mười truy vấn mẫu và script bọc có thẻ dữ liệu không tin cậy
-- [ ] Runbook là bộ quy tắc duy nhất; skill và `AGENTS.md` là con trỏ
+- [x] Mười truy vấn mẫu và script bọc có thẻ dữ liệu không tin cậy
+- [x] Runbook là bộ quy tắc duy nhất; skill và `AGENTS.md` là con trỏ
 - [ ] Phiên phân tích thử hai vòng
 
 ## Success Criteria

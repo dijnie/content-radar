@@ -96,7 +96,7 @@ Thư viện phân cụm nằm sau interface `Clusterer`; thay thư viện chỉ 
 
 Một lần chạy ghi dở trông giống hệt một cộng đồng bị co lại dưới con mắt của Jaccard, và API đọc thẳng bảng `stories`. Vì vậy công bố gồm hai pha. Pha dàn dựng ghi theo khúc vào các bảng gắn `run_id` mà không ai đọc (`run_communities`, `run_members`, `run_stories`, `run_retirements`, `lineage_events`); câu chuyện mới được chèn dưới dạng bản giữ chỗ vô hình (`alive = 0`) chỉ để lấy id. Pha công bố là **một** `db.batch` duy nhất, tức một transaction của D1: vài câu lệnh theo tập hợp chép dữ liệu đã dàn dựng sang `stories` và `story_claims`, cho các câu chuyện bị nhập hoặc đã chết nghỉ, lật `cluster_runs.status` sang `done` và nhả lease. Hoặc tất cả cùng hiện ra, hoặc không gì cả. Lưu ý khi sửa: `chunkedBatch` là nhiều transaction rời nhau, nên không được dùng nó cho bất cứ thứ gì người đọc nhìn thấy. Mọi truy vấn đọc lineage đều lọc theo lần chạy `done`.
 
-Khoá chống chạy chồng là một lease lấy bằng một câu lệnh upsert có điều kiện, dài 75 phút, được kiểm tra trước và gia hạn sau mỗi bước theo đồng hồ thật; lần chạy mất lease thì dừng ghi ngay.
+Khoá chống chạy chồng là một lease lấy bằng một câu lệnh upsert có điều kiện, dài 75 phút, được kiểm tra trước và gia hạn sau mỗi bước theo đồng hồ thật. Ngay trước công bố, job kiểm tra lại lease; mọi câu lệnh công bố trong cùng transaction cũng kiểm tra chủ lease và trạng thái `running`. Nếu một job khác đã lấy lease, toàn bộ phần công bố không ghi gì, giữ nguyên thẻ và trạng thái người dùng đã công bố, đồng thời không xếp thêm việc tổng hợp. Thời điểm hoàn thành và heartbeat cuối lấy theo đồng hồ thật.
 
 ## Chấm điểm
 

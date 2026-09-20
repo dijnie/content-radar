@@ -115,14 +115,50 @@ describe("runClusterJob", () => {
     expect(await env.DB.prepare("SELECT status FROM cluster_runs ORDER BY id DESC LIMIT 1").first()).toEqual({ status: "done" });
   });
 
-  it("stops writing when another run has taken the lease", async () => {
+  it.each(["cluster", "finalize", "publish"])("stops writing when another run takes the lease during %s", async (lostAt) => {
     await seedClaims(env.DB, [{ tag: "S1", publishedAt: T0 - HOUR }, { tag: "S1", publishedAt: T0 - 2 * HOUR }]);
     await expect(
-      runClusterJob(testEnv, { now: T0, embed: fakeEmbedder().embed, onStage: async (stage) => { if (stage === "cluster") await env.DB.prepare("UPDATE job_leases SET holder = 'someone-else' WHERE name = 'cluster'").run(); } }),
+      runClusterJob(testEnv, { now: T0, embed: fakeEmbedder().embed, onStage: async (stage) => { if (stage === lostAt) await env.DB.prepare("UPDATE job_leases SET holder = 'someone-else' WHERE name = 'cluster'").run(); } }),
     ).rejects.toThrow(/lease lost/);
     expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM stories WHERE alive = 1").first()).toEqual({ n: 0 });
     // The new holder's lease is left alone.
     expect(await env.DB.prepare("SELECT holder FROM job_leases WHERE name = 'cluster'").first()).toEqual({ holder: "someone-else" });
+  });
+
+  it("preserves published stories if the lease changes after the final check but before the transaction", async () => {
+    const embedder = fakeEmbedder();
+    await seedClaims(env.DB, [{ tag: "S1", publishedAt: T0 - HOUR }, { tag: "S1", publishedAt: T0 - 2 * HOUR }]);
+    await runClusterJob(testEnv, { now: T0, embed: embedder.embed });
+    await env.DB.prepare("UPDATE stories SET user_state = 'saved', user_state_at = ? WHERE alive = 1").bind(T0).run();
+    const before = await stories();
+    const beforeMembers = await membersOf(before[0]!.id as number);
+    await seedClaims(env.DB, [{ tag: "S1", publishedAt: T0 + 1 }, { tag: "S2", publishedAt: T0 + 2 }, { tag: "S2", publishedAt: T0 + 3 }]);
+    const sentBefore = llm.sent.length;
+
+    // Interpose on a real D1 batch to put the takeover after the TypeScript
+    // ownership check. All publication statements still execute against D1.
+    let publishReady = false;
+    const batch = env.DB.batch.bind(env.DB);
+    const intercepted = vi.spyOn(env.DB, "batch").mockImplementation(async (statements) => {
+      if (publishReady) {
+        publishReady = false;
+        await env.DB.prepare("UPDATE job_leases SET holder = 'successor' WHERE name = 'cluster'").run();
+      }
+      return batch(statements);
+    });
+    try {
+      await expect(runClusterJob(testEnv, {
+        now: T0 + HOUR, embed: embedder.embed,
+        onStage: (stage) => { if (stage === "publish") publishReady = true; },
+      })).rejects.toThrow(/lease lost during publish/);
+    } finally {
+      intercepted.mockRestore();
+    }
+    expect(await stories()).toEqual(before);
+    expect(await membersOf(before[0]!.id as number)).toEqual(beforeMembers);
+    expect(llm.sent).toHaveLength(sentBefore);
+    expect(await env.DB.prepare("SELECT holder FROM job_leases WHERE name = 'cluster'").first()).toEqual({ holder: "successor" });
+    expect(await env.DB.prepare("SELECT status FROM cluster_runs ORDER BY id DESC LIMIT 1").first()).toEqual({ status: "failed" });
   });
 
   it("takes over an expired lease and marks the run it belonged to as failed", async () => {

@@ -18,7 +18,7 @@ import type { ScoredStory } from "./score-step";
  * job that dies anywhere leaves readers on the previous finished run, with every
  * story id and every user state intact.
  */
-export async function finalizeStep(ctx: JobContext, cluster: ClusterOutput, lineage: LineageOutput, stories: readonly ScoredStory[], beforePublish?: () => void | Promise<void>): Promise<void> {
+export async function finalizeStep(ctx: JobContext, cluster: ClusterOutput, lineage: LineageOutput, stories: readonly ScoredStory[], beforePublish?: () => number | Promise<number>): Promise<boolean> {
   const { db, runId, now } = ctx;
   const staging: D1PreparedStatement[] = [];
 
@@ -48,10 +48,14 @@ export async function finalizeStep(ctx: JobContext, cluster: ClusterOutput, line
   for (const storyId of lineage.deaths) staging.push(retire.bind(runId, storyId, null));
   await chunkedBatch(db, staging);
 
-  await beforePublish?.();
+  const publishedAt = (await beforePublish?.()) ?? now;
 
   const members = "run_members rm JOIN run_communities rc ON rc.run_id = rm.run_id AND rc.community_idx = rm.community_idx";
-  await db.batch([
+  // Every visible write checks ownership inside the same transaction. A check
+  // before db.batch alone leaves a gap where another run can acquire the lease.
+  const canPublish = `EXISTS (SELECT 1 FROM job_leases WHERE name = '${CLUSTER_LEASE}' AND holder = ?2 AND expires_at >= ?3)
+    AND EXISTS (SELECT 1 FROM cluster_runs WHERE id = ?1 AND status = 'running')`;
+  const published = await db.batch([
     // A story keeps the headline the LLM wrote; only a story without one takes the deterministic fallback.
     // Attempts count per membership, so they reset when the membership changes.
     db
@@ -64,37 +68,40 @@ export async function finalizeStep(ctx: JobContext, cluster: ClusterOutput, line
            synthesis_attempts = CASE WHEN stories.members_hash = rs.members_hash THEN stories.synthesis_attempts ELSE 0 END,
            members_hash = rs.members_hash, first_seen_at = MIN(stories.first_seen_at, rs.first_claim_at), last_claim_at = rs.last_claim_at,
            alive = 1, died_at = NULL
-         FROM run_stories rs WHERE rs.run_id = ?1 AND rs.story_id = stories.id`,
+         FROM run_stories rs WHERE rs.run_id = ?1 AND rs.story_id = stories.id AND ${canPublish}`,
       )
-      .bind(runId),
+      .bind(runId, ctx.holder, publishedAt),
     // Membership is a projection of this run: newcomers join, leavers are switched off, stayers keep their role.
     db
       .prepare(
         `INSERT INTO story_claims (story_id, claim_id, active, added_run_id)
-         SELECT rc.story_id, rm.claim_id, 1, ?1 FROM ${members} WHERE rm.run_id = ?1
+         SELECT rc.story_id, rm.claim_id, 1, ?1 FROM ${members} WHERE rm.run_id = ?1 AND ${canPublish}
          ON CONFLICT(story_id, claim_id) DO UPDATE SET active = 1, removed_run_id = NULL`,
       )
-      .bind(runId),
+      .bind(runId, ctx.holder, publishedAt),
     db
       .prepare(
         `UPDATE story_claims SET active = 0, removed_run_id = ?1
-         WHERE active = 1 AND story_id IN (SELECT story_id FROM run_stories WHERE run_id = ?1)
+         WHERE active = 1 AND story_id IN (SELECT story_id FROM run_stories WHERE run_id = ?1) AND ${canPublish}
            AND NOT EXISTS (SELECT 1 FROM ${members} WHERE rm.run_id = ?1 AND rc.story_id = story_claims.story_id AND rm.claim_id = story_claims.claim_id)`,
       )
-      .bind(runId),
+      .bind(runId, ctx.holder, publishedAt),
     // A choice the user made on an absorbed story moves to the heir, unless the heir has its own.
     db
       .prepare(
         `UPDATE stories SET user_state = old.user_state, user_state_at = old.user_state_at
          FROM run_retirements rt JOIN stories old ON old.id = rt.story_id
-         WHERE rt.run_id = ?1 AND rt.heir_story_id = stories.id AND stories.user_state = 'inbox' AND old.user_state != 'inbox'`,
+         WHERE rt.run_id = ?1 AND rt.heir_story_id = stories.id AND stories.user_state = 'inbox' AND old.user_state != 'inbox' AND ${canPublish}`,
       )
-      .bind(runId),
-    db.prepare("UPDATE stories SET alive = 0, died_at = ?2 WHERE alive = 1 AND id IN (SELECT story_id FROM run_retirements WHERE run_id = ?1)").bind(runId, now),
-    db.prepare("UPDATE story_claims SET active = 0, removed_run_id = ?1 WHERE active = 1 AND story_id IN (SELECT story_id FROM run_retirements WHERE run_id = ?1)").bind(runId),
+      .bind(runId, ctx.holder, publishedAt),
+    db.prepare(`UPDATE stories SET alive = 0, died_at = ?3 WHERE alive = 1 AND id IN (SELECT story_id FROM run_retirements WHERE run_id = ?1) AND ${canPublish}`).bind(runId, ctx.holder, publishedAt),
+    db.prepare(`UPDATE story_claims SET active = 0, removed_run_id = ?1 WHERE active = 1 AND story_id IN (SELECT story_id FROM run_retirements WHERE run_id = ?1) AND ${canPublish}`).bind(runId, ctx.holder, publishedAt),
     db
-      .prepare("UPDATE cluster_runs SET status = 'done', stage = 'done', finished_at = ?, heartbeat_at = ?, node_count = ?, edge_count = ?, community_count = ?, quality = ? WHERE id = ? AND status = 'running'")
-      .bind(now, now, cluster.claims.length, cluster.edgeCount, cluster.communities.length, cluster.quality, runId),
+      .prepare(`UPDATE cluster_runs SET status = 'done', stage = 'done', finished_at = ?3, heartbeat_at = ?3, node_count = ?4, edge_count = ?5, community_count = ?6, quality = ?7 WHERE id = ?1 AND ${canPublish}`)
+      .bind(runId, ctx.holder, publishedAt, cluster.claims.length, cluster.edgeCount, cluster.communities.length, cluster.quality),
     releaseLeaseStatement(db, CLUSTER_LEASE, ctx.holder),
   ]);
+  // The run-status update precedes lease release. Zero rows means every visible
+  // write was fenced out, so the caller must stop before scheduling synthesis.
+  return (published[published.length - 2]!.meta.changes ?? 0) === 1;
 }

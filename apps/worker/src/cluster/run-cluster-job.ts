@@ -78,7 +78,12 @@ export async function runClusterJob(env: ClusterEnv, deps: ClusterJobDeps = {}):
     await holdLease("before finalize");
     await db.prepare("UPDATE cluster_runs SET stage = 'finalize', heartbeat_at = ? WHERE id = ?").bind(clock(), ctx.runId).run();
     await deps.onStage?.("finalize");
-    await finalizeStep(ctx, cluster, lineage, stories, () => deps.onStage?.("publish"));
+    const published = await finalizeStep(ctx, cluster, lineage, stories, async () => {
+      await deps.onStage?.("publish");
+      await holdLease("before publish");
+      return clock();
+    });
+    if (!published) throw new LeaseLost("lease lost during publish");
     const synthesisQueued = await enqueueSynthesisStep(ctx);
     console.log(JSON.stringify({ event: "cluster_run", runId: ctx.runId, claims: cluster.claims.length, communities: cluster.communities.length, embeddedTokens: tokens, synthesisQueued }));
     return { status: "done", runId: ctx.runId, communities: cluster.communities.length, synthesisQueued };

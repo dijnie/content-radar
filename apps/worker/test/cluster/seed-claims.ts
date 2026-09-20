@@ -24,20 +24,24 @@ function randomVector(seed: number, scale = 1): Float32Array {
   return Float32Array.from({ length: EMBEDDING_DIMS }, () => (random() * 2 - 1) * scale);
 }
 
+/** Noise added to a tag's direction; cosine between two texts of one tag is about 1 / (1 + scale^2). */
+const NOISE_BY_TAG: Record<string, number> = { S: 0.15, E: 0.45, M: 0.75 };
+
 /**
- * Test-only stand-in for Workers AI. Text starting with a tag such as "S3 " lands
- * near that tag's direction, so claims of one story are close and everything
- * else is near-orthogonal. The same text always gives the same vector.
+ * Test-only stand-in for Workers AI. Text starting with a tag lands near that
+ * tag's direction: "S3 " very close (one story), "E7 " around cosine 0.83 (an
+ * ambiguous entity name), "M1 " around 0.64 (related, but not enough to link on
+ * its own). Untagged text is near-orthogonal to everything. Same text, same vector.
  */
 export function fakeEmbedder(): { embed: EmbedFn; texts: string[] } {
   const texts: string[] = [];
   const embed: EmbedFn = async (input) =>
     input.map((text) => {
       texts.push(text);
-      const tag = /^(S\d+)\s/.exec(text)?.[1];
+      const tag = /^([SEM])(\d+)\s/.exec(text);
       if (!tag) return randomVector(hash(text));
-      const base = randomVector(hash(tag));
-      const noise = randomVector(hash(text), 0.15);
+      const base = randomVector(hash(tag[1]! + tag[2]!));
+      const noise = randomVector(hash(text), NOISE_BY_TAG[tag[1]!]!);
       return base.map((value, index) => value + noise[index]!);
     });
   return { embed, texts };

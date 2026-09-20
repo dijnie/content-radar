@@ -1,8 +1,8 @@
 import { getItemsByIds, type ItemRow } from "../db/items-repo";
+import { adjudicateEntities } from "./adjudicate/adjudicate-entities";
 import { extractBatch, type LlmDeps, type LlmEnv } from "./extract/extract-batch";
 import type { LlmMessage } from "./messages";
-
-const NO_HANDLER_RETRY_SECONDS = 300;
+import { synthesizeStory } from "./synthesize/synthesize-story";
 
 type ExtractMessage = Message<LlmMessage> & { body: Extract<LlmMessage, { kind: "extract" }> };
 
@@ -15,9 +15,22 @@ type ExtractMessage = Message<LlmMessage> & { body: Extract<LlmMessage, { kind: 
 export async function consumeLlmBatch(batch: MessageBatch<LlmMessage>, env: LlmEnv, deps: LlmDeps = {}): Promise<void> {
   const extract: ExtractMessage[] = [];
   for (const message of batch.messages) {
-    if (message.body.kind === "extract") extract.push(message as ExtractMessage);
-    // Synthesis and adjudication have no handler yet; keep the message rather than drop the work.
-    else message.retry({ delaySeconds: NO_HANDLER_RETRY_SECONDS });
+    const body = message.body;
+    if (body.kind === "extract") {
+      extract.push(message as ExtractMessage);
+      continue;
+    }
+    const attempt = Math.max(0, message.attempts - 1);
+    const outcome = body.kind === "synthesize" ? await synthesizeStory(env, body.storyId, deps, attempt) : await adjudicateEntities(env, body.adjudicationIds, deps, attempt);
+    if (outcome.status === "retry") {
+      message.retry({ delaySeconds: outcome.delaySeconds });
+      continue;
+    }
+    // An attempt that never reached Gemini must not count against the story's three tries.
+    if (body.kind === "synthesize" && outcome.status === "park") {
+      await env.DB.prepare("UPDATE stories SET synthesis_attempts = MAX(0, synthesis_attempts - 1) WHERE id = ?").bind(body.storyId).run();
+    }
+    message.ack();
   }
   if (extract.length === 0) return;
 

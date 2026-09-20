@@ -1,6 +1,6 @@
 import { listEnabledModels } from "../db/llm-repo";
 import { getSetting } from "../db/settings-repo";
-import { remainingToday } from "../llm/budget-ledger";
+import { reservedRemainingToday } from "../llm/budget-ledger";
 import type { LlmMessage } from "../llm/messages";
 import { loadBudgetSettings } from "../llm/model-chain";
 import type { JobContext } from "./job-context";
@@ -29,8 +29,8 @@ export async function enqueueSynthesisStep(ctx: JobContext): Promise<number> {
   const { db, now } = ctx;
   const settings = await loadBudgetSettings(db);
   let budget = 0;
-  for (const model of await listEnabledModels(db)) budget += await remainingToday(db, model, "synthesize", now, settings);
-  // Whatever extraction left is shared with adjudication; never plan beyond the reserved share.
+  // Only the reserved share is planned for, and adjudication draws on the same share.
+  for (const model of await listEnabledModels(db)) budget += await reservedRemainingToday(db, model, now, settings);
   if (budget <= 0) return 0;
   const minScore = (await getSetting<number>(db, "synthesis_min_score")) ?? 30;
 

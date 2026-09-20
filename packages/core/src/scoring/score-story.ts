@@ -34,10 +34,15 @@ export function scoreStory(input: StoryScoreInput, params: CoreParams): { score:
     novelty: clip(1 - input.maxCosineToOtherStories),
     recency: Math.exp((-Math.LN2 * Math.max(0, input.hoursSinceLatestClaim)) / params.recencyHalfLifeHours),
   };
+  return { score: scoreFromSubscores(subscores, params), subscores };
+}
+
+/** Weighted sum of the six sub-scores, 0 to 100 with one decimal. Shared by the scorer and by anything that changes a single sub-score. */
+export function scoreFromSubscores(subscores: Subscores, params: CoreParams): number {
   const total =
     params.weightSources * subscores.sources + params.weightVelocity * subscores.velocity + params.weightSpecificity * subscores.specificity +
     params.weightCounter * subscores.counter + params.weightNovelty * subscores.novelty + params.weightRecency * subscores.recency;
-  return { score: Math.round(100 * clip(total) * 10) / 10, subscores };
+  return Math.round(100 * clip(total) * 10) / 10;
 }
 
 /** `ready` needs at least two independent sources; anything less is a lead to be checked. */

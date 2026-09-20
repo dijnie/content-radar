@@ -45,6 +45,15 @@ export function remainingForKind(usage: Record<LlmKind, number>, kind: LlmKind, 
   return Math.max(0, remaining);
 }
 
+/** What is left today of the share reserved for synthesis and adjudication. Planning sticks to it so synthesis never crowds out extraction. */
+export async function reservedRemainingToday(db: D1Database, model: LlmModelRow, now: number, settings: BudgetSettings): Promise<number> {
+  if (model.exhausted_until !== null && model.exhausted_until > now) return 0;
+  const { rpd } = limitsOf(model, settings);
+  const usage = await usageByKind(db, pacificDay(now), model.model);
+  const overall = rpd - Object.values(usage).reduce((sum, value) => sum + value, 0);
+  return Math.max(0, Math.min(overall, Math.floor(rpd * settings.synthesisReservedShare) - usage.synthesize - usage.adjudicate));
+}
+
 export async function remainingToday(db: D1Database, model: LlmModelRow, kind: LlmKind, now: number, settings: BudgetSettings): Promise<number> {
   if (model.exhausted_until !== null && model.exhausted_until > now) return 0;
   return remainingForKind(await usageByKind(db, pacificDay(now), model.model), kind, limitsOf(model, settings).rpd, settings);

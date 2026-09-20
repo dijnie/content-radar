@@ -242,11 +242,6 @@ describe("consumeLlmBatch", () => {
     expect((await env.DB.prepare("SELECT kind, requests FROM llm_usage").all()).results).toEqual([{ kind: "extract_backfill", requests: 1 }]);
   });
 
-  it("keeps messages it has no handler for", async () => {
-    const { batch, outcomes } = fakeBatch([{ kind: "synthesize", storyId: 1, membersHash: "h" }]);
-    await consumeLlmBatch(batch, testEnv, { now: NOW });
-    expect(outcomes()).toEqual(["retry:300"]);
-  });
 });
 
 describe("drainBacklog", () => {

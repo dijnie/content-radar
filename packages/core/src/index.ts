@@ -1,3 +1,9 @@
 export const CORE_VERSION = "0.1.0";
 export * from "./platform.ts";
 export * from "./text/normalize-entity.ts";
+export * from "./params.ts";
+export * from "./entities/resolve-mention.ts";
+export * from "./vector/cosine.ts";
+export * from "./graph/cosine-neighbours.ts";
+export * from "./graph/entity-idf.ts";
+export * from "./graph/weighted-edges.ts";

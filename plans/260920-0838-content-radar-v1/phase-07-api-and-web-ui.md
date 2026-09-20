@@ -25,11 +25,11 @@ Worker phục vụ một API JSON nhỏ và bản build tĩnh của `apps/web`. 
 
 ## Requirements
 
-- [ ] API: `GET /api/stories`, `GET /api/stories/:id`, `POST /api/stories/:id/action`, `GET /api/status`. Mọi route đi qua `access-auth` và `request-guard` của phase 1; không route nào được gắn thẳng vào `fetch` mà bỏ qua hai lớp này.
-- [ ] Thẻ hiển thị đúng spec: nhãn entity, trạng thái `LEAD` hoặc `READY` kèm chấm màu, điểm một chữ số thập phân, headline, các dòng `EVIDENCE`, `CONTEXT`, `COUNTER` có nhãn màu, dòng chân "N independent sources · M questions to verify", nhãn `counterpoint`, thời gian theo múi giờ cấu hình, bốn nút Link, Save, Dismiss, Written.
-- [ ] Thanh trên cùng: tab "Ready · Lead", "Saved", "Dismissed" kèm số đếm; lọc All, AI, System Design, Backend lấy từ bảng `topics`; ô tìm "Search entity, title or idea"; sắp xếp Newest hoặc Score.
-- [ ] Thao tác phản hồi tức thì trên giao diện, ghi `stories.user_state` và một dòng `user_actions` kèm điểm và điểm thành phần tại thời điểm đó.
-- [ ] Dùng được trên màn hình hẹp (một cột) và bằng bàn phím.
+- [x] API: `GET /api/stories`, `GET /api/stories/:id`, `POST /api/stories/:id/action`, `GET /api/status`. Mọi route đi qua `access-auth` và `request-guard` của phase 1; không route nào được gắn thẳng vào `fetch` mà bỏ qua hai lớp này.
+- [x] Thẻ hiển thị đúng spec: nhãn entity, trạng thái `LEAD` hoặc `READY` kèm chấm màu, điểm một chữ số thập phân, headline, các dòng `EVIDENCE`, `CONTEXT`, `COUNTER` có nhãn màu, dòng chân "N independent sources · M questions to verify", nhãn `counterpoint`, thời gian theo múi giờ cấu hình, bốn nút Link, Save, Dismiss, Written.
+- [x] Thanh trên cùng: tab "Ready · Lead", "Saved", "Dismissed" kèm số đếm; lọc All, AI, System Design, Backend lấy từ bảng `topics`; ô tìm "Search entity, title or idea"; sắp xếp Newest hoặc Score.
+- [x] Thao tác phản hồi tức thì trên giao diện, ghi `stories.user_state` và một dòng `user_actions` kèm điểm và điểm thành phần tại thời điểm đó.
+- [x] Dùng được trên màn hình hẹp (một cột) và bằng bàn phím.
 
 ## Architecture
 
@@ -74,14 +74,14 @@ Xác thực và chống CSRF dùng nguyên hai module `access-auth.ts` và `requ
 
 ## Todo
 
-- [ ] Router gom mọi route sau lớp xác thực, test 401 và CSRF cho từng route
-- [ ] Route stories và route status
-- [ ] Truy vấn danh sách có cursor và số đếm tab
-- [ ] Test API
-- [ ] Thanh công cụ, lưới thẻ, thẻ, dòng claim, nút thao tác
-- [ ] Trang trạng thái
-- [ ] Test component
-- [ ] Cấu hình assets và kiểm tra trên trình duyệt
+- [x] Router gom mọi route sau lớp xác thực, test 401 và CSRF cho từng route
+- [x] Route stories và route status
+- [x] Truy vấn danh sách có cursor và số đếm tab
+- [x] Test API
+- [x] Thanh công cụ, lưới thẻ, thẻ, dòng claim, nút thao tác
+- [x] Trang trạng thái
+- [x] Test component
+- [x] Cấu hình assets và kiểm tra trên trình duyệt
 
 ## Success Criteria
 

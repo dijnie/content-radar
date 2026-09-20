@@ -1,12 +1,11 @@
 import { z } from "zod";
-import { normalizeHandle } from "../packages/core/src/platform.ts";
+import { normalizeHandle, X_HANDLE_PATTERN } from "../packages/core/src/platform.ts";
 import {
   authorSchema,
   settingsSchema,
   sourceSchema,
   stopEntitiesSchema,
   topicSchema,
-  X_HANDLE_PATTERN,
 } from "../config/config.schema.ts";
 
 export interface RawConfig {

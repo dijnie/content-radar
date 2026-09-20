@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/" xml:lang="en-US">
+  <id>tag:github.com,2008:https://github.com/vllm-project/vllm/releases</id>
+  <link type="text/html" rel="alternate" href="https://github.com/vllm-project/vllm/releases"/>
+  <link type="application/atom+xml" rel="self" href="https://github.com/vllm-project/vllm/releases.atom"/>
+  <title>Release notes from vllm</title>
+  <updated>2026-09-18T21:15:44Z</updated>
+  <entry>
+    <id>tag:github.com,2008:Repository/599547518/v0.30.0rc2</id>
+    <updated>2026-09-18T21:15:44Z</updated>
+    <link rel="alternate" type="text/html" href="https://github.com/vllm-project/vllm/releases/tag/v0.30.0rc2"/>
+    <title>v0.30.0rc2</title>
+    <content type="html">&lt;p&gt;[Bugfix][NIXL] Avoid receive reports for notification-only requests (…&lt;/p&gt;</content>
+    <author>
+      <name>NickLucche</name>
+    </author>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/10706289?s=60&amp;v=4"/>
+  </entry>
+<entry>
+    <id>tag:github.com,2008:Repository/599547518/v0.30.0rc1</id>
+    <updated>2026-09-17T10:37:53Z</updated>
+    <link rel="alternate" type="text/html" href="https://github.com/vllm-project/vllm/releases/tag/v0.30.0rc1"/>
+    <title>v0.30.0rc1: [Bugfix] Isolate supplemental FlashInfer BF16 autotuning (#57285)</title>
+    <content type="html">&lt;p&gt;Signed-off-by: jiahanc &lt;a href=&quot;mailto:173873397+jiahanc@users.noreply.github.com&quot;&gt;173873397+jiahanc@users.noreply.github.com&lt;/a&gt;&lt;br&gt;
+Co-authored-by: OpenAI Codex &lt;a href=&quot;mailto:codex@openai.com&quot;&gt;codex@openai.com&lt;/a&gt;&lt;/p&gt;</content>
+    <author>
+      <name>jiahanc</name>
+    </author>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/173873397?s=60&amp;v=4"/>
+  </entry>
+<entry>
+    <id>tag:github.com,2008:Repository/599547518/proto-v0.3.0</id>
+    <updated>2026-09-17T03:47:02Z</updated>
+    <link rel="alternate" type="text/html" href="https://github.com/vllm-project/vllm/releases/tag/proto-v0.3.0"/>
+    <title>proto-v0.3.0</title>
+    <content type="html">&lt;p&gt;Release vllm-proto 0.3.0&lt;/p&gt;</content>
+    <author>
+      <name>BugenZhao</name>
+    </author>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/25862682?s=60&amp;v=4"/>
+  </entry>
+<entry>
+    <id>tag:github.com,2008:Repository/599547518/proto-v0.2.0</id>
+    <updated>2026-09-16T08:32:41Z</updated>
+    <link rel="alternate" type="text/html" href="https://github.com/vllm-project/vllm/releases/tag/proto-v0.2.0"/>
+    <title>proto-v0.2.0: vllm-proto 0.2.0</title>
+    <content type="html">&lt;p&gt;Validated by PR &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;5429857362&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/vllm-project/vllm/issues/56538&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/vllm-project/vllm/pull/56538/hovercard&quot; href=&quot;https://github.com/vllm-project/vllm/pull/56538&quot;&gt;#56538&lt;/a&gt; CI at &lt;a class=&quot;commit-link&quot; data-hovercard-type=&quot;commit&quot; data-hovercard-url=&quot;https://github.com/vllm-project/vllm/commit/fa2a26f1ea561ecc7a46bb734ab6c7359c852fe7/hovercard&quot; href=&quot;https://github.com/vllm-project/vllm/commit/fa2a26f1ea561ecc7a46bb734ab6c7359c852fe7&quot;&gt;&lt;tt&gt;fa2a26f&lt;/tt&gt;&lt;/a&gt;.&lt;/p&gt;</content>
+    <author>
+      <name>BugenZhao</name>
+    </author>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/25862682?s=60&amp;v=4"/>
+  </entry>
+</feed>

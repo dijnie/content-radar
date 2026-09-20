@@ -1,7 +1,6 @@
 import { z } from "zod";
-import { PLATFORMS } from "../packages/core/src/platform.ts";
+import { PLATFORMS, X_HANDLE_PATTERN } from "../packages/core/src/platform.ts";
 
-export const X_HANDLE_PATTERN = /^[A-Za-z0-9_]{1,15}$/;
 const SLUG = z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/);
 const HTTPS_URL = z.url({ protocol: /^https$/ });
 

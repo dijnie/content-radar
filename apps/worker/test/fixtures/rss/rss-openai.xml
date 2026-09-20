@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+    <channel>
+        <title><![CDATA[OpenAI News]]></title>
+        <description><![CDATA[The OpenAI blog]]></description>
+        <link>https://openai.com/news</link>
+        <image>
+            <url>https://openai.com/apple-icon.png</url>
+            <title>OpenAI News</title>
+            <link>https://openai.com/news</link>
+        </image>
+        <generator>OpenAI</generator>
+        <lastBuildDate>Sun, 20 Sep 2026 16:19:16 GMT</lastBuildDate>
+        <atom:link href="https://openai.com/news/rss.xml" rel="self" type="application/rss+xml"/>
+        <item>
+            <title><![CDATA[Introducing the Australian Youth Safety Blueprint]]></title>
+            <description><![CDATA[OpenAI introduces the Australian Youth Safety Blueprint, a six-pillar roadmap for safer AI experiences that protect and empower young people.]]></description>
+            <link>https://openai.com/index/australian-youth-safety-blueprint</link>
+            <guid isPermaLink="true">https://openai.com/index/australian-youth-safety-blueprint</guid>
+            <category><![CDATA[Company]]></category>
+            <pubDate>Fri, 18 Sep 2026 12:00:00 GMT</pubDate>
+        </item>
+<item>
+            <title><![CDATA[How Cooley is accelerating IPO work with ChatGPT]]></title>
+            <description><![CDATA[Cooley built GO Public with ChatGPT Work to bring intelligence to the IPO process, helping lawyers surface issues earlier and focus judgment where it matters most.]]></description>
+            <link>https://openai.com/index/cooley-gopublic</link>
+            <guid isPermaLink="true">https://openai.com/index/cooley-gopublic</guid>
+            <pubDate>Thu, 17 Sep 2026 12:00:00 GMT</pubDate>
+        </item>
+<item>
+            <title><![CDATA[Introducing Astra for Law]]></title>
+            <description><![CDATA[OpenAI for Law brings frontier intelligence for law, custom firm workflows, connected legal data sources, and legal-grade controls for confidential client work.]]></description>
+            <link>https://openai.com/index/astra-for-law</link>
+            <guid isPermaLink="true">https://openai.com/index/astra-for-law</guid>
+            <category><![CDATA[Company]]></category>
+            <pubDate>Thu, 17 Sep 2026 00:00:00 GMT</pubDate>
+        </item>
+<item>
+            <title><![CDATA[Helping older adults use AI in everyday life]]></title>
+            <description><![CDATA[OpenAI and AARP are bringing free, hands-on ChatGPT workshops to 1,000 older adults across 10 U.S. cities to build practical AI skills safely.]]></description>
+            <link>https://openai.com/index/helping-older-adults-use-ai-in-everyday-life</link>
+            <guid isPermaLink="true">https://openai.com/index/helping-older-adults-use-ai-in-everyday-life</guid>
+            <category><![CDATA[Global Affairs]]></category>
+            <pubDate>Wed, 16 Sep 2026 16:00:00 GMT</pubDate>
+        </item>
+<item>
+            <title><![CDATA[Reimagining advertising with AI]]></title>
+            <description><![CDATA[Explore new AI-powered advertising experiences from OpenAI, including Sponsored Agents, tools for marketers, and integrations with HubSpot and Shopify.]]></description>
+            <link>https://openai.com/index/reimagining-advertising-with-ai</link>
+            <guid isPermaLink="true">https://openai.com/index/reimagining-advertising-with-ai</guid>
+            <category><![CDATA[Product]]></category>
+            <pubDate>Wed, 16 Sep 2026 13:00:00 GMT</pubDate>
+        </item>
+    </channel>
+</rss>

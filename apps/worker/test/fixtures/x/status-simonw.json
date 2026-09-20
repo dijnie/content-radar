@@ -1,0 +1,42 @@
+{
+ "code": 200,
+ "message": "OK",
+ "tweet": {
+  "url": "https://x.com/simonw/status/2101028280673656854",
+  "id": "2101028280673656854",
+  "text": "Being a computer scientist who refuses to find anything about LLMs interesting right now is a bit like being a geneticist who refuses to find anything interesting about the recently opened Jurassic Park",
+  "raw_text": {
+   "text": "Being a computer scientist who refuses to find anything about LLMs interesting right now is a bit like being a geneticist who refuses to find anything interesting about the recently opened Jurassic Park",
+   "display_text_range": [
+    0,
+    202
+   ],
+   "facets": []
+  },
+  "author": {
+   "screen_name": "simonw",
+   "name": "Simon Willison",
+   "id": "12497",
+   "followers": 224241,
+   "url": "https://x.com/simonw"
+  },
+  "replies": 204,
+  "retweets": 180,
+  "likes": 3863,
+  "bookmarks": 292,
+  "quotes": 39,
+  "created_at": "Fri Sep 18 19:19:11 +0000 2026",
+  "created_timestamp": 1789759151,
+  "views": 147427,
+  "is_note_tweet": false,
+  "community_note": null,
+  "lang": "en",
+  "replying_to": null,
+  "replying_to_status": null,
+  "source": "Twitter for iPhone",
+  "twitter_card": "tweet",
+  "color": null,
+  "provider": "twitter",
+  "reposted_by": null
+ }
+}

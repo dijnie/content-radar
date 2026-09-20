@@ -1,0 +1,1 @@
+{"by":"phoyd","id":49777198,"kids":[49777353,49777282],"parent":49776699,"text":"Torrents should really be the preferred method for distributing AI model weights. Why rely on a single point of failure like Hugging Face? BitTorrent was made for exactly this.","time":1789920593,"type":"comment"}

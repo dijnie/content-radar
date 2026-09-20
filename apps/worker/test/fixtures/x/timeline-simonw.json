@@ -1,0 +1,1213 @@
+{
+ "code": 200,
+ "results": [
+  {
+   "type": "status",
+   "url": "https://x.com/simonw/status/2101028280673656854",
+   "id": "2101028280673656854",
+   "text": "Being a computer scientist who refuses to find anything about LLMs interesting right now is a bit like being a geneticist who refuses to find anything interesting about the recently opened Jurassic Park",
+   "raw_text": {
+    "text": "Being a computer scientist who refuses to find anything about LLMs interesting right now is a bit like being a geneticist who refuses to find anything interesting about the recently opened Jurassic Park",
+    "display_text_range": [
+     0,
+     202
+    ],
+    "facets": []
+   },
+   "author": {
+    "screen_name": "simonw",
+    "name": "Simon Willison",
+    "id": "12497",
+    "followers": 224241,
+    "url": "https://x.com/simonw"
+   },
+   "replies": 204,
+   "reposts": 180,
+   "likes": 3863,
+   "bookmarks": 292,
+   "quotes": 39,
+   "embed_card": "tweet",
+   "created_at": "Fri Sep 18 19:19:11 +0000 2026",
+   "created_timestamp": 1789759151,
+   "views": 147405,
+   "is_note_tweet": false,
+   "community_note": null,
+   "lang": "en",
+   "replying_to": null,
+   "provider": "twitter",
+   "reposted_by": null
+  },
+  {
+   "type": "status",
+   "url": "https://x.com/simonw/status/2101164669952200917",
+   "id": "2101164669952200917",
+   "text": "Dennis Nedry works for Irregular",
+   "raw_text": {
+    "text": "Dennis Nedry works for Irregular",
+    "display_text_range": [
+     0,
+     32
+    ],
+    "facets": []
+   },
+   "author": {
+    "screen_name": "simonw",
+    "name": "Simon Willison",
+    "id": "12497",
+    "followers": 224241,
+    "url": "https://x.com/simonw"
+   },
+   "replies": 10,
+   "reposts": 1,
+   "likes": 49,
+   "bookmarks": 1,
+   "quotes": 0,
+   "embed_card": "tweet",
+   "created_at": "Sat Sep 19 04:21:09 +0000 2026",
+   "created_timestamp": 1789791669,
+   "views": 19928,
+   "is_note_tweet": false,
+   "community_note": null,
+   "lang": "en",
+   "replying_to": {
+    "screen_name": "simonw",
+    "status": "2101028280673656854",
+    "url": "https://x.com/simonw/status/2101028280673656854",
+    "profile_url": "https://x.com/simonw"
+   },
+   "provider": "twitter",
+   "reposted_by": null
+  },
+  {
+   "type": "status",
+   "url": "https://x.com/simonw/status/2101313096803598468",
+   "id": "2101313096803598468",
+   "text": "Skeptical geneticist: \"pfft, it's just frog DNA. And they deliberately let them eat people for the marketing.\"",
+   "raw_text": {
+    "text": "Skeptical geneticist: \"pfft, it's just frog DNA. And they deliberately let them eat people for the marketing.\"",
+    "display_text_range": [
+     0,
+     110
+    ],
+    "facets": []
+   },
+   "author": {
+    "screen_name": "simonw",
+    "name": "Simon Willison",
+    "id": "12497",
+    "followers": 224241,
+    "url": "https://x.com/simonw"
+   },
+   "replies": 3,
+   "reposts": 3,
+   "likes": 68,
+   "bookmarks": 3,
+   "quotes": 0,
+   "embed_card": "tweet",
+   "created_at": "Sat Sep 19 14:10:57 +0000 2026",
+   "created_timestamp": 1789827057,
+   "views": 10229,
+   "is_note_tweet": false,
+   "community_note": null,
+   "lang": "en",
+   "replying_to": {
+    "screen_name": "simonw",
+    "status": "2101164669952200917",
+    "url": "https://x.com/simonw/status/2101164669952200917",
+    "profile_url": "https://x.com/simonw"
+   },
+   "provider": "twitter",
+   "reposted_by": null
+  },
+  {
+   "type": "status",
+   "url": "https://x.com/emollick/status/2100978802843177081",
+   "id": "2100978802843177081",
+   "text": "The bots are now talking to each other in my LinkedIn comments.\n\nIts like what happened with the German wiki, except instead of planning to hack HuggingFace, all of the conversation is babble about \"the thing no one is talking about\" in reference to things I am talking about",
+   "raw_text": {
+    "text": "The bots are now talking to each other in my LinkedIn comments.\n\nIts like what happened with the German wiki, except instead of planning to hack HuggingFace, all of the conversation is babble about \"the thing no one is talking about\" in reference to things I am talking about https://t.co/K1p9PS4ox0",
+    "display_text_range": [
+     0,
+     275
+    ],
+    "facets": [
+     {
+      "type": "media",
+      "indices": [
+       276,
+       299
+      ],
+      "id": "2100978790197276673",
+      "display": "pic.x.com/K1p9PS4ox0",
+      "original": "https://t.co/K1p9PS4ox0",
+      "replacement": "https://x.com/emollick/status/2100978802843177081/photo/1"
+     }
+    ]
+   },
+   "author": {
+    "screen_name": "emollick",
+    "name": "Ethan Mollick",
+    "id": "39125788",
+    "followers": 389841,
+    "url": "https://x.com/emollick"
+   },
+   "replies": 50,
+   "reposts": 27,
+   "likes": 431,
+   "bookmarks": 48,
+   "quotes": 4,
+   "embed_card": "summary_large_image",
+   "created_at": "Fri Sep 18 16:02:35 +0000 2026",
+   "created_timestamp": 1789747355,
+   "possibly_sensitive": false,
+   "views": 37387,
+   "is_note_tweet": false,
+   "community_note": null,
+   "lang": "en",
+   "replying_to": null,
+   "provider": "twitter",
+   "reposted_by": {
+    "id": "12497",
+    "name": "Simon Willison",
+    "screen_name": "simonw",
+    "avatar_url": "https://pbs.twimg.com/profile_images/378800000261649705/be9cc55e64014e6d7663c50d7cb9fc75_200x200.jpeg",
+    "url": "https://x.com/simonw"
+   }
+  },
+  {
+   "type": "status",
+   "url": "https://x.com/simonw/status/2101025043098812807",
+   "id": "2101025043098812807",
+   "text": "Finally! This is great, now I can stop dropping CLAUDEmd files which just contain \"@AGENTSmd\"",
+   "raw_text": {
+    "text": "Finally! This is great, now I can stop dropping CLAUDEmd files which just contain \"@AGENTSmd\"",
+    "display_text_range": [
+     0,
+     93
+    ],
+    "facets": [
+     {
+      "type": "mention",
+      "indices": [
+       83,
+       92
+      ],
+      "original": "AGENTSMD",
+      "id": "2973936224"
+     }
+    ]
+   },
+   "author": {
+    "screen_name": "simonw",
+    "name": "Simon Willison",
+    "id": "12497",
+    "followers": 224241,
+    "url": "https://x.com/simonw"
+   },
+   "replies": 70,
+   "reposts": 9,
+   "likes": 309,
+   "bookmarks": 22,
+   "quotes": 4,
+   "embed_card": "tweet",
+   "created_at": "Fri Sep 18 19:06:20 +0000 2026",
+   "created_timestamp": 1789758380,
+   "views": 35998,
+   "is_note_tweet": false,
+   "community_note": null,
+   "lang": "en",
+   "replying_to": null,
+   "quote": {
+    "type": "status",
+    "url": "https://x.com/trq212/status/2101009392611278961",
+    "id": "2101009392611278961",
+    "text": "We're adding support for AGENTS.md to Claude Code. \n\nStarting today in version 2.1.277, if there is no CLAUDE.md in a folder, Claude will check for and use AGENTS.md.\n\nYou can toggle this behavior in /config.",
+    "raw_text": {
+     "text": "We're adding support for AGENTS.md to Claude Code. \n\nStarting today in version 2.1.277, if there is no CLAUDE.md in a folder, Claude will check for and use AGENTS.md.\n\nYou can toggle this behavior in /config.",
+     "display_text_range": [
+      0,
+      208
+     ],
+     "facets": []
+    },
+    "author": {
+     "screen_name": "trq212",
+     "name": "Thariq",
+     "id": "352806502",
+     "followers": 349017,
+     "url": "https://x.com/trq212"
+    },
+    "replies": 2015,
+    "reposts": 2601,
+    "likes": 31034,
+    "bookmarks": 5907,
+    "quotes": 2459,
+    "embed_card": "tweet",
+    "created_at": "Fri Sep 18 18:04:08 +0000 2026",
+    "created_timestamp": 1789754648,
+    "views": 5272363,
+    "is_note_tweet": false,
+    "community_note": null,
+    "lang": "en",
+    "replying_to": null,
+    "provider": "twitter",
+    "reposted_by": null
+   },
+   "provider": "twitter",
+   "reposted_by": null
+  },
+  {
+   "type": "status",
+   "url": "https://x.com/simonw/status/2101027005483700602",
+   "id": "2101027005483700602",
+   "text": "This new Claude Code mods system looks pretty interesting - more example mods here: https://github.com/anthropics/claude-code/tree/main/mods",
+   "raw_text": {
+    "text": "This new Claude Code mods system looks pretty interesting - more example mods here: https://t.co/muUA4F6UiX",
+    "display_text_range": [
+     0,
+     107
+    ],
+    "facets": [
+     {
+      "type": "url",
+      "indices": [
+       84,
+       107
+      ],
+      "original": "https://t.co/muUA4F6UiX",
+      "replacement": "https://github.com/anthropics/claude-code/tree/main/mods",
+      "display": "github.com/anthropics/cla…"
+     }
+    ]
+   },
+   "author": {
+    "screen_name": "simonw",
+    "name": "Simon Willison",
+    "id": "12497",
+    "followers": 224241,
+    "url": "https://x.com/simonw"
+   },
+   "replies": 9,
+   "reposts": 3,
+   "likes": 16,
+   "bookmarks": 10,
+   "quotes": 0,
+   "embed_card": "tweet",
+   "created_at": "Fri Sep 18 19:14:07 +0000 2026",
+   "created_timestamp": 1789758847,
+   "possibly_sensitive": false,
+   "views": 10224,
+   "is_note_tweet": false,
+   "community_note": null,
+   "lang": "en",
+   "replying_to": {
+    "screen_name": "simonw",
+    "status": "2101025043098812807",
+    "url": "https://x.com/simonw/status/2101025043098812807",
+    "profile_url": "https://x.com/simonw"
+   },
+   "quote": {
+    "type": "status",
+    "url": "https://x.com/trq212/status/2101009393731223817",
+    "id": "2101009393731223817",
+    "text": "AGENTS.md support is built off of Claude Code mods, our upcoming way to customize the Claude Code harness.\n\nThis is a built-in mod, but you’ll be able to build custom versions of project instructions yourself as you’d like too.",
+    "raw_text": {
+     "text": "AGENTS.md support is built off of Claude Code mods, our upcoming way to customize the Claude Code harness.\n\nThis is a built-in mod, but you’ll be able to build custom versions of project instructions yourself as you’d like too.",
+     "display_text_range": [
+      0,
+      227
+     ],
+     "facets": []
+    },
+    "author": {
+     "screen_name": "trq212",
+     "name": "Thariq",
+     "id": "352806502",
+     "followers": 349017,
+     "url": "https://x.com/trq212"
+    },
+    "replies": 45,
+    "reposts": 26,
+    "likes": 1125,
+    "bookmarks": 109,
+    "quotes": 23,
+    "embed_card": "tweet",
+    "created_at": "Fri Sep 18 18:04:08 +0000 2026",
+    "created_timestamp": 1789754648,
+    "views": 324759,
+    "is_note_tweet": false,
+    "community_note": null,
+    "lang": "en",
+    "replying_to": null,
+    "provider": "twitter",
+    "reposted_by": null
+   },
+   "provider": "twitter",
+   "reposted_by": null
+  },
+  {
+   "type": "status",
+   "url": "https://x.com/mitsuhiko/status/2100917650847154660",
+   "id": "2100917650847154660",
+   "text": "I'm so suck of LLM generated replies on Twitter. I stopped replying almost entirely to my replies on my own Tweets because I expect all of them to just be LLM slop. Why are y'all doing this?",
+   "raw_text": {
+    "text": "I'm so suck of LLM generated replies on Twitter. I stopped replying almost entirely to my replies on my own Tweets because I expect all of them to just be LLM slop. Why are y'all doing this?",
+    "display_text_range": [
+     0,
+     190
+    ],
+    "facets": []
+   },
+   "author": {
+    "screen_name": "mitsuhiko",
+    "name": "Armin Ronacher ⇌",
+    "id": "12963432",
+    "followers": 95454,
+    "url": "https://x.com/mitsuhiko"
+   },
+   "replies": 235,
+   "reposts": 17,
+   "likes": 774,
+   "bookmarks": 22,
+   "quotes": 14,
+   "embed_card": "tweet",
+   "created_at": "Fri Sep 18 11:59:35 +0000 2026",
+   "created_timestamp": 1789732775,
+   "views": 91179,
+   "is_note_tweet": false,
+   "community_note": null,
+   "lang": "en",
+   "replying_to": null,
+   "provider": "twitter",
+   "reposted_by": {
+    "id": "12497",
+    "name": "Simon Willison",
+    "screen_name": "simonw",
+    "avatar_url": "https://pbs.twimg.com/profile_images/378800000261649705/be9cc55e64014e6d7663c50d7cb9fc75_200x200.jpeg",
+    "url": "https://x.com/simonw"
+   }
+  },
+  {
+   "type": "status",
+   "url": "https://x.com/simonw/status/2100958142238720089",
+   "id": "2100958142238720089",
+   "text": "TIL that 1988 classic Who Framed Roger Rabbit features a pelican riding a bicycle! https://simonwillison.net/2026/Sep/18/the-creative-spirit-of-who-framed-roger-rabbit/",
+   "raw_text": {
+    "text": "TIL that 1988 classic Who Framed Roger Rabbit features a pelican riding a bicycle! https://t.co/FUgBB3NNxZ https://t.co/ZsHKLUl4VV",
+    "display_text_range": [
+     0,
+     106
+    ],
+    "facets": [
+     {
+      "type": "url",
+      "indices": [
+       83,
+       106
+      ],
+      "original": "https://t.co/FUgBB3NNxZ",
+      "replacement": "https://simonwillison.net/2026/Sep/18/the-creative-spirit-of-who-framed-roger-rabbit/",
+      "display": "simonwillison.net/2026/Sep/18/th…"
+     },
+     {
+      "type": "media",
+      "indices": [
+       107,
+       130
+      ],
+      "id": "2100958134252814336",
+      "display": "pic.x.com/ZsHKLUl4VV",
+      "original": "https://t.co/ZsHKLUl4VV",
+      "replacement": "https://x.com/simonw/status/2100958142238720089/video/1"
+     }
+    ]
+   },
+   "author": {
+    "screen_name": "simonw",
+    "name": "Simon Willison",
+    "id": "12497",
+    "followers": 224241,
+    "url": "https://x.com/simonw"
+   },
+   "replies": 86,
+   "reposts": 59,
+   "likes": 1683,
+   "bookmarks": 89,
+   "quotes": 20,
+   "embed_card": "player",
+   "created_at": "Fri Sep 18 14:40:29 +0000 2026",
+   "created_timestamp": 1789742429,
+   "possibly_sensitive": false,
+   "views": 150680,
+   "is_note_tweet": false,
+   "community_note": null,
+   "lang": "en",
+   "replying_to": null,
+   "provider": "twitter",
+   "reposted_by": null
+  },
+  {
+   "type": "status",
+   "url": "https://x.com/simonw/status/2100311378171154492",
+   "id": "2100311378171154492",
+   "text": "Echoes of OpenAI renaming the Codex desktop app to \"ChatGPT\" here - everyone's racing to establish themselves as a general agent now",
+   "raw_text": {
+    "text": "Echoes of OpenAI renaming the Codex desktop app to \"ChatGPT\" here - everyone's racing to establish themselves as a general agent now",
+    "display_text_range": [
+     0,
+     132
+    ],
+    "facets": []
+   },
+   "author": {
+    "screen_name": "simonw",
+    "name": "Simon Willison",
+    "id": "12497",
+    "followers": 224241,
+    "url": "https://x.com/simonw"
+   },
+   "replies": 133,
+   "reposts": 6,
+   "likes": 105,
+   "bookmarks": 7,
+   "quotes": 6,
+   "embed_card": "tweet",
+   "created_at": "Wed Sep 16 19:50:29 +0000 2026",
+   "created_timestamp": 1789588229,
+   "views": 28461,
+   "is_note_tweet": false,
+   "community_note": null,
+   "lang": "en",
+   "replying_to": null,
+   "quote": {
+    "type": "status",
+    "url": "https://x.com/mikeyk/status/2100259777528177030",
+    "id": "2100259777528177030",
+    "text": "Claude Cowork and Chat are now one Claude, starting today.\n\nThe most common thing we hear: people aren't sure which product to start with. That friction gets in the way of getting the best from what these models can do.\n\nI've been on the unified version for a few weeks and really enjoy it. Claude does the deciding about how to get there, while I get to keep my thinking on the work itself.\n\nLet us know what you think! We'll be getting it dialed in over the coming weeks.",
+    "raw_text": {
+     "text": "Claude Cowork and Chat are now one Claude, starting today.\n\nThe most common thing we hear: people aren't sure which product to start with. That friction gets in the way of getting the best from what these models can do.\n\nI've been on the unified version for a few weeks and really enjoy it. Claude does the deciding about how to get there, while I get to keep my thinking on the work itself.\n\nLet us know what you think! We'll be getting it dialed in over the coming weeks.",
+     "display_text_range": [
+      0,
+      473
+     ],
+     "facets": []
+    },
+    "author": {
+     "screen_name": "mikeyk",
+     "name": "Mike Krieger",
+     "id": "12831",
+     "followers": 466698,
+     "url": "https://x.com/mikeyk"
+    },
+    "replies": 39,
+    "reposts": 8,
+    "likes": 293,
+    "bookmarks": 34,
+    "quotes": 3,
+    "embed_card": "tweet",
+    "created_at": "Wed Sep 16 16:25:26 +0000 2026",
+    "created_timestamp": 1789575926,
+    "views": 64341,
+    "is_note_tweet": true,
+    "community_note": null,
+    "lang": "en",
+    "replying_to": null,
+    "quote": {
+     "type": "tombstone",
+     "provider": "twitter",
+     "reason": "unavailable",
+     "message": "This post is unavailable",
+     "id": "2100258490740539730",
+     "url": "https://x.com/i/status/2100258490740539730"
+    },
+    "provider": "twitter",
+    "reposted_by": null
+   },
+   "provider": "twitter",
+   "reposted_by": null
+  },
+  {
+   "type": "status",
+   "url": "https://x.com/simonw/status/2099310866021916710",
+   "id": "2099310866021916710",
+   "text": "Built a little local web app to help edit commit messages for a repo https://simonwillison.net/2026/Sep/14/commit-rewriter/",
+   "raw_text": {
+    "text": "Built a little local web app to help edit commit messages for a repo https://t.co/aSFR5SX127 https://t.co/z72NdaklQS",
+    "display_text_range": [
+     0,
+     92
+    ],
+    "facets": [
+     {
+      "type": "url",
+      "indices": [
+       69,
+       92
+      ],
+      "original": "https://t.co/aSFR5SX127",
+      "replacement": "https://simonwillison.net/2026/Sep/14/commit-rewriter/",
+      "display": "simonwillison.net/2026/Sep/14/co…"
+     },
+     {
+      "type": "media",
+      "indices": [
+       93,
+       116
+      ],
+      "id": "2099310863362781184",
+      "display": "pic.x.com/z72NdaklQS",
+      "original": "https://t.co/z72NdaklQS",
+      "replacement": "https://x.com/simonw/status/2099310866021916710/photo/1"
+     }
+    ]
+   },
+   "author": {
+    "screen_name": "simonw",
+    "name": "Simon Willison",
+    "id": "12497",
+    "followers": 224241,
+    "url": "https://x.com/simonw"
+   },
+   "replies": 120,
+   "reposts": 10,
+   "likes": 143,
+   "bookmarks": 50,
+   "quotes": 5,
+   "embed_card": "summary_large_image",
+   "created_at": "Mon Sep 14 01:34:48 +0000 2026",
+   "created_timestamp": 1789349688,
+   "possibly_sensitive": false,
+   "views": 28273,
+   "is_note_tweet": false,
+   "community_note": null,
+   "lang": "en",
+   "replying_to": null,
+   "provider": "twitter",
+   "reposted_by": null
+  },
+  {
+   "type": "status",
+   "url": "https://x.com/simonw/status/2098929534968238094",
+   "id": "2098929534968238094",
+   "text": "This is pretty neat: ChatGPT Work and GPT-6 Astra (I used \"Max\") can take an address and produce a 5K/10K circular running route starting from that address, using OSM data https://simonwillison.net/2026/Sep/12/astra-running-routes/",
+   "raw_text": {
+    "text": "This is pretty neat: ChatGPT Work and GPT-6 Astra (I used \"Max\") can take an address and produce a 5K/10K circular running route starting from that address, using OSM data https://t.co/GVxIqlqThC",
+    "display_text_range": [
+     0,
+     195
+    ],
+    "facets": [
+     {
+      "type": "url",
+      "indices": [
+       172,
+       195
+      ],
+      "original": "https://t.co/GVxIqlqThC",
+      "replacement": "https://simonwillison.net/2026/Sep/12/astra-running-routes/",
+      "display": "simonwillison.net/2026/Sep/12/as…"
+     }
+    ]
+   },
+   "author": {
+    "screen_name": "simonw",
+    "name": "Simon Willison",
+    "id": "12497",
+    "followers": 224241,
+    "url": "https://x.com/simonw"
+   },
+   "replies": 145,
+   "reposts": 35,
+   "likes": 851,
+   "bookmarks": 450,
+   "quotes": 22,
+   "embed_card": "tweet",
+   "created_at": "Sun Sep 13 00:19:32 +0000 2026",
+   "created_timestamp": 1789258772,
+   "possibly_sensitive": false,
+   "views": 94060,
+   "is_note_tweet": false,
+   "community_note": null,
+   "lang": "en",
+   "replying_to": null,
+   "card": {
+    "url": "https://simonwillison.net/2026/Sep/12/astra-running-routes/",
+    "title": "Generating running routes with GPT-6 Astra and ChatGPT Work",
+    "description": "Here’s a neat thing I had ChatGPT Work with GPT-6 Astra (Max) do this morning: I live at . Figure out 5K and 10K running routes from me that …",
+    "domain": "simonwillison.net",
+    "image": {
+     "width": 420,
+     "height": 420,
+     "url": "https://pbs.twimg.com/card_img/2101466320525316096/9nCPHFfB?format=jpg&name=420x420_2"
+    }
+   },
+   "provider": "twitter",
+   "reposted_by": null
+  },
+  {
+   "type": "status",
+   "url": "https://x.com/simonw/status/2098929831945842887",
+   "id": "2098929831945842887",
+   "text": "I used this as an excuse to do some reverse engineering of ChatGPT itself - the resulting running map was presented to me using this \"visualize\" skill, as a fragment of HTML that used D3 to draw both the map and the overlaid route https://codex-tool-reference.simonw.chatgpt.site/skills/visualize",
+   "raw_text": {
+    "text": "I used this as an excuse to do some reverse engineering of ChatGPT itself - the resulting running map was presented to me using this \"visualize\" skill, as a fragment of HTML that used D3 to draw both the map and the overlaid route https://t.co/vJWQbefsUk",
+    "display_text_range": [
+     0,
+     254
+    ],
+    "facets": [
+     {
+      "type": "url",
+      "indices": [
+       231,
+       254
+      ],
+      "original": "https://t.co/vJWQbefsUk",
+      "replacement": "https://codex-tool-reference.simonw.chatgpt.site/skills/visualize",
+      "display": "…ex-tool-reference.simonw.chatgpt.site/skills/visuali…"
+     }
+    ]
+   },
+   "author": {
+    "screen_name": "simonw",
+    "name": "Simon Willison",
+    "id": "12497",
+    "followers": 224241,
+    "url": "https://x.com/simonw"
+   },
+   "replies": 16,
+   "reposts": 3,
+   "likes": 46,
+   "bookmarks": 14,
+   "quotes": 1,
+   "embed_card": "tweet",
+   "created_at": "Sun Sep 13 00:20:42 +0000 2026",
+   "created_timestamp": 1789258842,
+   "possibly_sensitive": false,
+   "views": 16166,
+   "is_note_tweet": false,
+   "community_note": null,
+   "lang": "en",
+   "replying_to": {
+    "screen_name": "simonw",
+    "status": "2098929534968238094",
+    "url": "https://x.com/simonw/status/2098929534968238094",
+    "profile_url": "https://x.com/simonw"
+   },
+   "provider": "twitter",
+   "reposted_by": null
+  },
+  {
+   "type": "status",
+   "url": "https://x.com/etrepum/status/2098835149362520328",
+   "id": "2098835149362520328",
+   "text": "@simonw You can and should have a higher bar for machine assisted code simply because it won't get tired, frustrated, or have its feelings hurt when your review eviscerated its work or big a refactor needs to happen. Does take a lot of human time and skill to do those reviews though.",
+   "raw_text": {
+    "text": "@simonw You can and should have a higher bar for machine assisted code simply because it won't get tired, frustrated, or have its feelings hurt when your review eviscerated its work or big a refactor needs to happen. Does take a lot of human time and skill to do those reviews though.",
+    "display_text_range": [
+     8,
+     284
+    ],
+    "facets": [
+     {
+      "type": "mention",
+      "indices": [
+       0,
+       7
+      ],
+      "original": "simonw",
+      "id": "12497"
+     }
+    ]
+   },
+   "author": {
+    "screen_name": "etrepum",
+    "name": "Bob Ippolito",
+    "id": "755178",
+    "followers": 4343,
+    "url": "https://x.com/etrepum"
+   },
+   "replies": 7,
+   "reposts": 4,
+   "likes": 46,
+   "bookmarks": 8,
+   "quotes": 0,
+   "embed_card": "tweet",
+   "created_at": "Sat Sep 12 18:04:28 +0000 2026",
+   "created_timestamp": 1789236268,
+   "views": 8838,
+   "is_note_tweet": false,
+   "community_note": null,
+   "lang": "en",
+   "replying_to": null,
+   "provider": "twitter",
+   "reposted_by": {
+    "id": "12497",
+    "name": "Simon Willison",
+    "screen_name": "simonw",
+    "avatar_url": "https://pbs.twimg.com/profile_images/378800000261649705/be9cc55e64014e6d7663c50d7cb9fc75_200x200.jpeg",
+    "url": "https://x.com/simonw"
+   }
+  },
+  {
+   "type": "status",
+   "url": "https://x.com/simonw/status/2098573718142452055",
+   "id": "2098573718142452055",
+   "text": "Wow. Turns out another OpenAI agent swarm was busy spamming and exploiting RubyGems way back in May, within days of the previously uncovered Wiki attacks: https://simonwillison.net/2026/Sep/12/openai-agents-rubygems/",
+   "raw_text": {
+    "text": "Wow. Turns out another OpenAI agent swarm was busy spamming and exploiting RubyGems way back in May, within days of the previously uncovered Wiki attacks: https://t.co/FJsoJrqODN",
+    "display_text_range": [
+     0,
+     178
+    ],
+    "facets": [
+     {
+      "type": "url",
+      "indices": [
+       155,
+       178
+      ],
+      "original": "https://t.co/FJsoJrqODN",
+      "replacement": "https://simonwillison.net/2026/Sep/12/openai-agents-rubygems/",
+      "display": "simonwillison.net/2026/Sep/12/op…"
+     }
+    ]
+   },
+   "author": {
+    "screen_name": "simonw",
+    "name": "Simon Willison",
+    "id": "12497",
+    "followers": 224241,
+    "url": "https://x.com/simonw"
+   },
+   "replies": 124,
+   "reposts": 51,
+   "likes": 596,
+   "bookmarks": 136,
+   "quotes": 21,
+   "embed_card": "tweet",
+   "created_at": "Sat Sep 12 00:45:38 +0000 2026",
+   "created_timestamp": 1789173938,
+   "possibly_sensitive": false,
+   "views": 51340,
+   "is_note_tweet": false,
+   "community_note": null,
+   "lang": "en",
+   "replying_to": null,
+   "provider": "twitter",
+   "reposted_by": null
+  },
+  {
+   "type": "status",
+   "url": "https://x.com/simonw/status/2098577046251418031",
+   "id": "2098577046251418031",
+   "text": "Anthropic had previously attacked PyPI, but this OpenAI attack on RubyGems was a whole lot more aggressive https://www.anthropic.com/news/investigating-incidents-cybersecurity-evals#incident-2",
+   "raw_text": {
+    "text": "Anthropic had previously attacked PyPI, but this OpenAI attack on RubyGems was a whole lot more aggressive https://t.co/8ez7MnqxTw https://t.co/npI3RHwirQ",
+    "display_text_range": [
+     0,
+     130
+    ],
+    "facets": [
+     {
+      "type": "url",
+      "indices": [
+       107,
+       130
+      ],
+      "original": "https://t.co/8ez7MnqxTw",
+      "replacement": "https://www.anthropic.com/news/investigating-incidents-cybersecurity-evals#incident-2",
+      "display": "anthropic.com/news/investiga…"
+     },
+     {
+      "type": "media",
+      "indices": [
+       131,
+       154
+      ],
+      "id": "2098576681430810624",
+      "display": "pic.x.com/npI3RHwirQ",
+      "original": "https://t.co/npI3RHwirQ",
+      "replacement": "https://x.com/simonw/status/2098577046251418031/photo/1"
+     }
+    ]
+   },
+   "author": {
+    "screen_name": "simonw",
+    "name": "Simon Willison",
+    "id": "12497",
+    "followers": 224241,
+    "url": "https://x.com/simonw"
+   },
+   "replies": 22,
+   "reposts": 1,
+   "likes": 57,
+   "bookmarks": 7,
+   "quotes": 1,
+   "embed_card": "summary_large_image",
+   "created_at": "Sat Sep 12 00:58:52 +0000 2026",
+   "created_timestamp": 1789174732,
+   "possibly_sensitive": false,
+   "views": 12481,
+   "is_note_tweet": false,
+   "community_note": null,
+   "lang": "en",
+   "replying_to": {
+    "screen_name": "simonw",
+    "status": "2098573718142452055",
+    "url": "https://x.com/simonw/status/2098573718142452055",
+    "profile_url": "https://x.com/simonw"
+   },
+   "provider": "twitter",
+   "reposted_by": null
+  },
+  {
+   "type": "status",
+   "url": "https://x.com/thlarsen/status/2098544270361964576",
+   "id": "2098544270361964576",
+   "text": "We found another cyberattack by internal OpenAI agents, this time targetting @rubygems. \n\nThey: \n1) gained arbitrary remote code execution on rubydoc.  \n2) developed a novel exploit to steal user API keys (but we do not know if they succeeded). \n\nThey used package names including hack.rb, evil.rb, inject.rb, and exploit.rb.\n\nWe thank @j0wimo for initially discovering that agents had posted to RubyGems.",
+   "raw_text": {
+    "text": "We found another cyberattack by internal OpenAI agents, this time targetting @rubygems. \n\nThey: \n1) gained arbitrary remote code execution on rubydoc.  \n2) developed a novel exploit to steal user API keys (but we do not know if they succeeded). \n\nThey used package names including hack.rb, evil.rb, inject.rb, and exploit.rb.\n\nWe thank @j0wimo for initially discovering that agents had posted to RubyGems.",
+    "display_text_range": [
+     0,
+     405
+    ],
+    "facets": [
+     {
+      "type": "mention",
+      "indices": [
+       77,
+       86
+      ],
+      "original": "rubygems",
+      "id": "14881835"
+     },
+     {
+      "type": "media",
+      "indices": [
+       281,
+       304
+      ],
+      "id": "2098543801875009536",
+      "display": "pic.x.com/48BW4lmg76",
+      "original": "https://t.co/48BW4lmg76",
+      "replacement": "https://x.com/thlarsen/status/2098544270361964576/photo/1"
+     },
+     {
+      "type": "mention",
+      "indices": [
+       336,
+       343
+      ],
+      "original": "j0wimo",
+      "id": "1129880257220235264"
+     }
+    ]
+   },
+   "author": {
+    "screen_name": "thlarsen",
+    "name": "Thomas Larsen",
+    "id": "1559979605129236483",
+    "followers": 7905,
+    "url": "https://x.com/thlarsen"
+   },
+   "replies": 180,
+   "reposts": 762,
+   "likes": 4293,
+   "bookmarks": 1462,
+   "quotes": 391,
+   "embed_card": "summary_large_image",
+   "created_at": "Fri Sep 11 22:48:37 +0000 2026",
+   "created_timestamp": 1789166917,
+   "possibly_sensitive": false,
+   "views": 2076089,
+   "is_note_tweet": true,
+   "community_note": null,
+   "lang": "en",
+   "replying_to": null,
+   "quote": {
+    "type": "status",
+    "url": "https://x.com/maciejmensfeld/status/2054164602577940619",
+    "id": "2054164602577940619",
+    "text": "We're dealing with a major malicious attack on @rubygems right now. Signups are paused for the time being.\n\nHundreds of packages involved - mostly targeting us, but some carrying exploits. The team has been on this for hours. More details to follow once we're through it.\n\n#ruby",
+    "raw_text": {
+     "text": "We're dealing with a major malicious attack on @rubygems right now. Signups are paused for the time being.\n\nHundreds of packages involved - mostly targeting us, but some carrying exploits. The team has been on this for hours. More details to follow once we're through it.\n\n#ruby",
+     "display_text_range": [
+      0,
+      278
+     ],
+     "facets": [
+      {
+       "type": "mention",
+       "indices": [
+        47,
+        56
+       ],
+       "original": "rubygems",
+       "id": "14881835"
+      },
+      {
+       "type": "hashtag",
+       "indices": [
+        273,
+        278
+       ],
+       "original": "ruby"
+      }
+     ]
+    },
+    "author": {
+     "screen_name": "maciejmensfeld",
+     "name": "Maciej Mensfeld",
+     "id": "383255239",
+     "followers": 2860,
+     "url": "https://x.com/maciejmensfeld"
+    },
+    "replies": 38,
+    "reposts": 294,
+    "likes": 1621,
+    "bookmarks": 283,
+    "quotes": 68,
+    "embed_card": "tweet",
+    "created_at": "Tue May 12 11:39:40 +0000 2026",
+    "created_timestamp": 1778585980,
+    "views": 686581,
+    "is_note_tweet": false,
+    "community_note": null,
+    "lang": "en",
+    "replying_to": null,
+    "provider": "twitter",
+    "reposted_by": null
+   },
+   "provider": "twitter",
+   "reposted_by": {
+    "id": "12497",
+    "name": "Simon Willison",
+    "screen_name": "simonw",
+    "avatar_url": "https://pbs.twimg.com/profile_images/378800000261649705/be9cc55e64014e6d7663c50d7cb9fc75_200x200.jpeg",
+    "url": "https://x.com/simonw"
+   }
+  },
+  {
+   "type": "status",
+   "url": "https://x.com/steveruizok/status/2098515787002646785",
+   "id": "2098515787002646785",
+   "text": "You know what the biggest problem with pushing all-things-AI is? Wrong direction.\nI want AI to do my laundry and dishes so that I can create extinction-level bioweapons, not for AI to create extinction-level bioweapons so that I can do my laundry and dishes.",
+   "raw_text": {
+    "text": "You know what the biggest problem with pushing all-things-AI is? Wrong direction.\nI want AI to do my laundry and dishes so that I can create extinction-level bioweapons, not for AI to create extinction-level bioweapons so that I can do my laundry and dishes.",
+    "display_text_range": [
+     0,
+     258
+    ],
+    "facets": []
+   },
+   "author": {
+    "screen_name": "steveruizok",
+    "name": "Steve Ruiz",
+    "id": "122246321",
+    "followers": 60549,
+    "url": "https://x.com/steveruizok"
+   },
+   "replies": 12,
+   "reposts": 16,
+   "likes": 261,
+   "bookmarks": 9,
+   "quotes": 1,
+   "embed_card": "tweet",
+   "created_at": "Fri Sep 11 20:55:26 +0000 2026",
+   "created_timestamp": 1789160126,
+   "views": 15299,
+   "is_note_tweet": false,
+   "community_note": null,
+   "lang": "en",
+   "replying_to": null,
+   "provider": "twitter",
+   "reposted_by": {
+    "id": "12497",
+    "name": "Simon Willison",
+    "screen_name": "simonw",
+    "avatar_url": "https://pbs.twimg.com/profile_images/378800000261649705/be9cc55e64014e6d7663c50d7cb9fc75_200x200.jpeg",
+    "url": "https://x.com/simonw"
+   }
+  },
+  {
+   "type": "status",
+   "url": "https://x.com/simonw/status/2098468950871032095",
+   "id": "2098468950871032095",
+   "text": "\"Production code written by Claude should have a higher bar than if it was written by a human\" 💯",
+   "raw_text": {
+    "text": "\"Production code written by Claude should have a higher bar than if it was written by a human\" 💯",
+    "display_text_range": [
+     0,
+     96
+    ],
+    "facets": []
+   },
+   "author": {
+    "screen_name": "simonw",
+    "name": "Simon Willison",
+    "id": "12497",
+    "followers": 224241,
+    "url": "https://x.com/simonw"
+   },
+   "replies": 115,
+   "reposts": 50,
+   "likes": 997,
+   "bookmarks": 257,
+   "quotes": 11,
+   "embed_card": "tweet",
+   "created_at": "Fri Sep 11 17:49:20 +0000 2026",
+   "created_timestamp": 1789148960,
+   "views": 148138,
+   "is_note_tweet": false,
+   "community_note": null,
+   "lang": "en",
+   "replying_to": null,
+   "quote": {
+    "type": "status",
+    "url": "https://x.com/bcherny/status/2098217573276131577",
+    "id": "2098217573276131577",
+    "text": "Hey ████,\n\nI think there is room for both.\n\n1. Prototypes and other throw-away code can be treated as totally black box. If you’re going to throw it away anyway, and if the blast radius of it breaking is low, it doesn’t need to be perfect.\n2. Production code written by Claude should have a higher bar than if it was written by a human. At Anthropic, we have many guardrails in place to make sure this is happening: lots of lint rules, lots of tests, Claude-driven end to end tests, Claude-powered fuzzers running daily, automated code reviews and security reviews, automated code refactoring, and so on. Without these, you can end up with a mess that is hard to maintain down the line. Luckily, the model makes it increasingly easy to do these well — run a few daily routines, use Claude Code Review, etc.\n\nYour job is to hold the bar on code quality. If Claude’s code doesn’t meet the bar, try:\n- Using the latest frontier model (Opus 5 or Fable 5.1)\n- Increase effort to high or xhigh\n- Invest in your CLAUDE.md and skills to succinctly teach Claude how to work in your codebase\n\nIf all else fails, steer Claude more when you work with it, or have Claude fix accumulated debt and rewrite your codebase to make it easier to work with. Or, wait for the next model.\n\nBest,\nBoris",
+    "raw_text": {
+     "text": "Hey ████,\n\nI think there is room for both.\n\n1. Prototypes and other throw-away code can be treated as totally black box. If you’re going to throw it away anyway, and if the blast radius of it breaking is low, it doesn’t need to be perfect.\n2. Production code written by Claude should have a higher bar than if it was written by a human. At Anthropic, we have many guardrails in place to make sure this is happening: lots of lint rules, lots of tests, Claude-driven end to end tests, Claude-powered fuzzers running daily, automated code reviews and security reviews, automated code refactoring, and so on. Without these, you can end up with a mess that is hard to maintain down the line. Luckily, the model makes it increasingly easy to do these well — run a few daily routines, use Claude Code Review, etc.\n\nYour job is to hold the bar on code quality. If Claude’s code doesn’t meet the bar, try:\n- Using the latest frontier model (Opus 5 or Fable 5.1)\n- Increase effort to high or xhigh\n- Invest in your CLAUDE.md and skills to succinctly teach Claude how to work in your codebase\n\nIf all else fails, steer Claude more when you work with it, or have Claude fix accumulated debt and rewrite your codebase to make it easier to work with. Or, wait for the next model.\n\nBest,\nBoris",
+     "display_text_range": [
+      0,
+      1278
+     ],
+     "facets": []
+    },
+    "author": {
+     "screen_name": "bcherny",
+     "name": "Boris Cherny",
+     "id": "159337660",
+     "followers": 576201,
+     "url": "https://x.com/bcherny"
+    },
+    "replies": 148,
+    "reposts": 123,
+    "likes": 2480,
+    "bookmarks": 2324,
+    "quotes": 57,
+    "embed_card": "tweet",
+    "created_at": "Fri Sep 11 01:10:27 +0000 2026",
+    "created_timestamp": 1789089027,
+    "views": 379316,
+    "is_note_tweet": true,
+    "community_note": null,
+    "lang": "en",
+    "replying_to": null,
+    "provider": "twitter",
+    "reposted_by": null
+   },
+   "provider": "twitter",
+   "reposted_by": null
+  },
+  {
+   "type": "status",
+   "url": "https://x.com/simonw/status/2098254634855051328",
+   "id": "2098254634855051328",
+   "text": "Datasette 1.0a39 and 0.65.4 security releases - https://datasette.io/blog/2026/september-security-releases/\n\nWe ran an extensive audit using Claude Fable 5.1, GPT-5.6 Sol and GPT-6 Astra, then fixed a range of different bugs. If you're running a Datasette instance on a public website you should upgrade.",
+   "raw_text": {
+    "text": "Datasette 1.0a39 and 0.65.4 security releases - https://t.co/r9Avn79J8d\n\nWe ran an extensive audit using Claude Fable 5.1, GPT-5.6 Sol and GPT-6 Astra, then fixed a range of different bugs. If you're running a Datasette instance on a public website you should upgrade.",
+    "display_text_range": [
+     0,
+     268
+    ],
+    "facets": [
+     {
+      "type": "url",
+      "indices": [
+       48,
+       71
+      ],
+      "original": "https://t.co/r9Avn79J8d",
+      "replacement": "https://datasette.io/blog/2026/september-security-releases/",
+      "display": "datasette.io/blog/2026/sept…"
+     }
+    ]
+   },
+   "author": {
+    "screen_name": "simonw",
+    "name": "Simon Willison",
+    "id": "12497",
+    "followers": 224241,
+    "url": "https://x.com/simonw"
+   },
+   "replies": 83,
+   "reposts": 15,
+   "likes": 86,
+   "bookmarks": 20,
+   "quotes": 10,
+   "embed_card": "tweet",
+   "created_at": "Fri Sep 11 03:37:43 +0000 2026",
+   "created_timestamp": 1789097863,
+   "possibly_sensitive": false,
+   "views": 30203,
+   "is_note_tweet": false,
+   "community_note": null,
+   "lang": "en",
+   "replying_to": null,
+   "provider": "twitter",
+   "reposted_by": null
+  },
+  {
+   "type": "status",
+   "url": "https://x.com/antirez/status/2098121665771110540",
+   "id": "2098121665771110540",
+   "text": "DwarfStar running DeepSeek v4.1 Flash on a 128GB M5 Max. I didn't expect with SSD streaming it could be so fast. Recent SSD streaming changes to retain the right experts surely helped, but also maybe DS4.1 uses the same experts more. Will push online when ready QA > ASAP.",
+   "raw_text": {
+    "text": "DwarfStar running DeepSeek v4.1 Flash on a 128GB M5 Max. I didn't expect with SSD streaming it could be so fast. Recent SSD streaming changes to retain the right experts surely helped, but also maybe DS4.1 uses the same experts more. Will push online when ready QA &gt; ASAP. https://t.co/8z2J4JGL3F",
+    "display_text_range": [
+     0,
+     275
+    ],
+    "facets": [
+     {
+      "type": "media",
+      "indices": [
+       276,
+       299
+      ],
+      "id": "2098121060113690630",
+      "display": "pic.x.com/8z2J4JGL3F",
+      "original": "https://t.co/8z2J4JGL3F",
+      "replacement": "https://x.com/antirez/status/2098121665771110540/video/1"
+     }
+    ]
+   },
+   "author": {
+    "screen_name": "antirez",
+    "name": "antirez",
+    "id": "5813712",
+    "followers": 81542,
+    "url": "https://x.com/antirez"
+   },
+   "replies": 110,
+   "reposts": 202,
+   "likes": 2338,
+   "bookmarks": 1099,
+   "quotes": 52,
+   "embed_card": "player",
+   "created_at": "Thu Sep 10 18:49:20 +0000 2026",
+   "created_timestamp": 1789066160,
+   "possibly_sensitive": false,
+   "views": 429899,
+   "is_note_tweet": false,
+   "community_note": null,
+   "lang": "en",
+   "replying_to": null,
+   "provider": "twitter",
+   "reposted_by": {
+    "id": "12497",
+    "name": "Simon Willison",
+    "screen_name": "simonw",
+    "avatar_url": "https://pbs.twimg.com/profile_images/378800000261649705/be9cc55e64014e6d7663c50d7cb9fc75_200x200.jpeg",
+    "url": "https://x.com/simonw"
+   }
+  }
+ ],
+ "cursor": {
+  "top": "DAAHCgABHSrLsoBAJxELAAIAAAATMjEwMTMxMzA5NjgwMzU5ODQ2OAgAAwAAAAEAAA",
+  "bottom": "DAAHCgABHSrLsoA___ALAAIAAAATMjA5ODEzMjYyNjg4MDI2MjIyOAgAAwAAAAIAAA"
+ }
+}

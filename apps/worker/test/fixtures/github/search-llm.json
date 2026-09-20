@@ -1,0 +1,152 @@
+{
+ "total_count": 1095,
+ "incomplete_results": false,
+ "items": [
+  {
+   "id": 1136590548,
+   "full_name": "affaan-m/ECC",
+   "html_url": "https://github.com/affaan-m/ECC",
+   "description": "The agent harness performance optimization system. Skills, instincts, memory, security, and research-first development for Claude Code, Codex, Opencode, Cursor and beyond.",
+   "stargazers_count": 263473,
+   "forks_count": 39428,
+   "pushed_at": "2026-09-20T00:01:14Z",
+   "created_at": "2026-01-18T00:51:51Z",
+   "language": "JavaScript",
+   "topics": [
+    "ai-agents",
+    "anthropic",
+    "claude",
+    "claude-code",
+    "developer-tools",
+    "llm",
+    "mcp",
+    "productivity"
+   ],
+   "owner": {
+    "login": "affaan-m"
+   }
+  },
+  {
+   "id": 1024554267,
+   "full_name": "NousResearch/hermes-agent",
+   "html_url": "https://github.com/NousResearch/hermes-agent",
+   "description": "The agent that grows with you",
+   "stargazers_count": 247402,
+   "forks_count": 52023,
+   "pushed_at": "2026-09-20T16:52:25Z",
+   "created_at": "2025-07-22T22:22:28Z",
+   "language": "Python",
+   "topics": [
+    "ai",
+    "ai-agent",
+    "ai-agents",
+    "anthropic",
+    "chatgpt",
+    "claude",
+    "claude-code",
+    "codex",
+    "hermes",
+    "hermes-agent",
+    "llm",
+    "nous-research",
+    "openai"
+   ],
+   "owner": {
+    "login": "NousResearch"
+   }
+  },
+  {
+   "id": 614765452,
+   "full_name": "Significant-Gravitas/AutoGPT",
+   "html_url": "https://github.com/Significant-Gravitas/AutoGPT",
+   "description": "AutoGPT is the vision of accessible AI for everyone, to use and to build on. Our mission is to provide the tools, so that you can focus on what matters.",
+   "stargazers_count": 187459,
+   "forks_count": 46007,
+   "pushed_at": "2026-09-20T16:09:13Z",
+   "created_at": "2023-03-16T09:21:07Z",
+   "language": "Python",
+   "topics": [
+    "agentic-ai",
+    "agents",
+    "ai",
+    "artificial-intelligence",
+    "autonomous-agents",
+    "claude",
+    "gpt",
+    "llama-api",
+    "llm",
+    "openai",
+    "python"
+   ],
+   "owner": {
+    "login": "Significant-Gravitas"
+   }
+  },
+  {
+   "id": 787076358,
+   "full_name": "firecrawl/firecrawl",
+   "html_url": "https://github.com/firecrawl/firecrawl",
+   "description": "The web data API to search, scrape, and interact at scale. 🔥",
+   "stargazers_count": 182497,
+   "forks_count": 9861,
+   "pushed_at": "2026-09-20T16:44:06Z",
+   "created_at": "2024-04-15T21:02:29Z",
+   "language": "TypeScript",
+   "topics": [
+    "ai",
+    "ai-agents",
+    "ai-crawler",
+    "ai-scraping",
+    "ai-search",
+    "crawler",
+    "data-extraction",
+    "html-to-markdown",
+    "llm",
+    "markdown",
+    "scraper",
+    "scraping",
+    "web-crawler",
+    "web-data",
+    "web-data-extraction",
+    "web-scraper",
+    "web-scraping",
+    "web-search",
+    "webscraping"
+   ],
+   "owner": {
+    "login": "firecrawl"
+   }
+  },
+  {
+   "id": 658928958,
+   "full_name": "ollama/ollama",
+   "html_url": "https://github.com/ollama/ollama",
+   "description": "Get up and running with Kimi, GLM, MiniMax, DeepSeek, gpt-oss, Qwen, Gemma and other models.",
+   "stargazers_count": 181310,
+   "forks_count": 17943,
+   "pushed_at": "2026-09-19T20:41:40Z",
+   "created_at": "2023-06-26T19:39:32Z",
+   "language": "Go",
+   "topics": [
+    "deepseek",
+    "gemma",
+    "gemma3",
+    "glm",
+    "go",
+    "golang",
+    "gpt-oss",
+    "llama",
+    "llama3",
+    "llm",
+    "llms",
+    "minimax",
+    "mistral",
+    "ollama",
+    "qwen"
+   ],
+   "owner": {
+    "login": "ollama"
+   }
+  }
+ ]
+}

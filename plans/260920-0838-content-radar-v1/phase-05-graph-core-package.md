@@ -28,10 +28,10 @@ dependencies: [1]
 
 ## Requirements
 
-- [ ] Mọi hàm thuần và tất định: cùng đầu vào và cùng seed cho cùng đầu ra, kể cả thứ tự phần tử trong kết quả.
-- [ ] Không import API của Node hay Workers; chạy được trong cả hai môi trường.
-- [ ] Thư viện Leiden nằm sau một interface để đổi thư viện chỉ chạm một file.
-- [ ] `params.ts` là chủ sở hữu duy nhất của mọi tham số thuật toán: tên, kiểu, giá trị mặc định, `PARAMS_VERSION`. Hàm `resolveParams(overrides)` hợp nhất giá trị ghi đè từ bảng `settings` và kiểm tra hợp lệ; không hàm nào trong gói tự lấy mặc định ngầm.
+- [x] Mọi hàm thuần và tất định: cùng đầu vào và cùng seed cho cùng đầu ra, kể cả thứ tự phần tử trong kết quả.
+- [x] Không import API của Node hay Workers; chạy được trong cả hai môi trường.
+- [x] Thư viện Leiden nằm sau một interface để đổi thư viện chỉ chạm một file.
+- [x] `params.ts` là chủ sở hữu duy nhất của mọi tham số thuật toán: tên, kiểu, giá trị mặc định, `PARAMS_VERSION`. Hàm `resolveParams(overrides)` hợp nhất giá trị ghi đè từ bảng `settings` và kiểm tra hợp lệ; không hàm nào trong gói tự lấy mặc định ngầm.
 
 ## Architecture
 
@@ -102,16 +102,16 @@ Hợp đồng chính:
 
 ## Todo
 
-- [ ] `params.ts` có phiên bản và `resolveParams`
-- [ ] Chuẩn hoá entity và thang quyết định gộp mention
-- [ ] Cosine, láng giềng top-k, IDF, cạnh có trọng số tính tại chỗ
-- [ ] Interface Clusterer và adapter Leiden, test tất định
-- [ ] Hai fixture có trọng số và bước quét gamma
-- [ ] Cỡ cụm tối thiểu và quy tắc nâng claim lẻ bất thường
-- [ ] Khớp lineage trên phần còn trong cửa sổ, có hồi sinh
-- [ ] Quan hệ dẫn xuất và đếm nguồn độc lập
-- [ ] Robust z, chấm điểm, headline dự phòng
-- [ ] Build sạch, không phụ thuộc runtime
+- [x] `params.ts` có phiên bản và `resolveParams`
+- [x] Chuẩn hoá entity và thang quyết định gộp mention
+- [x] Cosine, láng giềng top-k, IDF, cạnh có trọng số tính tại chỗ
+- [x] Interface Clusterer và adapter Leiden, test tất định
+- [x] Hai fixture có trọng số và bước quét gamma
+- [x] Cỡ cụm tối thiểu và quy tắc nâng claim lẻ bất thường
+- [x] Khớp lineage trên phần còn trong cửa sổ, có hồi sinh
+- [x] Quan hệ dẫn xuất và đếm nguồn độc lập
+- [x] Robust z, chấm điểm, headline dự phòng
+- [x] Build sạch, không phụ thuộc runtime
 
 ## Success Criteria
 

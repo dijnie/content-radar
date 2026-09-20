@@ -30,12 +30,12 @@ Cron 30 phút chọn các nguồn đến hạn và đẩy vào `radar-poll`. Con
 
 ## Requirements
 
-- [ ] Giao diện adapter thống nhất; thêm hoặc thay một nguồn chỉ chạm một file.
-- [ ] Bốn adapter: `x`, `hn`, `rss`, `github`.
-- [ ] Idempotent: poll lại cùng dữ liệu không tạo item trùng và không đánh thức lại việc bóc tách cho item đã xử lý.
-- [ ] D1 là sổ cái: item được ghi `status = queued` kèm `queued_at` trong cùng lô ghi với chính nó, sau đó mới gửi message. Message mất hay hết hạn không làm mất việc vì bước rút backlog của phase 4 quét các item `queued` và gửi lại.
-- [ ] Lỗi của một nguồn không ảnh hưởng nguồn khác; sau 5 lần lỗi liên tiếp, khoảng poll của nguồn đó giãn gấp đôi cho tới tối đa 24 giờ và tự co lại khi thành công.
-- [ ] Backfill 15 ngày cho một tài khoản X chạy tay qua endpoint quản trị; item backfill mang `ingest_mode = backfill`.
+- [x] Giao diện adapter thống nhất; thêm hoặc thay một nguồn chỉ chạm một file.
+- [x] Bốn adapter: `x`, `hn`, `rss`, `github`.
+- [x] Idempotent: poll lại cùng dữ liệu không tạo item trùng và không đánh thức lại việc bóc tách cho item đã xử lý.
+- [x] D1 là sổ cái: item được ghi `status = queued` kèm `queued_at` trong cùng lô ghi với chính nó, sau đó mới gửi message. Message mất hay hết hạn không làm mất việc vì bước rút backlog của phase 4 quét các item `queued` và gửi lại.
+- [x] Lỗi của một nguồn không ảnh hưởng nguồn khác; sau 5 lần lỗi liên tiếp, khoảng poll của nguồn đó giãn gấp đôi cho tới tối đa 24 giờ và tự co lại khi thành công.
+- [x] Backfill 15 ngày cho một tài khoản X chạy tay qua endpoint quản trị; item backfill mang `ingest_mode = backfill`.
 
 ## Architecture
 
@@ -81,15 +81,15 @@ Bộ lọc rẻ (`ingest/cheap-filter.ts`), theo thứ tự: bỏ `repost` (vẫ
 
 ## Todo
 
-- [ ] `url-guard.ts`, `http-client.ts` và test SSRF, bom nén
-- [ ] Fixture thật cho từng nguồn
-- [ ] Adapter `x` cùng chuỗi fallback và kiểm tra handle
-- [ ] Adapter `hn` kèm bình luận theo thứ hạng
-- [ ] Adapter `rss` kèm trích nội dung bài
-- [ ] Adapter `github` dùng PAT chỉ đọc
-- [ ] Dispatcher, consumer theo thứ tự sổ cái trước, bộ lọc rẻ, backoff
-- [ ] Endpoint backfill X có cờ `ingest_mode`
-- [ ] Test đơn vị và test tích hợp local
+- [x] `url-guard.ts`, `http-client.ts` và test SSRF, bom nén
+- [x] Fixture thật cho từng nguồn
+- [x] Adapter `x` cùng chuỗi fallback và kiểm tra handle
+- [x] Adapter `hn` kèm bình luận theo thứ hạng
+- [x] Adapter `rss` kèm trích nội dung bài
+- [x] Adapter `github` dùng PAT chỉ đọc
+- [x] Dispatcher, consumer theo thứ tự sổ cái trước, bộ lọc rẻ, backoff
+- [x] Endpoint backfill X có cờ `ingest_mode`
+- [x] Test đơn vị và test tích hợp local
 
 ## Success Criteria
 

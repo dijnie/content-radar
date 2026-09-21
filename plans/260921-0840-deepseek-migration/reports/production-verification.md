@@ -19,7 +19,7 @@ At 09:03:10 UTC, sent 50 existing queued item IDs from the current 7-day window 
 
 ## Gateway continuation
 
-Owner selected existing authenticated gateway `gateway`; API inspection confirms provider `deepseek`, alias `deepseek`, key reference present. Gateway migration is tracked in [phase 2](../phase-02-ai-gateway.md). The direct deployment and real-card proof above remain valid historical evidence, separate from pending Gateway proof.
+Owner selected existing authenticated gateway `gateway`; API inspection confirmed provider `deepseek`, alias `deepseek`, key reference present. Gateway migration is tracked in [phase 2](../phase-02-ai-gateway.md). The direct deployment and real-card proof above remain historical evidence; the final Gateway proof is recorded below.
 
 ## AI binding rollout
 
@@ -27,4 +27,16 @@ Owner approved native binding and default BYOK alias. Duplicated `gateway_deepse
 
 Version `6eff0ccd-c64a-4435-bba2-5664b726312f`, deployment `4b7ece12-4e19-42d7-81f3-4e5ad43f224d`, tag `fd42792`, 100%, 09:35:10 UTC. AI binding and AI_GATEWAY_ID=gateway present; no Gateway HTTP token needed. Root/status/admin probe returned 302 to Access.
 
-At 09:36:01 UTC requeued ten existing recent items (105,108,141,154,160,165,169,174,175,177), after removing only the previous configuration-error circuit. D1 call 45 returned HTTP 404; Gateway log `2d8df535a54e460953f6e0f7cd94032fb4dc589439f14a6714a1a44614bdc48a` reports `Model not found: deepseek/deepseek-flash`. Its wholesale flag is false. Items preserved; usage retained and circuit opened. Correction to provider binding is pending live verification.
+At 09:36:01 UTC requeued ten existing recent items (105,108,141,154,160,165,169,174,175,177), after removing only the previous configuration-error circuit. D1 call 45 returned HTTP 404; Gateway log `2d8df535a54e460953f6e0f7cd94032fb4dc589439f14a6714a1a44614bdc48a` reports `Model not found: deepseek/deepseek-flash`. Its wholesale flag is false. Items preserved; usage retained and circuit opened. The provider binding correction and verification follow.
+
+## Working provider binding
+
+Deployed tag `51f7dd6` as version `16b791cd-05cc-4f10-b7fe-5cb55dacc56f`, 100% traffic, 09:40:40 UTC. Uses `AI.gateway("gateway").run()` with DeepSeek provider and the stored default key; no CF_AIG_TOKEN or provider key sent by Worker. The preceding AI.run catalog failure is retained above as evidence for this transport choice.
+
+At 09:41:05 UTC, requeued the same ten preserved items after clearing only the configuration circuit. D1 call **46** returned HTTP 200 in **11,117ms**, model `deepseek-flash`, **1,891 input / 3,217 output tokens**, **19 accepted claims**; all ten items became `extracted`. Matching Gateway log **01M31NEGEBC5272T7YPJTXNHY9**, created 09:41:21.969 UTC, provider `deepseek`, model `deepseek/deepseek-flash`, identical tokens, `cached=false`, `wholesale=false`, metadata `application=content-radar`. This proves the native binding, stored key and upstream call work without Unified Billing. No usage reset or migration was performed.
+
+Corrected source passed 52 focused tests and all 354 Worker tests, root typecheck and inline review. Independent simplification review and follow-up transport review found no blockers.
+
+At 09:42:39 UTC, queued one existing eligible story (ID 1) through the normal synthesis consumer, incrementing its synthesis attempt once under the existing eligibility checks. D1 call **47** returned HTTP 200 in **2,022ms**, model `deepseek-flash`, **636 input / 264 output tokens**. Story 1 now has `headline_source=llm`, a Vietnamese headline and five verification questions, with `synthesized_at=1789983820`. Matching Gateway log **01M31NK39T7WADN4FZMTH6VHQE**, created 09:43:42.995 UTC, records identical tokens, `cached=false`, `wholesale=false` and `application=content-radar`.
+
+Final read-back: **5 alive cards**, **9 DeepSeek requests** retained in the daily ledger, and no `llm_circuit` setting. Workers.dev remains enabled and preview URLs disabled. Anonymous root, `/api/status` and the actual JS asset `/assets/index-Bqhvdm9k.js` return 302 to Access on the final deployment. No authenticated browser inspection or full-project soak completion is claimed.

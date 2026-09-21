@@ -1,7 +1,7 @@
 ---
 title: Content Radar DeepSeek provider migration
 date: 2026-09-21
-summary: DeepSeek replacement validated locally; production awaits the Worker secret
+summary: DeepSeek native Gateway binding deployed; real extraction and synthesis verified
 ---
 
 # Content Radar DeepSeek provider migration
@@ -41,5 +41,9 @@ Duplicated the provider secret inside Secrets Store and created the default prov
 ## Live model-catalog correction
 
 The first binding deployment (fd42792, version 6eff0ccd-c64a-4435-bba2-5664b726312f) safely parked a real batch with HTTP 404. Gateway log explicitly reported `Model not found: deepseek/deepseek-flash`; no wholesale billing. Switched the transport to `AI.gateway(id).run()` with explicit DeepSeek provider/model and the same safeguards. The Universal transport is deprecated but still implemented; disclosed this maintenance limitation. Focused 52 tests, all 354 Worker tests, root typecheck and whitespace checks passed for the correction. Live proof pending.
+
+## Verified delivery
+
+Tag `51f7dd6`, version `16b791cd-05cc-4f10-b7fe-5cb55dacc56f`, now serves 100% traffic through `AI.gateway("gateway").run()`. D1 call 46 processed ten real recent items and accepted 19 claims; call 47 synthesized one existing card with a Vietnamese headline and five verification questions. Both matched successful Gateway logs with identical token usage, no cache hit and `wholesale=false`. No CF_AIG_TOKEN is required. All 9 daily requests remain recorded, the configuration circuit is closed, and D1 has 5 alive cards. Anonymous root/status/asset checks still redirect to Access. Final code passed all 354 Worker tests and root typecheck, and independent review found no blocker. The deprecated Universal transport remains a documented maintenance limitation.
 
 > Historical work record — not durable authority. Prefer docs/specs/ADRs for current decisions.

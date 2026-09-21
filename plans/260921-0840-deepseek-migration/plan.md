@@ -1,6 +1,6 @@
 ---
 title: Replace Gemini with DeepSeek
-status: in-progress
+status: completed
 priority: P1
 created: 2026-09-21
 ---
@@ -14,7 +14,7 @@ Use DeepSeek for extraction, synthesis and entity adjudication on Content Radar.
 1. Inspect provider contracts and current official docs — done.
 2. [Implement and validate the provider switch](phase-01-provider-switch.md) — done locally; 444 tests, typecheck, build and Worker dry-run passed.
 3. Configure the key and accepted application limits; migrate/deploy; verify a real recent-item run — done: production returned 69 accepted claims and created 5 cards.
-4. [Route through the owner-selected AI Gateway](phase-02-ai-gateway.md) — binding implementation verified locally; deployment and live proof in progress; no CF_AIG_TOKEN required.
+4. [Route through the owner-selected AI Gateway](phase-02-ai-gateway.md) — done: native provider binding deployed, real extraction and synthesis verified; no CF_AIG_TOKEN required.
 
 ## Acceptance
 
@@ -27,19 +27,17 @@ Use DeepSeek for extraction, synthesis and entity adjudication on Content Radar.
 ## Decisions
 
 - User requested DeepSeek instead of Gemini.
-- Recommended `deepseek-flash`, thinking disabled, for bounded JSON tasks. Verified current official model name and pricing.
-- Owner supplied the key via root `.dev.vars`; it was uploaded securely to the Worker. Confirmed 100 requests/day and 5/minute for automated work; preserve existing 80/20 extraction/synthesis split. No paid calls until the secret is present.
+- Use `deepseek-flash`, thinking disabled, for bounded JSON tasks. Verified current official model name and pricing.
+- Owner confirmed 100 requests per Pacific day and 5/minute for automated work; preserve the existing 80/20 extraction/synthesis allocation and usage history.
+- Owner selected Gateway `gateway` with a stored DeepSeek key, then approved native binding, alias `default` and Require provider credentials. Preserve the original alias `deepseek`; no Unified Billing.
+- Use `AI.gateway(id).run()` because a real `AI.run()` request rejected the selected model. This uses Cloudflare's deprecated Universal transport; the maintenance limitation is documented in phase 2 and operations docs.
 
 ## Verification
 
-- Focused provider/consumer/cluster/API tests: 90 passed.
-- Full suite: core 98, web 10, Worker 336 passed. Test provider envelopes are explicitly synthetic; historical Gemini payload remains labelled historical.
+- Initial provider switch: 90 focused tests and all 444 tests (core 98, web 10, Worker 336) passed, plus typecheck, web build and Worker dry-run. Test provider envelopes are explicitly synthetic; historical Gemini payload remains labelled historical.
 - Forward migration from 0001–0008 tested in SQLite with foreign keys enabled: existing items, claims, calls and usage unchanged; Gemini limits/cooldowns preserved; only DeepSeek enabled at 5/100; unrelated settings preserved and old circuit removed.
-- Inline review covered HTTP/error handling, rollout ordering, Access boundary and budgets; no remaining blocking finding. No independent agent review was run.
-- Production version `d3d3d40d-6999-42c0-9096-24c377b94266` (tag `1733bd3`) deployed; migration 0009 applied. Four direct API calls succeeded, accepting 69 claims; cluster run 2 published 5 cards. A later direct request returned 401 and paused processing. See [live evidence](reports/production-verification.md).
-- Owner then selected existing authenticated Gateway `gateway`, DeepSeek BYOK alias `deepseek`. Owner subsequently approved the native AI binding, adding alias `default` and preventing Unified Billing. The HTTP token plan is superseded; preserve model and old alias.
-- Historical HTTP Gateway checks (superseded by binding): 31 focused tests and all 345 Worker tests passed; root typecheck, production dry-run, documentation links and diff whitespace passed. Inline transport/budget/config review found no remaining blocker. No Gateway deployment or live Gateway call yet.
+- Final provider binding: 52 focused tests, all 354 Worker tests and root typecheck passed. Deployment build passed. Inline review and independent simplification/transport review found no blockers.
+- Current production version `16b791cd-05cc-4f10-b7fe-5cb55dacc56f` (tag `51f7dd6`) serves 100% traffic. Binding extraction processed ten real recent items and accepted 19 claims; synthesis produced an LLM headline and five verification questions for one existing card. Both calls matched successful Gateway logs with `cached=false` and `wholesale=false`.
+- D1 contains 5 alive cards, the configuration circuit is closed, and the DeepSeek daily ledger retains all 9 requests. Anonymous root, status and actual JS asset requests still redirect to Access. No authenticated browser inspection or full-project soak completion is claimed. See [live evidence](reports/production-verification.md).
 
 Sources: [API](https://api-docs.deepseek.com/), [JSON output](https://api-docs.deepseek.com/guides/json_mode), [limits](https://api-docs.deepseek.com/quick_start/rate_limit), [pricing](https://api-docs.deepseek.com/quick_start/pricing).
-
-Binding continuation: 52 focused tests and 354 Worker tests passed, root typecheck and dry-run passed. Native binding replaces HTTP token authentication. Gateway requires provider credentials; default secret duplicated without reading its value. Independent simplification review clean.

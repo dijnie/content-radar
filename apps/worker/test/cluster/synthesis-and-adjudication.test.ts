@@ -40,9 +40,9 @@ function geminiReplying(payload: (prompt: string) => unknown) {
   return { fetcher, prompts };
 }
 
-async function deliver(messages: LlmMessage[], fetcher: typeof fetch, now: number): Promise<string[]> {
+async function deliver(messages: LlmMessage[], fetcher: typeof fetch, now: number, attempts = 1): Promise<string[]> {
   const outcomes: string[] = [];
-  const batch = { queue: "radar-llm", messages: messages.map((body) => ({ body, attempts: 1, ack: () => outcomes.push("ack"), retry: () => outcomes.push("retry") })) } as unknown as MessageBatch<LlmMessage>;
+  const batch = { queue: "radar-llm", messages: messages.map((body) => ({ body, attempts, ack: () => outcomes.push("ack"), retry: () => outcomes.push("retry") })) } as unknown as MessageBatch<LlmMessage>;
   await consumeLlmBatch(batch, llmEnv, { now, fetcher });
   return outcomes;
 }
@@ -51,6 +51,24 @@ const story = (id: number) => env.DB.prepare("SELECT * FROM stories WHERE id = ?
 const ctxAt = (now: number): JobContext => ({ env: clusterEnv, db: env.DB, runId: 0, holder: "test", now, params: { ...DEFAULT_PARAMS }, embed: fakeEmbedder().embed, lastDoneRunStartedAt: 0 });
 
 describe("synthesis", () => {
+  it("keeps a story eligible for synthesis when quota waits outlast queue retries", async () => {
+    await seedClaims(env.DB, [{ tag: "S1", publishedAt: T0 - HOUR }, { tag: "S1", publishedAt: T0 - 2 * HOUR }]);
+    await runClusterJob(clusterEnv, { now: T0, embed: fakeEmbedder().embed });
+    const messages = llm.sent.splice(0);
+    const message = messages[0] as Extract<LlmMessage, { kind: "synthesize" }>;
+    expect(message.kind).toBe("synthesize");
+    await env.DB.prepare("UPDATE llm_models SET rpm = 0").run();
+    const gemini = geminiReplying(() => ({}));
+
+    expect(await deliver(messages, gemini.fetcher, T0 + 60, 6)).toEqual(["ack"]);
+    expect(gemini.prompts).toEqual([]);
+    expect(await story(message.storyId)).toMatchObject({ headline_source: "fallback", synthesis_attempts: 0 });
+
+    await env.DB.prepare("UPDATE llm_models SET rpm = 1000").run();
+    expect(await enqueueSynthesisStep(ctxAt(T0 + HOUR))).toBe(1);
+    expect(llm.sent).toEqual([message]);
+  });
+
   it("writes the headline, roles and questions, ignores a claim that is not in the story, and rescores on a counterpoint", async () => {
     const claimIds = await seedClaims(env.DB, Array.from({ length: 4 }, (_, k) => ({ tag: "S1", publishedAt: T0 - (k + 1) * HOUR })));
     const embedder = fakeEmbedder();
@@ -127,6 +145,26 @@ describe("synthesis", () => {
 });
 
 describe("adjudication", () => {
+  it("returns undecided entities to pending after prolonged model unavailability", async () => {
+    await seedClaims(env.DB, [
+      { tag: "M1", publishedAt: T0 - HOUR, entity: "E7 Orion Engine" },
+      { tag: "M1", publishedAt: T0 - 2 * HOUR, entity: "E7 Orion Engin" },
+    ]);
+    const embedder = fakeEmbedder();
+    await runClusterJob(clusterEnv, { now: T0, embed: embedder.embed });
+    const messages = llm.sent.splice(0);
+    expect(messages).toEqual([{ kind: "adjudicate", adjudicationIds: [expect.any(Number)] }]);
+    await env.DB.prepare("UPDATE llm_models SET exhausted_until = ?").bind(T0 + 180).run();
+    const gemini = geminiReplying(() => ({}));
+
+    expect(await deliver(messages, gemini.fetcher, T0 + 60, 6)).toEqual(["ack"]);
+    expect(gemini.prompts).toEqual([]);
+    expect(await env.DB.prepare("SELECT status, decision FROM entity_adjudications").first()).toEqual({ status: "pending", decision: null });
+
+    await runClusterJob(clusterEnv, { now: T0 + HOUR, embed: embedder.embed });
+    expect(llm.sent).toEqual(messages);
+  });
+
   it("a 'same' verdict lets two claims that a provisional entity kept apart join one story on the next run", async () => {
     const embedder = fakeEmbedder();
     // Related wording (cosine about 0.64) is not enough to link on its own; a shared entity is.

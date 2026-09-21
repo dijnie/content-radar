@@ -20,7 +20,7 @@ export type BatchOutcome =
   | { status: "done"; itemIds: number[] }
   /** Short wait: a per-minute limit or a transient failure. */
   | { status: "retry"; delaySeconds: number }
-  /** No budget until the next reset, or the circuit is open: the items simply stay queued. */
+  /** Budget or availability requires a longer wait: items stay queued for the next backlog drain. */
   | { status: "park" };
 
 interface Prepared {

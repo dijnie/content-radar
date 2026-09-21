@@ -155,6 +155,44 @@ describe("consumeLlmBatch", () => {
     expect(gemini.calls).toEqual([]);
   });
 
+  it("returns prolonged quota waits to D1 before the queue dead-letters untouched items", async () => {
+    const ids = await seedItems(2);
+    await env.DB.prepare("UPDATE llm_models SET rpm = 0").run();
+    const gemini = fakeGemini();
+    const bodies: LlmMessage[] = ids.map((itemId) => ({ kind: "extract", itemId }));
+
+    // Both Wrangler configs allow five retries, hence at most six deliveries.
+    for (let attempts = 1; attempts <= 6; attempts++) {
+      const delivery = fakeBatch(bodies, attempts);
+      await consumeLlmBatch(delivery.batch, testEnv, { now: NOW + (attempts - 1) * 60, fetcher: gemini.fetcher });
+      if (delivery.outcomes().every((outcome) => outcome === "ack")) break;
+      if (attempts === 6) await consumeDeadLetters(fakeBatch(bodies).batch, testEnv, NOW + 360);
+    }
+
+    expect(gemini.calls).toEqual([]);
+    expect(await statuses(ids)).toEqual({ queued: 2 });
+    expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM llm_calls WHERE status = 'dead_letter'").first()).toEqual({ n: 0 });
+
+    // Recovery uses the normal ledger drain; no operator has to repair item status.
+    await env.DB.prepare("UPDATE llm_models SET rpm = 1000").run();
+    expect(await drainBacklog(testEnv, NOW + 1800)).toEqual({ sent: 2, failed: 0 });
+    await consumeLlmBatch(fakeBatch(sent).batch, testEnv, { now: NOW + 1800, fetcher: gemini.fetcher });
+    expect(await statuses(ids)).toEqual({ extracted: 2 });
+    expect(await claimCount(ids)).toBe(2);
+  });
+
+  it("parks known model overload even on the last delivery instead of failing the items", async () => {
+    const ids = await seedItems(2);
+    const gemini = fakeGemini(() => ({ status: 503, body: { error: { code: 503, message: "overloaded", status: "UNAVAILABLE" } } }));
+    const delivery = fakeBatch(ids.map((itemId) => ({ kind: "extract", itemId })), 6);
+    await consumeLlmBatch(delivery.batch, testEnv, { now: NOW, fetcher: gemini.fetcher });
+
+    expect(delivery.outcomes()).toEqual(["ack", "ack"]);
+    expect(await statuses(ids)).toEqual({ queued: 2 });
+    expect(gemini.calls).toHaveLength(3);
+    expect(await env.DB.prepare("SELECT SUM(requests) AS n FROM llm_usage").first()).toEqual({ n: 3 });
+  });
+
   it("moves to the second model when the first answers 429, and parks the first", async () => {
     const ids = await seedItems(2);
     const gemini = fakeGemini((call) => (call === 1 ? { status: 429, body: rateLimited } : null));

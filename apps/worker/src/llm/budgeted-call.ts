@@ -26,10 +26,14 @@ export type BudgetedResult =
   | { status: "ok"; data: unknown; model: string; log: LlmCallInput }
   /** Short wait: a per-minute limit or a transient failure. */
   | { status: "retry"; delaySeconds: number }
-  /** No budget until the next reset, or the circuit is open. */
+  /** Leave work in D1 for the next scheduler run: no budget, open circuit or prolonged unavailability. */
   | { status: "park" }
   /** Gemini rejected the request itself; retrying it unchanged is pointless. */
   | { status: "rejected" };
+
+// Both queue configs allow five retries. Stop availability waits before that
+// transport limit: D1 can wake the work later, whereas dead-lettering fails it.
+const MAX_AVAILABILITY_RETRIES = 4;
 
 /**
  * The pipeline's single door to Gemini (the manual diagnostic probe is the only thing outside it). Reserves budget, calls, then commits when the call
@@ -46,6 +50,7 @@ export async function budgetedCall(env: LlmEnv, request: BudgetedRequest, deps: 
   // an overloaded model says nothing about the others, and nothing about tomorrow.
   let serverError: string | null = null;
   const retryLater: BudgetedResult = { status: "retry", delaySeconds: Math.min(300, 30 * 2 ** attempt) };
+  const parkForAvailability = attempt >= MAX_AVAILABILITY_RETRIES;
 
   for (;;) {
     const chain = await reserveOnChain(env.DB, request.kind, now, settings, tried);
@@ -54,9 +59,9 @@ export async function budgetedCall(env: LlmEnv, request: BudgetedRequest, deps: 
       if (serverError !== null) {
         // Every model left in the chain failed the same way: now it is a pipeline problem.
         await recordFailure(env.DB, serverError, now);
-        return retryLater;
+        return parkForAvailability ? { status: "park" } : retryLater;
       }
-      return chain.reason === "rpm_exhausted" ? { status: "retry", delaySeconds: 60 } : { status: "park" };
+      return chain.reason === "rpm_exhausted" && !parkForAvailability ? { status: "retry", delaySeconds: 60 } : { status: "park" };
     }
     const { model, reservation } = chain;
 

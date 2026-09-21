@@ -109,7 +109,9 @@ Thứ tự an toàn cho mọi thay đổi schema: migration chỉ **mở rộng*
 
 ## Dead-letter queue
 
-Message hỏng sau 5 lần retry vào `radar-dlq`, và Worker tự tiêu thụ queue này. Một message `extract` chết thì item tương ứng thành `failed` với `filter_reason = 'dead_letter'` kèm một dòng trong `llm_calls`, để không item nào biến mất trong im lặng. Message poll chết thì không cần làm gì: `next_poll_at` của nguồn đã tự lo việc thử lại. Tìm item hỏng:
+Message hỏng sau 5 lần retry vào `radar-dlq`, và Worker tự tiêu thụ queue này. Riêng chờ quota theo phút hoặc model quá tải được trả về D1 sau tối đa bốn retry ngắn, trước trần queue: item vẫn `queued`, headline vẫn đủ điều kiện tổng hợp và phân xử entity trở về `pending`. Cron rút backlog hoặc job cluster sẽ thử lại khi có ngân sách; không phải sửa trạng thái bằng tay cho các lần chờ này.
+
+Một message `extract` thực sự chết thì item tương ứng thành `failed` với `filter_reason = 'dead_letter'` kèm một dòng trong `llm_calls`, để không item nào biến mất trong im lặng. Message poll chết thì không cần làm gì: `next_poll_at` của nguồn đã tự lo việc thử lại. Tìm item hỏng:
 
 ```sql
 SELECT id, platform, url, filter_reason FROM items WHERE status = 'failed' ORDER BY id DESC LIMIT 50;

@@ -26,7 +26,7 @@ export async function consumeLlmBatch(batch: MessageBatch<LlmMessage>, env: LlmE
       message.retry({ delaySeconds: outcome.delaySeconds });
       continue;
     }
-    // An attempt that never reached Gemini must not count against the story's three tries.
+    // Waiting for model availability must not exhaust the story's synthesis allowance.
     if (body.kind === "synthesize" && outcome.status === "park") {
       await env.DB.prepare("UPDATE stories SET synthesis_attempts = MAX(0, synthesis_attempts - 1) WHERE id = ?").bind(body.storyId).run();
     }

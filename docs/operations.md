@@ -57,12 +57,14 @@ Cần có trước: một ứng dụng Access kiểu self-hosted cho hostname c�
 
 ## DeepSeek qua AI Gateway
 
-Cấu hình production trong `wrangler.jsonc` có binding `AI` và `AI_GATEWAY_ID=gateway`. Client gọi `env.AI.run("deepseek/deepseek-flash", ...)`; binding tự xác thực trong tài khoản Cloudflare, không cần `CF_AIG_TOKEN` hoặc key DeepSeek trong Worker.
+Cấu hình production trong `wrangler.jsonc` có binding `AI` và `AI_GATEWAY_ID=gateway`. Client gọi `env.AI.gateway("gateway").run({ provider: "deepseek", endpoint: "chat/completions", ... })`; binding tự xác thực trong tài khoản Cloudflare, không cần `CF_AIG_TOKEN` hoặc key DeepSeek trong Worker.
 
-- Trong Provider Keys của gateway `gateway`, lưu key DeepSeek dưới alias **`default`**. `env.AI.run()` chỉ chọn alias này. Có thể giữ alias `deepseek` cho ứng dụng đang dùng đường provider-native.
+`AI.run("deepseek/deepseek-flash")` đã thử trên production và trả 404; Gateway log ghi `Model not found`. Vì vậy dùng phương thức provider của binding, không đổi sang model Cloudflare-hosted. Phương thức này đi qua Universal Endpoint đã được Cloudflare đánh dấu deprecated (vẫn hoạt động); cần kiểm tra lại hỗ trợ model trước khi chuyển sang API mới. Xem [runtime binding](https://github.com/cloudflare/workerd/blob/main/src/cloudflare/internal/aig-api.ts) và [trạng thái Universal Endpoint](https://developers.cloudflare.com/ai-gateway/usage/universal/).
+
+- Trong Provider Keys của gateway `gateway`, lưu key DeepSeek dưới alias **`default`**. Client dùng key mặc định cho provider này. Có thể giữ alias `deepseek` cho ứng dụng đang dùng đường provider-native.
 - Bật **Require provider credentials** (`byok_only: true`) trong Gateway Settings. Request cũng gửi `cf-aig-no-wholesale: true`; thiếu key thì dừng, không tự chuyển sang thanh toán qua Cloudflare. Khi luân chuyển key phải cập nhật từng alias còn dùng; bản sao trong Secrets Store không tự đồng bộ với key gốc.
 - Có thể tạo bản sao bằng Secrets Store API `/secrets/{id}/duplicate`, tên `gateway_deepseek_default`, scope `ai_gateway`, không cần đọc giá trị key. Khi tạo provider config qua API, runtime tra secret theo tên; `secret_id` không phải khoá tra runtime. Đối chiếu [quy ước BYOK](https://developers.cloudflare.com/ai-gateway/configuration/bring-your-own-keys/) và kiểm chứng bằng lượt gọi thật.
-- Giữ trần 100/ngày và 5/phút của ứng dụng. Binding yêu cầu Response thô (`returnRawResponse`), timeout 60 giây, một upstream attempt, bỏ cache và metadata `application=content-radar`. Mã HTTP, `Retry-After` và token usage vẫn đi qua sổ hiện có.
+- Giữ trần 100/ngày và 5/phút của ứng dụng. Binding trả Response thô, timeout 60 giây, một upstream attempt, bỏ cache và metadata `application=content-radar`. Mã HTTP, `Retry-After` và token usage vẫn đi qua sổ hiện có.
 - Thiếu binding, tên Gateway sai, Gateway 400 hoặc lỗi 401/403/404 thì tạm dừng và giữ việc trong D1. Binding 400 được coi là cấu hình cần sửa, vì Gateway dùng mã này khi thiếu BYOK; xem Gateway log để phân biệt lỗi tham số. Không tự quay lại key trực tiếp hay model khác.
 - Local gọi trực tiếp bằng `DEEPSEEK_API_KEY` khi không đặt `AI_GATEWAY_ID`. Muốn kiểm tra Gateway thật ở local thì dùng AI binding remote và đặt `AI_GATEWAY_ID=gateway`; lượt gọi vẫn tính phí. Không xoá usage/cooldown để làm lại lượt.
 - `.dev.vars` gốc repo không tự trở thành secret production. Wrangler local đọc `apps/worker/.dev.vars`; cả hai file đều nằm ngoài git. Đường binding không cần đưa key hoặc token từ các file này lên Worker.

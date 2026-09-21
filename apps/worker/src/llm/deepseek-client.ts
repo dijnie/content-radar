@@ -1,5 +1,9 @@
 export type LlmErrorKind = "rate_limited" | "configuration_error" | "insufficient_balance" | "invalid_request" | "invalid_output" | "transient";
 
+export interface DeepSeekAiBinding {
+  gateway(id: string): Pick<ReturnType<Ai["gateway"]>, "run">;
+}
+
 export interface LlmRequest {
   apiKey?: string;
   model: string;
@@ -7,7 +11,7 @@ export interface LlmRequest {
   user: string;
   schema: Record<string, unknown>;
   baseUrl?: string;
-  ai?: Pick<Ai, "run">;
+  ai?: DeepSeekAiBinding;
   gatewayId?: string;
   fetcher?: typeof fetch;
   timeoutMs?: number;
@@ -68,8 +72,13 @@ export async function generateJson(request: LlmRequest): Promise<LlmResult> {
     if (gateway) {
       // Raw responses preserve HTTP status, Retry-After and provider usage for
       // the application ledger. The Gateway must require BYOK credentials.
-      const result = await request.ai!.run(`deepseek/${request.model}`, input, {
-        returnRawResponse: true, signal, extraHeaders: { "cf-aig-no-wholesale": "true" },
+      // AI.run's model catalog does not include deepseek-flash. The provider
+      // binding preserves the upstream model name and avoids catalog remapping.
+      const result = await request.ai!.gateway(request.gatewayId!).run({
+        provider: "deepseek", endpoint: "chat/completions",
+        headers: { "Content-Type": "application/json" }, query: { model: request.model, ...input },
+      }, {
+        signal, extraHeaders: { "cf-aig-no-wholesale": "true" },
         gateway: { id: request.gatewayId!, skipCache: true, retries: { maxAttempts: 1 }, metadata: { application: "content-radar" } },
       });
       if (!(result instanceof Response)) return fail("configuration_error", true, "deepseek_raw_response_required");

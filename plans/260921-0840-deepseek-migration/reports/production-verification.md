@@ -20,3 +20,11 @@ At 09:03:10 UTC, sent 50 existing queued item IDs from the current 7-day window 
 ## Gateway continuation
 
 Owner selected existing authenticated gateway `gateway`; API inspection confirms provider `deepseek`, alias `deepseek`, key reference present. Gateway migration is tracked in [phase 2](../phase-02-ai-gateway.md). The direct deployment and real-card proof above remain valid historical evidence, separate from pending Gateway proof.
+
+## AI binding rollout
+
+Owner approved native binding and default BYOK alias. Duplicated `gateway_deepseek_deepseek` to `gateway_deepseek_default` inside Secrets Store without exporting its value; enabled `byok_only` and verified no other editable Gateway setting changed. Provider config creation with optional secret_id failed 7001; name-based creation without it succeeded.
+
+Version `6eff0ccd-c64a-4435-bba2-5664b726312f`, deployment `4b7ece12-4e19-42d7-81f3-4e5ad43f224d`, tag `fd42792`, 100%, 09:35:10 UTC. AI binding and AI_GATEWAY_ID=gateway present; no Gateway HTTP token needed. Root/status/admin probe returned 302 to Access.
+
+At 09:36:01 UTC requeued ten existing recent items (105,108,141,154,160,165,169,174,175,177), after removing only the previous configuration-error circuit. D1 call 45 returned HTTP 404; Gateway log `2d8df535a54e460953f6e0f7cd94032fb4dc589439f14a6714a1a44614bdc48a` reports `Model not found: deepseek/deepseek-flash`. Its wholesale flag is false. Items preserved; usage retained and circuit opened. Correction to provider binding is pending live verification.

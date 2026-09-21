@@ -38,4 +38,8 @@ Duplicated the provider secret inside Secrets Store and created the default prov
 
 52 focused tests and all 354 Worker tests passed, root typecheck and dry-run passed. Independent simplification review clean; inline review repaired request-count handling for an unexpected parsed binding response and added per-request no-wholesale. Deployment/live pipeline verification follows.
 
+## Live model-catalog correction
+
+The first binding deployment (fd42792, version 6eff0ccd-c64a-4435-bba2-5664b726312f) safely parked a real batch with HTTP 404. Gateway log explicitly reported `Model not found: deepseek/deepseek-flash`; no wholesale billing. Switched the transport to `AI.gateway(id).run()` with explicit DeepSeek provider/model and the same safeguards. The Universal transport is deprecated but still implemented; disclosed this maintenance limitation. Focused 52 tests, all 354 Worker tests, root typecheck and whitespace checks passed for the correction. Live proof pending.
+
 > Historical work record — not durable authority. Prefer docs/specs/ADRs for current decisions.

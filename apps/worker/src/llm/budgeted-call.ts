@@ -2,10 +2,10 @@ import { insertLlmCall, type LlmCallInput, type LlmKind } from "../db/llm-repo";
 import type { Env } from "../env";
 import { commit, markRateLimited, release, restOverloaded } from "./budget-ledger";
 import { circuitOpenUntil, pauseCircuit, recordFailure, recordSuccess } from "./circuit-breaker";
-import { generateJson } from "./deepseek-client";
+import { generateJson, type DeepSeekAiBinding } from "./deepseek-client";
 import { loadBudgetSettings, reserveOnChain } from "./model-chain";
 
-export type LlmEnv = Pick<Env, "DB" | "RAW" | "LLM_QUEUE" | "DEEPSEEK_API_KEY" | "DEEPSEEK_BASE_URL" | "AI_GATEWAY_ID"> & { AI?: Pick<Ai, "run"> };
+export type LlmEnv = Pick<Env, "DB" | "RAW" | "LLM_QUEUE" | "DEEPSEEK_API_KEY" | "DEEPSEEK_BASE_URL" | "AI_GATEWAY_ID"> & { AI?: DeepSeekAiBinding };
 
 export interface LlmDeps {
   now?: number;

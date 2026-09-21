@@ -8,8 +8,8 @@ export interface Env {
 
   /** Only required for direct calls; AI Gateway uses its stored provider key. */
   DEEPSEEK_API_KEY?: string;
-  CF_AIG_TOKEN?: string;
-  DEEPSEEK_BYOK_ALIAS?: string;
+  /** Select the AI binding and its stored default DeepSeek key. */
+  AI_GATEWAY_ID?: string;
   GITHUB_TOKEN: string;
   OWNER_EMAIL: string;
   /** Team origin, e.g. https://<team>.cloudflareaccess.com (no trailing slash). */
@@ -18,7 +18,7 @@ export interface Env {
   ACCESS_AUD: string;
   /** Exact deployed origin, e.g. https://radar.example.com. */
   APP_ORIGIN: string;
-  /** Optional compatible gateway base URL; unset means https://api.deepseek.com. */
+  /** Direct local API only; unset means https://api.deepseek.com. */
   DEEPSEEK_BASE_URL?: string;
 }
 

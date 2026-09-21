@@ -11,7 +11,7 @@ Hệ thống crawl nguồn công khai (X qua FxTwitter, Hacker News, RSS, GitHub
 ## Yêu cầu
 
 - Node 22 trở lên và npm.
-- Để deploy: tài khoản Cloudflare có Workers Paid, một ứng dụng Cloudflare Access cho hostname Worker (`workers.dev` hiện tại), key DeepSeek có số dư lưu trên AI Gateway và token AI Gateway: Run, và một GitHub PAT fine-grained chỉ đọc dữ liệu public.
+- Để deploy: tài khoản Cloudflare có Workers Paid, một ứng dụng Cloudflare Access cho hostname Worker (`workers.dev` hiện tại), key DeepSeek có số dư lưu trên AI Gateway (alias `default`, Worker dùng binding `AI`), và một GitHub PAT fine-grained chỉ đọc dữ liệu public.
 
 Không cần gì trong số đó để chạy test.
 

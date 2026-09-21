@@ -2,30 +2,26 @@
 
 ## Outcome and scope
 
-Use account `67a5d5c1b4057035786e297885f16a82`, gateway `gateway`, provider `deepseek`, stored key alias `deepseek`. Preserve model `deepseek-flash`, thinking disabled, local schema/quote validation, 100/day and 5/minute, 7-day priority and all history. No Unified Billing, provider fallback, or changes to other gateway users.
+Owner approved the AI binding route on 2026-09-21. Use account `67a5d5c1b4057035786e297885f16a82`, gateway `gateway`, provider `deepseek`, stored key alias `default`. Keep existing alias `deepseek`. Preserve model `deepseek-flash`, thinking disabled, local schema/quote validation, 100/day and 5/minute, 7-day priority and all history. No Unified Billing or provider/model fallback.
 
 ## Evidence and choice
 
-Gateway GET confirmed authentication enabled, log collection enabled, 50 requests/60 seconds and the DeepSeek alias. Provider-native endpoint supports the existing Chat Completions body and explicit `cf-aig-byok-alias`. The newer AI.run binding consults only alias `default` before Unified Billing, so it does not match this configured key. Keep the alias and use the documented authenticated provider endpoint.
+Use the existing `AI` binding and `AI_GATEWAY_ID=gateway`; `env.AI.run()` authenticates internally, so no CF_AIG_TOKEN is required. Official docs say this path only consults alias `default`. Owner approved adding this alias and enabling Require provider credentials. The preceding HTTP implementation at a646b56 was locally tested but never deployed; its token requirement is superseded.
 
-Current Cloudflare API connection returns 9109 for account token permissions. No token created; owner has been asked to supply CF_AIG_TOKEN through root .dev.vars or the Worker secret. No secret values in code, logs or reports.
+Duplicated the existing secret inside Secrets Store without reading its value: `gateway_deepseek_default`, scope `ai_gateway`. Gateway provider config creation with `secret_id` returned 7001 despite the active named secret; creation without that optional field succeeded. Runtime resolves the documented secret name. `byok_only=true` verified, with all other editable Gateway settings unchanged. Real inference verification is required before claiming this configuration works.
 
 ## Implementation and acceptance
 
-- Extend existing client/env/probe; production config names endpoint and alias.
-- Gateway requests carry only CF_AIG_TOKEN, never the direct DeepSeek key. Reject missing token or wrong gateway URL before HTTP, never silently fall back.
-- One gateway upstream attempt per reserved request; skip cache; retain application retry and timeout.
-- Test credentials/alias routing, wrong-host protection, missing-token behavior and budget accounting. Then Worker suite, typecheck and dry-run.
-- Upload token, deploy tagged revision, verify Gateway log plus D1 call/claim. Clear only the stale configuration circuit once valid credentials are configured; never reset usage.
+- Binding transports the same JSON task, disables thinking and uses a raw Response to retain status, Retry-After and usage.
+- No tokens or provider keys sent by the Worker in binding mode; no HTTP fallback if the binding is missing.
+- One upstream attempt, cache bypass, 60-second timeout across response/body and per-request no-wholesale header.
+- Missing binding or invalid Gateway configuration parks work without failing articles. Gateway 400 parks because missing BYOK uses that status; inspect Gateway logs for parameter errors.
+- Focused tests, complete Worker suite, root typecheck, dry-run and inline review. Deploy a tagged revision; verify Gateway log and one real budgeted pipeline result. Never reset usage.
 
 ## Rollback
 
-Restore previous code and its matching direct endpoint configuration with a valid DeepSeek key. Keep model selection and all usage/claim data. Previous direct key returned 401; a code rollback alone does not repair credentials.
+Restore direct code and its matching configuration only with a valid direct key. The local direct key currently returns 401. Keep model selection, usage, claims, stored aliases and Gateway credential requirement; rollback alone cannot repair invalid credentials.
 
-## Local verification
+## Status
 
-31 focused transport/provider-availability tests passed, followed by all 345 Worker tests. Root typecheck and production Wrangler dry-run passed; bundle includes the expected Gateway URL and alias. Documentation links and diff whitespace checks passed. Inline review covered credentials, routing, request accounting and rollout; no independent agent review. Direct API credentials remain optional for local operation. No secret values committed.
-
-## Pending
-
-CF_AIG_TOKEN, production deployment and live Gateway proof. Root `.dev.vars` did not contain a nonempty token at the final local check. Gateway code has not been activated on production.
+Implementation complete: 52 focused tests and all 354 Worker tests passed; root typecheck and production dry-run passed. Inline review and independent simplification review found no remaining blocker; simplifier made no edits. The local remote-binding preflight did not complete and was stopped with its child processes; management API inference returned authentication error 10000, so neither is live inference proof. Production deployment and budgeted pipeline/Gateway proof pending.

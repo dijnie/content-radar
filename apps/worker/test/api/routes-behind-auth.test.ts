@@ -66,4 +66,11 @@ describe("every route sits behind Access and the CSRF guard", () => {
     const response = await call("/api/stories", { headers: authed({ Origin: "https://evil.example" }) });
     expect(response.headers.get("Access-Control-Allow-Origin")).toBeNull();
   });
+
+  it("uses the configured AI binding for an authenticated DeepSeek probe", async () => {
+    const run = vi.fn().mockResolvedValue(Response.json({ choices: [{ finish_reason: "stop", message: { content: '{"ok":true}' } }], usage: { prompt_tokens: 5, completion_tokens: 4 } }));
+    const response = await worker.fetch(new Request(`${ORIGIN}/api/admin/probe?target=deepseek`, { headers: authed() }), { ...env, AI_GATEWAY_ID: "gateway", AI: { run } as unknown as Ai });
+    expect(await response.json()).toMatchObject({ target: "deepseek", status: 200, length: 11 });
+    expect(run).toHaveBeenCalledWith("deepseek/deepseek-flash", expect.any(Object), expect.objectContaining({ gateway: expect.objectContaining({ id: "gateway" }), returnRawResponse: true }));
+  });
 });

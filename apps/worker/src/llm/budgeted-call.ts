@@ -5,7 +5,7 @@ import { circuitOpenUntil, pauseCircuit, recordFailure, recordSuccess } from "./
 import { generateJson } from "./deepseek-client";
 import { loadBudgetSettings, reserveOnChain } from "./model-chain";
 
-export type LlmEnv = Pick<Env, "DB" | "RAW" | "LLM_QUEUE" | "DEEPSEEK_API_KEY" | "DEEPSEEK_BASE_URL" | "CF_AIG_TOKEN" | "DEEPSEEK_BYOK_ALIAS">;
+export type LlmEnv = Pick<Env, "DB" | "RAW" | "LLM_QUEUE" | "DEEPSEEK_API_KEY" | "DEEPSEEK_BASE_URL" | "AI_GATEWAY_ID"> & { AI?: Pick<Ai, "run"> };
 
 export interface LlmDeps {
   now?: number;
@@ -66,7 +66,7 @@ export async function budgetedCall(env: LlmEnv, request: BudgetedRequest, deps: 
 
     const result = await generateJson({
       apiKey: env.DEEPSEEK_API_KEY ?? "", model: model.model, system: request.system, user: request.user, schema: request.schema,
-      gatewayToken: env.CF_AIG_TOKEN ?? "", gatewayKeyAlias: env.DEEPSEEK_BYOK_ALIAS ?? "default",
+      ...(env.AI_GATEWAY_ID !== undefined ? { gatewayId: env.AI_GATEWAY_ID, ...(env.AI ? { ai: env.AI } : {}) } : {}),
       ...(env.DEEPSEEK_BASE_URL ? { baseUrl: env.DEEPSEEK_BASE_URL } : {}), ...(deps.fetcher ? { fetcher: deps.fetcher } : {}),
     });
     const log: LlmCallInput = { at: now, model: model.model, kind: request.kind, promptVersion: request.promptVersion, status: "ok", httpStatus: result.httpStatus, latencyMs: result.latencyMs, itemIds: request.subjectIds };

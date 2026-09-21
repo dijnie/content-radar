@@ -30,4 +30,12 @@ Owner later supplied the direct key through root `.dev.vars`. Deployment tagged 
 
 Owner selected existing AI Gateway `gateway`, stored DeepSeek alias `deepseek`. Added authenticated provider-native routing without sending the direct key, with one upstream attempt and cache bypass per application request. Preserve model, caps and priority. Missing Gateway token fails before HTTP without falling back. Focused tests 31/31, Worker tests 345/345, typecheck and production dry-run passed. Local integration is complete; token `CF_AIG_TOKEN` and live Gateway verification remain pending because the current Cloudflare API connection cannot manage authentication tokens (9109). Explained the two credentials and root `.dev.vars` handoff to the owner. No Gateway deployment yet.
 
+## Continuation: owner-approved AI binding
+
+Owner requested the R2-style binding and approved `env.AI.run()` with default DeepSeek alias and Require provider credentials. Removed the un-deployed HTTP Gateway token transport, reused existing AI binding and set AI_GATEWAY_ID. Raw responses preserve status, Retry-After and token usage; one attempt, cache bypass, timeout and no-wholesale enforced. Gateway 400 parks rather than failing queued articles. Existing direct local mode remains explicit.
+
+Duplicated the provider secret inside Secrets Store and created the default provider config without exporting the key. Gateway `byok_only=true` verified with no other settings changed. The optional secret_id field caused API 7001; omitting it allowed config creation, while documented runtime lookup uses secret name. Local remote-binding probe was stopped after hanging; management inference API lacked permission (10000). These checks did not establish successful inference.
+
+52 focused tests and all 354 Worker tests passed, root typecheck and dry-run passed. Independent simplification review clean; inline review repaired request-count handling for an unexpected parsed binding response and added per-request no-wholesale. Deployment/live pipeline verification follows.
+
 > Historical work record — not durable authority. Prefer docs/specs/ADRs for current decisions.

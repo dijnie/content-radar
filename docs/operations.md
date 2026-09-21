@@ -35,10 +35,10 @@ Cần có trước: một ứng dụng Access kiểu self-hosted cho hostname c�
 
    ```bash
    cd apps/worker
-   for name in CF_AIG_TOKEN GITHUB_TOKEN OWNER_EMAIL ACCESS_TEAM_DOMAIN ACCESS_AUD APP_ORIGIN; do npx wrangler secret put "$name"; done
+   for name in GITHUB_TOKEN OWNER_EMAIL ACCESS_TEAM_DOMAIN ACCESS_AUD APP_ORIGIN; do npx wrangler secret put "$name"; done
    ```
 
-   `ACCESS_TEAM_DOMAIN` không có dấu gạch chéo cuối. `APP_ORIGIN` là origin chính xác đang dùng, hiện là `https://content-radar.<subdomain>.workers.dev`. `OWNER_EMAIL` phải trùng email trong policy. Thiếu một trong ba biến Access thì mọi request nhận 503 `access_not_configured`: Worker từ chối thay vì mở. Chỉ đặt secret còn thiếu; không cần ghi lại token Gateway/GitHub khi sửa Access.
+   `ACCESS_TEAM_DOMAIN` không có dấu gạch chéo cuối. `APP_ORIGIN` là origin chính xác đang dùng, hiện là `https://content-radar.<subdomain>.workers.dev`. `OWNER_EMAIL` phải trùng email trong policy. Thiếu một trong ba biến Access thì mọi request nhận 503 `access_not_configured`: Worker từ chối thay vì mở. Chỉ đặt secret còn thiếu; không cần ghi lại key Gateway/GitHub khi sửa Access.
 
 4. Migration `0009_deepseek_models.sql` bật `deepseek-flash` với trần ứng dụng đã chọn: 100 request/ngày Pacific, tối đa 5 request/phút. [`scripts/set-llm-limits.sql`](../scripts/set-llm-limits.sql) áp lại đúng các mức này khi cần. Không phải quota của DeepSeek; 429 không tự sửa các trần. Với model có giới hạn `NULL`, giá trị dự phòng lấy từ `settings` (repo mặc định 5/20).
 5. `npm run deploy`, rồi kiểm tra không hostname nào hở:
@@ -53,19 +53,21 @@ Cần có trước: một ứng dụng Access kiểu self-hosted cho hostname c�
 
 6. Sau đăng nhập, có thể chạy probe `GET /api/admin/probe?target=deepseek` để kiểm tra key và kết nối. Các target nguồn vẫn là `fxtwitter-timeline`, `fxtwitter-status`, `syndication`, `hn-algolia`, `hn-firebase`, `github-api`, `github-atom`, `rss-uber`, `rss-medium`, `workers-ai-embed`.
 
-   Probe DeepSeek gọi API thật **ngoài sổ ngân sách tự động**, vẫn tính phí; không chạy lặp để đo quota. 401/403/404 cần kiểm tra key/model/endpoint, 402 cần kiểm tra số dư. Probe dùng cùng endpoint, token và alias với pipeline; xem cấu hình Gateway bên dưới.
+   Probe DeepSeek gọi API thật **ngoài sổ ngân sách tự động**, vẫn tính phí; không chạy lặp để đo quota. 401/403/404 cần kiểm tra key/model/endpoint, 402 cần kiểm tra số dư. Probe dùng cùng binding/Gateway hoặc endpoint direct với pipeline; xem cấu hình Gateway bên dưới.
 
 ## DeepSeek qua AI Gateway
 
-Cấu hình production trong `wrangler.jsonc` chọn gateway `gateway`, provider `deepseek`, alias key `deepseek`. Base URL là `https://gateway.ai.cloudflare.com/v1/67a5d5c1b4057035786e297885f16a82/gateway/deepseek`. Gateway đã bật xác thực; key DeepSeek được chủ sở hữu lưu tại Provider Keys. Client gửi `cf-aig-byok-alias: deepseek` và dùng secret **`CF_AIG_TOKEN`** (quyền AI Gateway: Run của đúng tài khoản) trong `cf-aig-authorization`. Không gửi header Authorization chứa key DeepSeek ở chế độ này.
+Cấu hình production trong `wrangler.jsonc` có binding `AI` và `AI_GATEWAY_ID=gateway`. Client gọi `env.AI.run("deepseek/deepseek-flash", ...)`; binding tự xác thực trong tài khoản Cloudflare, không cần `CF_AIG_TOKEN` hoặc key DeepSeek trong Worker.
 
-- Tạo token tại Gateway → Settings → Create authentication token; đặt bằng `npx wrangler secret put CF_AIG_TOKEN` từ `apps/worker`. Không dùng token quản trị tài khoản để chạy ứng dụng. Quyền Run của Cloudflare áp dụng toàn tài khoản, không giới hạn một gateway.
-- Nếu chủ sở hữu cung cấp key/token trong `.dev.vars` ở **gốc repo**, chỉ đọc biến được yêu cầu và đưa qua stdin vào secret tương ứng. Wrangler local đọc `apps/worker/.dev.vars`; file ở gốc không tự trở thành secret production. Cả hai file đều nằm ngoài git.
-- Giữ trần 100/ngày và 5/phút của ứng dụng. Mỗi request đặt `cf-aig-max-attempts: 1` để gateway không tự nhân số lần gọi ngoài sổ; `cf-aig-skip-cache: true` để kiểm tra thực thi và usage rõ ràng. Metadata `application=content-radar` giúp lọc log.
-- Thiếu token, URL gateway sai hoặc lỗi 401/403/404 thì ngừng gọi và giữ việc trong D1. Không tự quay về key trực tiếp hay model khác.
-- Local vẫn có thể gọi trực tiếp bằng `DEEPSEEK_API_KEY` nếu không đặt biến Gateway. Khi chủ động quay lại direct, bỏ `CF_AIG_TOKEN` và `DEEPSEEK_BASE_URL`, dùng key DeepSeek còn hiệu lực. Không xoá usage/cooldown để làm lại lượt.
+- Trong Provider Keys của gateway `gateway`, lưu key DeepSeek dưới alias **`default`**. `env.AI.run()` chỉ chọn alias này. Có thể giữ alias `deepseek` cho ứng dụng đang dùng đường provider-native.
+- Bật **Require provider credentials** (`byok_only: true`) trong Gateway Settings. Request cũng gửi `cf-aig-no-wholesale: true`; thiếu key thì dừng, không tự chuyển sang thanh toán qua Cloudflare. Khi luân chuyển key phải cập nhật từng alias còn dùng; bản sao trong Secrets Store không tự đồng bộ với key gốc.
+- Có thể tạo bản sao bằng Secrets Store API `/secrets/{id}/duplicate`, tên `gateway_deepseek_default`, scope `ai_gateway`, không cần đọc giá trị key. Khi tạo provider config qua API, runtime tra secret theo tên; `secret_id` không phải khoá tra runtime. Đối chiếu [quy ước BYOK](https://developers.cloudflare.com/ai-gateway/configuration/bring-your-own-keys/) và kiểm chứng bằng lượt gọi thật.
+- Giữ trần 100/ngày và 5/phút của ứng dụng. Binding yêu cầu Response thô (`returnRawResponse`), timeout 60 giây, một upstream attempt, bỏ cache và metadata `application=content-radar`. Mã HTTP, `Retry-After` và token usage vẫn đi qua sổ hiện có.
+- Thiếu binding, tên Gateway sai, Gateway 400 hoặc lỗi 401/403/404 thì tạm dừng và giữ việc trong D1. Binding 400 được coi là cấu hình cần sửa, vì Gateway dùng mã này khi thiếu BYOK; xem Gateway log để phân biệt lỗi tham số. Không tự quay lại key trực tiếp hay model khác.
+- Local gọi trực tiếp bằng `DEEPSEEK_API_KEY` khi không đặt `AI_GATEWAY_ID`. Muốn kiểm tra Gateway thật ở local thì dùng AI binding remote và đặt `AI_GATEWAY_ID=gateway`; lượt gọi vẫn tính phí. Không xoá usage/cooldown để làm lại lượt.
+- `.dev.vars` gốc repo không tự trở thành secret production. Wrangler local đọc `apps/worker/.dev.vars`; cả hai file đều nằm ngoài git. Đường binding không cần đưa key hoặc token từ các file này lên Worker.
 
-Xác minh sau deploy bằng version/tag, một lượt pipeline thật trong `llm_calls` và log cùng thời điểm trong AI Gateway (provider/model/status); binding hoặc upload thành công chưa chứng minh key upstream đúng. [BYOK và alias](https://developers.cloudflare.com/ai-gateway/configuration/bring-your-own-keys/), [xác thực](https://developers.cloudflare.com/ai-gateway/configuration/authentication/), [retry](https://developers.cloudflare.com/ai-gateway/configuration/request-handling/).
+Xác minh sau deploy bằng version/tag, một lượt pipeline thật trong `llm_calls` và log cùng thời điểm trong AI Gateway (provider/model/status, `wholesale=false`). Upload thành công hoặc key xuất hiện trong dashboard chưa chứng minh inference chạy được. [Binding](https://developers.cloudflare.com/ai-gateway/usage/worker-binding-methods/), [quy tắc key và chặn Unified Billing](https://developers.cloudflare.com/ai-gateway/features/unified-billing/).
 
 ## Chuyển Worker đang chạy Gemini sang DeepSeek
 

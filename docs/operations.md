@@ -73,6 +73,8 @@ Cần có trước: một ứng dụng Access kiểu self-hosted cho hostname c�
 
 Cấu hình production trong `wrangler.jsonc` có binding `AI` và `AI_GATEWAY_ID=gateway`. Client gọi `env.AI.gateway("gateway").run({ provider: "deepseek", endpoint: "chat/completions", ... })`; binding tự xác thực trong tài khoản Cloudflare, không cần `CF_AIG_TOKEN` hoặc key DeepSeek trong Worker.
 
+Ngày 2026-09-21 đã xoá secret runtime `GEMINI_API_KEY` sau khi kiểm tra bundle production không còn tham chiếu. `DEEPSEEK_API_KEY` cũng không có trên Worker khi kiểm tra. Runtime chỉ cần biến `AI_GATEWAY_ID` và năm secret `GITHUB_TOKEN`, `OWNER_EMAIL`, `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`, `APP_ORIGIN`; giữ các binding tài nguyên và key BYOK trong Gateway. Việc dọn secret giữ nguyên mã đang chạy, không upload code local. [Bằng chứng kiểm tra](../plans/reports/ops-260921-1158-unused-runtime-secrets.md).
+
 `AI.run("deepseek/deepseek-flash")` đã thử trên production và trả 404; Gateway log ghi `Model not found`. Vì vậy dùng phương thức provider của binding, không đổi sang model Cloudflare-hosted. Phương thức này đi qua Universal Endpoint đã được Cloudflare đánh dấu deprecated (vẫn hoạt động); cần kiểm tra lại hỗ trợ model trước khi chuyển sang API mới. Xem [runtime binding](https://github.com/cloudflare/workerd/blob/main/src/cloudflare/internal/aig-api.ts) và [trạng thái Universal Endpoint](https://developers.cloudflare.com/ai-gateway/usage/universal/).
 
 - Trong Provider Keys của gateway `gateway`, lưu key DeepSeek dưới alias **`default`**. Client dùng key mặc định cho provider này. Có thể giữ alias `deepseek` cho ứng dụng đang dùng đường provider-native.
@@ -90,12 +92,12 @@ Xác minh sau deploy bằng version/tag, một lượt pipeline thật trong `ll
 
 Khác deploy lần đầu, migration `0009` thay model đang hoạt động nên phải theo thứ tự:
 
-1. Thêm secret `DEEPSEEK_API_KEY` trên Worker và kiểm tra **tên binding**, không xuất giá trị key. Ghi lại version Worker, danh sách model bật và bookmark D1.
+1. Cấu hình binding `AI`, `AI_GATEWAY_ID` và key BYOK theo mục Gateway ở trên. Chỉ thêm secret `DEEPSEEK_API_KEY` nếu chủ động chọn gọi trực tiếp và không đặt `AI_GATEWAY_ID`; không xuất giá trị key. Ghi lại version Worker, danh sách model bật và bookmark D1.
 2. Build/test và deploy code DeepSeek trước. Nếu còn model Gemini trong DB, client mới sẽ mở ngắt mạch, giữ bài chờ và không gửi tên model sai sang DeepSeek.
 3. Áp migration `0009` bằng `npx wrangler d1 migrations apply content-radar --remote`. Migration tắt Gemini, bật Flash với 5/100 và xoá ngắt mạch cũ. Không reset usage hoặc xoá dữ liệu.
 4. Đọc lại model, trần và version deploy; kiểm tra `llm_calls` có model mới, claim gần đây có quote hợp lệ và job cluster tạo thẻ. Key tồn tại hoặc deploy xanh chưa chứng minh API hoạt động.
 
-Cron rút backlog mỗi 30 phút, cluster phút 05 mỗi giờ; có claim chưa đồng nghĩa có thẻ ngay. Phiên bản trước chuyển đổi là `d26e9daf-c9ee-48e3-aba8-628f65f0ca18`. Khi rollback: tắt DeepSeek trước, rollback Worker về version này, rồi khôi phục đúng các model Gemini đã bật và xoá `llm_circuit`. Giữ cooldown/usage Gemini để không giả vờ còn quota. Không rollback D1; giữ secret cũ cho tới khi không cần đường quay lại.
+Cron rút backlog mỗi 30 phút, cluster phút 05 mỗi giờ; có claim chưa đồng nghĩa có thẻ ngay. Phiên bản trước chuyển đổi là `d26e9daf-c9ee-48e3-aba8-628f65f0ca18`. Khi rollback: tắt DeepSeek trước, rollback Worker về version này, rồi khôi phục đúng các model Gemini đã bật và xoá `llm_circuit`. Giữ cooldown/usage Gemini để không giả vờ còn quota. Không rollback D1. `GEMINI_API_KEY` đã được gỡ khỏi runtime hiện tại; trước khi quay lại Gemini phải bảo đảm phiên bản khôi phục có key hợp lệ và kiểm chứng kết nối, không coi rollback code là đủ.
 
 ## Đọc trang trạng thái
 

@@ -1,12 +1,14 @@
 export type LlmErrorKind = "rate_limited" | "configuration_error" | "insufficient_balance" | "invalid_request" | "invalid_output" | "transient";
 
 export interface LlmRequest {
-  apiKey: string;
+  apiKey?: string;
   model: string;
   system: string;
   user: string;
   schema: Record<string, unknown>;
   baseUrl?: string;
+  gatewayToken?: string;
+  gatewayKeyAlias?: string;
   fetcher?: typeof fetch;
   timeoutMs?: number;
 }
@@ -35,16 +37,39 @@ export async function generateJson(request: LlmRequest): Promise<LlmResult> {
   const fail = (kind: LlmErrorKind, reached: boolean, message: string): Extract<LlmResult, { ok: false }> => ({
     ok: false, kind, reached, httpStatus: status, latencyMs: Date.now() - started, message, ...usage,
   });
-  if (!request.apiKey?.trim()) return fail("configuration_error", false, "deepseek_api_key_missing");
+  const baseUrl = (request.baseUrl ?? DEFAULT_DEEPSEEK_BASE_URL).replace(/\/+$/, "");
+  let gateway = false;
+  try {
+    const url = new URL(baseUrl);
+    gateway = url.hostname === "gateway.ai.cloudflare.com";
+    if (gateway && (url.protocol !== "https:" || url.port || url.search || url.hash || url.username || url.password || !/^\/v1\/[a-f0-9]{32}\/[a-z0-9_-]+\/deepseek$/.test(url.pathname))) {
+      return fail("configuration_error", false, "deepseek_gateway_url_invalid");
+    }
+  } catch {
+    return fail("configuration_error", false, "deepseek_base_url_invalid");
+  }
+  if (request.gatewayToken && !gateway) return fail("configuration_error", false, "deepseek_gateway_url_required");
+  if (gateway && !request.gatewayToken?.trim()) return fail("configuration_error", false, "deepseek_gateway_token_missing");
+  if (!gateway && !request.apiKey?.trim()) return fail("configuration_error", false, "deepseek_api_key_missing");
   // During rollout the database may still select the previous provider's models.
   if (!request.model.startsWith("deepseek-")) return fail("configuration_error", false, "deepseek_model_not_configured");
 
   let response: Response;
   let raw: string;
   try {
-    response = await (request.fetcher ?? fetch)(`${(request.baseUrl ?? DEFAULT_DEEPSEEK_BASE_URL).replace(/\/+$/, "")}/chat/completions`, {
+    response = await (request.fetcher ?? fetch)(`${baseUrl}/chat/completions`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${request.apiKey}` },
+      headers: {
+        "Content-Type": "application/json",
+        ...(gateway ? {
+          "cf-aig-authorization": `Bearer ${request.gatewayToken}`,
+          "cf-aig-byok-alias": request.gatewayKeyAlias || "default",
+          // Each application reservation permits one upstream attempt. Retries
+          // stay in our ledger; stored results must pass validation each time.
+          "cf-aig-max-attempts": "1", "cf-aig-skip-cache": "true",
+          "cf-aig-metadata": JSON.stringify({ application: "content-radar" }),
+        } : { Authorization: `Bearer ${request.apiKey}` }),
+      },
       body: JSON.stringify({
         model: request.model,
         messages: [

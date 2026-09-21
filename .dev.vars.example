@@ -1,5 +1,9 @@
 # Copy to apps/worker/.dev.vars for local development. Never commit real values.
 DEEPSEEK_API_KEY=
+# To use Cloudflare AI Gateway BYOK locally, set all three instead of a direct API key.
+DEEPSEEK_BASE_URL=
+DEEPSEEK_BYOK_ALIAS=deepseek
+CF_AIG_TOKEN=
 GITHUB_TOKEN=
 OWNER_EMAIL=
 ACCESS_TEAM_DOMAIN=

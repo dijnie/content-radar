@@ -24,4 +24,10 @@ Remote secret-name inspection found no DeepSeek key. No DeepSeek deployment, rem
 
 AgentWiki publish skipped.
 
+## Continuation: production and Gateway
+
+Owner later supplied the direct key through root `.dev.vars`. Deployment tagged `1733bd3` and remote migration 0009 were verified; four real calls accepted 69 claims and cluster run 2 published 5 cards. A later direct call returned 401; its cause remains unverified. See [production evidence](../260921-0840-deepseek-migration/reports/production-verification.md).
+
+Owner selected existing AI Gateway `gateway`, stored DeepSeek alias `deepseek`. Added authenticated provider-native routing without sending the direct key, with one upstream attempt and cache bypass per application request. Preserve model, caps and priority. Missing Gateway token fails before HTTP without falling back. Focused tests 31/31, Worker tests 345/345, typecheck and production dry-run passed. Local integration is complete; token `CF_AIG_TOKEN` and live Gateway verification remain pending because the current Cloudflare API connection cannot manage authentication tokens (9109). Explained the two credentials and root `.dev.vars` handoff to the owner. No Gateway deployment yet.
+
 > Historical work record — not durable authority. Prefer docs/specs/ADRs for current decisions.

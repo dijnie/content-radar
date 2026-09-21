@@ -6,7 +6,10 @@ export interface Env {
   AI: Ai;
   ASSETS: Fetcher;
 
-  DEEPSEEK_API_KEY: string;
+  /** Only required for direct calls; AI Gateway uses its stored provider key. */
+  DEEPSEEK_API_KEY?: string;
+  CF_AIG_TOKEN?: string;
+  DEEPSEEK_BYOK_ALIAS?: string;
   GITHUB_TOKEN: string;
   OWNER_EMAIL: string;
   /** Team origin, e.g. https://<team>.cloudflareaccess.com (no trailing slash). */

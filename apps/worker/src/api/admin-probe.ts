@@ -84,7 +84,8 @@ export async function runProbe(target: ProbeTarget, env: Env, colo: string | nul
   try {
     if (target === "deepseek") {
       const result = await generateJson({
-        apiKey: env.DEEPSEEK_API_KEY, model: DEFAULT_DEEPSEEK_MODEL,
+        apiKey: env.DEEPSEEK_API_KEY ?? "", model: DEFAULT_DEEPSEEK_MODEL,
+        gatewayToken: env.CF_AIG_TOKEN ?? "", gatewayKeyAlias: env.DEEPSEEK_BYOK_ALIAS ?? "default",
         system: 'Return JSON only. Example: {"ok":true}', user: 'Reply with {"ok":true}.',
         schema: { type: "object", properties: { ok: { type: "boolean" } }, required: ["ok"] },
         ...(env.DEEPSEEK_BASE_URL ? { baseUrl: env.DEEPSEEK_BASE_URL } : {}), timeoutMs: PROBE_TIMEOUT_MS,

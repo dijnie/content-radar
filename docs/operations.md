@@ -2,7 +2,7 @@
 
 Trạng thái (cập nhật 2026-09-21): người dùng chọn giữ Cloudflare Access trên URL `workers.dev` hiện tại và đăng nhập bằng tài khoản Cloudflare, không dùng mã email của Access. Ứng dụng `Content Radar` chỉ chọn identity provider `Cloudflare`, bật `Restrict to account members` và tự chuyển sang đăng nhập Cloudflare; policy vẫn giới hạn đúng chủ sở hữu. Worker đã có `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`, `OWNER_EMAIL`, `APP_ORIGIN`. Cấu hình repo và route thực tế bật `workers_dev`, tắt preview URL. Đã kiểm chứng trang Access không có form mã email, tự chuyển tới `dash.cloudflare.com/oauth2/auth`; phiên đăng nhập hoàn chỉnh vẫn cần kiểm chứng bằng trình duyệt của chủ sở hữu. Bằng chứng ở [báo cáo Access](../plans/reports/cook-260921-0804-cloudflare-access.md).
 
-Tài nguyên Cloudflare đã tạo (D1 `content-radar`, R2 `content-radar-raw`, queue `radar-poll`, `radar-llm`, `radar-dlq`). Ngày 2026-09-21 migration `0001` đến `0008` đã được áp lên D1 remote và cấu hình đã được đồng bộ (3 chủ đề, 119 nguồn, 13 tác giả); từ thời điểm đó **không sửa các file migration này nữa**, mọi thay đổi schema phải là một migration mới. Những quy trình dưới đây có đánh dấu **chưa thử trên production** là viết theo tài liệu của Cloudflare và theo hành vi đã kiểm chứng ở local; hãy cập nhật chúng khi chạy thật lần đầu.
+Tài nguyên Cloudflare đã tạo (D1 `content-radar`, R2 `content-radar-raw`, queue `radar-poll`, `radar-llm`, `radar-dlq`). Ngày 2026-09-21 migration `0001` đến `0009` đã được áp lên D1 remote và cấu hình đã được đồng bộ (3 chủ đề, 119 nguồn, 13 tác giả); từ thời điểm đó **không sửa các file migration này nữa**, mọi thay đổi schema phải là một migration mới. Những quy trình dưới đây có đánh dấu **chưa thử trên production** là viết theo tài liệu của Cloudflare và theo hành vi đã kiểm chứng ở local; hãy cập nhật chúng khi chạy thật lần đầu.
 
 ## Deploy lần đầu
 
@@ -35,10 +35,10 @@ Cần có trước: một ứng dụng Access kiểu self-hosted cho hostname c�
 
    ```bash
    cd apps/worker
-   for name in DEEPSEEK_API_KEY GITHUB_TOKEN OWNER_EMAIL ACCESS_TEAM_DOMAIN ACCESS_AUD APP_ORIGIN; do npx wrangler secret put "$name"; done
+   for name in CF_AIG_TOKEN GITHUB_TOKEN OWNER_EMAIL ACCESS_TEAM_DOMAIN ACCESS_AUD APP_ORIGIN; do npx wrangler secret put "$name"; done
    ```
 
-   `ACCESS_TEAM_DOMAIN` không có dấu gạch chéo cuối. `APP_ORIGIN` là origin chính xác đang dùng, hiện là `https://content-radar.<subdomain>.workers.dev`. `OWNER_EMAIL` phải trùng email trong policy. Thiếu một trong ba biến Access thì mọi request nhận 503 `access_not_configured`: Worker từ chối thay vì mở. Chỉ đặt secret còn thiếu; không cần ghi lại key DeepSeek/GitHub khi sửa Access.
+   `ACCESS_TEAM_DOMAIN` không có dấu gạch chéo cuối. `APP_ORIGIN` là origin chính xác đang dùng, hiện là `https://content-radar.<subdomain>.workers.dev`. `OWNER_EMAIL` phải trùng email trong policy. Thiếu một trong ba biến Access thì mọi request nhận 503 `access_not_configured`: Worker từ chối thay vì mở. Chỉ đặt secret còn thiếu; không cần ghi lại token Gateway/GitHub khi sửa Access.
 
 4. Migration `0009_deepseek_models.sql` bật `deepseek-flash` với trần ứng dụng đã chọn: 100 request/ngày Pacific, tối đa 5 request/phút. [`scripts/set-llm-limits.sql`](../scripts/set-llm-limits.sql) áp lại đúng các mức này khi cần. Không phải quota của DeepSeek; 429 không tự sửa các trần. Với model có giới hạn `NULL`, giá trị dự phòng lấy từ `settings` (repo mặc định 5/20).
 5. `npm run deploy`, rồi kiểm tra không hostname nào hở:
@@ -53,7 +53,19 @@ Cần có trước: một ứng dụng Access kiểu self-hosted cho hostname c�
 
 6. Sau đăng nhập, có thể chạy probe `GET /api/admin/probe?target=deepseek` để kiểm tra key và kết nối. Các target nguồn vẫn là `fxtwitter-timeline`, `fxtwitter-status`, `syndication`, `hn-algolia`, `hn-firebase`, `github-api`, `github-atom`, `rss-uber`, `rss-medium`, `workers-ai-embed`.
 
-   Probe DeepSeek gọi API thật **ngoài sổ ngân sách tự động**, vẫn tính phí; không chạy lặp để đo quota. 401/403/404 cần kiểm tra key/model/endpoint, 402 cần kiểm tra số dư. Endpoint mặc định là `https://api.deepseek.com`; chỉ đặt `DEEPSEEK_BASE_URL` nếu chủ động dùng proxy tương thích và tin cậy.
+   Probe DeepSeek gọi API thật **ngoài sổ ngân sách tự động**, vẫn tính phí; không chạy lặp để đo quota. 401/403/404 cần kiểm tra key/model/endpoint, 402 cần kiểm tra số dư. Probe dùng cùng endpoint, token và alias với pipeline; xem cấu hình Gateway bên dưới.
+
+## DeepSeek qua AI Gateway
+
+Cấu hình production trong `wrangler.jsonc` chọn gateway `gateway`, provider `deepseek`, alias key `deepseek`. Base URL là `https://gateway.ai.cloudflare.com/v1/67a5d5c1b4057035786e297885f16a82/gateway/deepseek`. Gateway đã bật xác thực; key DeepSeek được chủ sở hữu lưu tại Provider Keys. Client gửi `cf-aig-byok-alias: deepseek` và dùng secret **`CF_AIG_TOKEN`** (quyền AI Gateway: Run của đúng tài khoản) trong `cf-aig-authorization`. Không gửi header Authorization chứa key DeepSeek ở chế độ này.
+
+- Tạo token tại Gateway → Settings → Create authentication token; đặt bằng `npx wrangler secret put CF_AIG_TOKEN` từ `apps/worker`. Không dùng token quản trị tài khoản để chạy ứng dụng. Quyền Run của Cloudflare áp dụng toàn tài khoản, không giới hạn một gateway.
+- Nếu chủ sở hữu cung cấp key/token trong `.dev.vars` ở **gốc repo**, chỉ đọc biến được yêu cầu và đưa qua stdin vào secret tương ứng. Wrangler local đọc `apps/worker/.dev.vars`; file ở gốc không tự trở thành secret production. Cả hai file đều nằm ngoài git.
+- Giữ trần 100/ngày và 5/phút của ứng dụng. Mỗi request đặt `cf-aig-max-attempts: 1` để gateway không tự nhân số lần gọi ngoài sổ; `cf-aig-skip-cache: true` để kiểm tra thực thi và usage rõ ràng. Metadata `application=content-radar` giúp lọc log.
+- Thiếu token, URL gateway sai hoặc lỗi 401/403/404 thì ngừng gọi và giữ việc trong D1. Không tự quay về key trực tiếp hay model khác.
+- Local vẫn có thể gọi trực tiếp bằng `DEEPSEEK_API_KEY` nếu không đặt biến Gateway. Khi chủ động quay lại direct, bỏ `CF_AIG_TOKEN` và `DEEPSEEK_BASE_URL`, dùng key DeepSeek còn hiệu lực. Không xoá usage/cooldown để làm lại lượt.
+
+Xác minh sau deploy bằng version/tag, một lượt pipeline thật trong `llm_calls` và log cùng thời điểm trong AI Gateway (provider/model/status); binding hoặc upload thành công chưa chứng minh key upstream đúng. [BYOK và alias](https://developers.cloudflare.com/ai-gateway/configuration/bring-your-own-keys/), [xác thực](https://developers.cloudflare.com/ai-gateway/configuration/authentication/), [retry](https://developers.cloudflare.com/ai-gateway/configuration/request-handling/).
 
 ## Chuyển Worker đang chạy Gemini sang DeepSeek
 

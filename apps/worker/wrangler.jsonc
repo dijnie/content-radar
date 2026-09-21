@@ -1,4 +1,4 @@
-// Production configuration. Secrets (DEEPSEEK_API_KEY, GITHUB_TOKEN, OWNER_EMAIL,
+// Production configuration. Secrets (CF_AIG_TOKEN, GITHUB_TOKEN, OWNER_EMAIL,
 // ACCESS_TEAM_DOMAIN, ACCESS_AUD, APP_ORIGIN) are set with `wrangler secret put`.
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
@@ -9,6 +9,10 @@
   "workers_dev": true,
   "preview_urls": false,
   "observability": { "enabled": true },
+  "vars": {
+    "DEEPSEEK_BASE_URL": "https://gateway.ai.cloudflare.com/v1/67a5d5c1b4057035786e297885f16a82/gateway/deepseek",
+    "DEEPSEEK_BYOK_ALIAS": "deepseek"
+  },
   "define": { "__DEV_AUTH_BYPASS__": "false" },
   "assets": {
     "directory": "../web/dist",

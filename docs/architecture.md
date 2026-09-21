@@ -16,7 +16,7 @@ flowchart TD
   F -->|items: queued hoặc filtered_out| D1[(D1)]
   F -->|radar-llm: extract| L[llm-consumer]
   DR -->|radar-llm: item queued còn tồn| L
-  L -->|budgeted-call| G[DeepSeek API]
+  L -->|budgeted-call| G[AI Gateway: DeepSeek]
   L -->|claims, entity_mentions| D1
   subgraph "Cron 5 * * * *"
     C[run-cluster-job]
@@ -50,12 +50,12 @@ Lưu ý khi sửa code ghi dữ liệu: dùng `ON CONFLICT (...) DO NOTHING` tr�
 
 ## Ngân sách DeepSeek
 
-`deepseek-flash` thực hiện cả bóc claim, tổng hợp và phân xử entity qua Chat Completions. Client tắt thinking, yêu cầu JSON object, giới hạn 8.192 token đầu ra và timeout 60 giây cả lúc đọc body. Prompt đưa schema cùng ví dụ JSON; code vẫn kiểm tra schema, ID và quote trước khi lưu. JSON mode không thay thế validation.
+`deepseek-flash` thực hiện cả bóc claim, tổng hợp và phân xử entity qua Chat Completions. Cấu hình production định tuyến qua Cloudflare AI Gateway với key BYOK alias `deepseek`; key upstream nằm trên Gateway, Worker dùng `CF_AIG_TOKEN`. Client tắt thinking, yêu cầu JSON object, giới hạn 8.192 token đầu ra và timeout 60 giây cả lúc đọc body. Prompt đưa schema cùng ví dụ JSON; code vẫn kiểm tra schema, ID và quote trước khi lưu. JSON mode không thay thế validation.
 
 - `budgeted-call` đặt chỗ trong `llm_usage` trước mỗi lần gọi. Trần chủ sở hữu chọn là **100 request/ngày, 5 request/phút**, ghi rõ trong [`0009_deepseek_models.sql`](../apps/worker/migrations/0009_deepseek_models.sql). Đây là hạn mức ứng dụng để kiểm soát chi phí, không phải quota của DeepSeek. Chỉ một model được bật; không fallback về Gemini.
 - Mỗi phản hồi HTTP tính một lượt vào trần ứng dụng, kể cả 429/5xx; không nhận được phản hồi thì hoàn chỗ. `tokens_in` và `tokens_out` ghi usage nhà cung cấp trả về. Số lượt gọi không phải trần USD; token của request mất kết nối có thể không quan sát được trong sổ.
 - Sổ giữ ngày Pacific như trước; sang ngày mới tự tạo dòng mới. 80 lượt dành cho bóc claim, 20 lượt dùng chung cho tổng hợp/phân xử, không vay giữa hai phần. Backfill tối đa 25 lượt trong phần bóc claim. Mỗi lượt bóc claim gom tối đa 10 item.
-- Hết trần theo phút thì chờ 60 giây; hết phần ngân sách ngày thì để việc trong D1. DeepSeek 429 chỉ cho model nghỉ ngắn: theo `Retry-After` trong khoảng 1–300 giây, mặc định 60 giây. Không suy ra quota ngày hoặc tự đổi `rpm`/`rpd` từ lỗi này.
+- Hết trần theo phút thì chờ 60 giây; hết phần ngân sách ngày thì để việc trong D1. DeepSeek 429 chỉ cho model nghỉ ngắn: theo `Retry-After` trong khoảng 1–300 giây, mặc định 60 giây. Không suy ra quota ngày hoặc tự đổi `rpm`/`rpd` từ lỗi này. Gateway bị giới hạn một upstream attempt/request, bỏ cache và không tự fallback, để sổ ứng dụng vẫn kiểm soát retry.
 - 5xx cho model nghỉ 3 phút. Lỗi mạng, JSON trống/hỏng hoặc output bị cắt được retry có giãn cách. Sau tối đa bốn retry ngắn, việc trở về D1 trước khi queue đưa vào dead-letter; bài vẫn `queued`.
 - Thiếu key, 401/403/404 hoặc hết số dư (402) mở ngắt mạch 15 phút ngay, giữ nguyên bài chờ. Năm lỗi mạng/output liên tiếp cùng loại cũng mở ngắt mạch 15 phút. Sau khi sửa key hoặc nạp tiền, đợi hết ngắt mạch và cron rút backlog tiếp.
 - Migration chỉ tắt model Gemini, không xoá usage, call, claim hoặc dấu vết model cũ; ngắt mạch của provider cũ được xoá khi chuyển sang DeepSeek.

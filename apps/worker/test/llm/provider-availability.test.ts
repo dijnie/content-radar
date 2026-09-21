@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vitest";
 import { upsertItem } from "../../src/db/items-repo";
-import type { LlmEnv } from "../../src/llm/budgeted-call";
+import { budgetedCall, type LlmEnv } from "../../src/llm/budgeted-call";
 import { consumeLlmBatch } from "../../src/llm/llm-consumer";
 import type { LlmMessage } from "../../src/llm/messages";
 import { itemInput, seedSource } from "../db/seed";
@@ -28,6 +28,22 @@ async function run(status: number, apiKey = "test-key", attempts = 1) {
 }
 
 describe("provider availability does not poison queued articles", () => {
+  it("routes budgeted work through Gateway BYOK with no direct provider key", async () => {
+    const gatewayEnv: LlmEnv = { DB: env.DB, RAW: env.RAW, LLM_QUEUE: {} as Queue<LlmMessage>, DEEPSEEK_BASE_URL: "https://gateway.ai.cloudflare.com/v1/67a5d5c1b4057035786e297885f16a82/gateway/deepseek", CF_AIG_TOKEN: "gateway-test-token", DEEPSEEK_BYOK_ALIAS: "deepseek" };
+    let calls = 0;
+    const fetcher = (async (_url: RequestInfo | URL, init?: RequestInit) => {
+      calls++;
+      const headers = new Headers(init?.headers);
+      expect(headers.get("cf-aig-authorization")).toBe("Bearer gateway-test-token");
+      expect(headers.get("cf-aig-byok-alias")).toBe("deepseek");
+      expect(headers.has("authorization")).toBe(false);
+      return Response.json({ choices: [{ finish_reason: "stop", message: { content: '{"items":[]}' } }], usage: { prompt_tokens: 15, completion_tokens: 4 } });
+    }) as typeof fetch;
+    expect(await budgetedCall(gatewayEnv, { kind: "extract", promptVersion: 2, system: "Return JSON", user: "check", schema: {}, subjectIds: [] }, { now: NOW, fetcher })).toMatchObject({ status: "ok", model: "deepseek-flash" });
+    expect(calls).toBe(1);
+    expect(await env.DB.prepare("SELECT requests,tokens_in,tokens_out FROM llm_usage WHERE model='deepseek-flash'").first()).toEqual({ requests: 1, tokens_in: 15, tokens_out: 4 });
+  });
+
   it("429 parks only for Retry-After and preserves the owner-approved application caps", async () => {
     expect(await run(429)).toMatchObject({ calls: 1, outcomes: ["retry:60"], item: { status: "queued", enqueue_attempts: 0 } });
     expect(await env.DB.prepare("SELECT rpm, rpd, exhausted_until FROM llm_models WHERE model = 'deepseek-flash'").first()).toEqual({ rpm: 5, rpd: 100, exhausted_until: NOW + 23 });

@@ -4,8 +4,35 @@ import envelope from "../fixtures/deepseek/success-envelope.json";
 
 const request: LlmRequest = { apiKey: "test-key", model: "deepseek-flash", system: 'Return JSON. Example: {"ok":true}', user: "check", schema: { type: "object" } };
 const answer = (content = '{"ok":true}', finishReason = "stop") => ({ ...envelope, choices: [{ message: { content }, finish_reason: finishReason }] });
+const gatewayUrl = "https://gateway.ai.cloudflare.com/v1/67a5d5c1b4057035786e297885f16a82/gateway/deepseek";
 
 describe("DeepSeek JSON transport", () => {
+  it.each(["", "unused-provider-key"])("uses the stored gateway alias without sending the provider key (%s)", async (apiKey) => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(Response.json(answer()));
+    expect(await generateJson({ ...request, apiKey, baseUrl: `${gatewayUrl}/`, gatewayToken: "test-gateway-token", gatewayKeyAlias: "deepseek", fetcher })).toMatchObject({ ok: true, data: { ok: true }, tokensIn: 1840, tokensOut: 412 });
+    const [url, init] = fetcher.mock.calls[0]!;
+    expect(url).toBe(`${gatewayUrl}/chat/completions`);
+    const headers = new Headers(init?.headers);
+    expect(headers.get("authorization")).toBeNull();
+    expect(headers.get("cf-aig-authorization")).toBe("Bearer test-gateway-token");
+    expect(headers.get("cf-aig-byok-alias")).toBe("deepseek");
+    expect(headers.get("cf-aig-max-attempts")).toBe("1");
+    expect(headers.get("cf-aig-skip-cache")).toBe("true");
+    expect(JSON.parse(String(init?.body)).model).toBe("deepseek-flash");
+  });
+
+  it("never falls back to the direct key when gateway authentication is missing", async () => {
+    const fetcher = vi.fn<typeof fetch>();
+    expect(await generateJson({ ...request, baseUrl: gatewayUrl, fetcher })).toMatchObject({ ok: false, kind: "configuration_error", reached: false, message: "deepseek_gateway_token_missing" });
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it.each(["https://example.com", "https://api.deepseek.com", gatewayUrl.replace("https:", "http:"), gatewayUrl.replace("/deepseek", "/openai"), `${gatewayUrl}?redirect=other`])("does not send a Cloudflare token to an incorrect endpoint: %s", async (baseUrl) => {
+    const fetcher = vi.fn<typeof fetch>();
+    expect(await generateJson({ ...request, baseUrl, gatewayToken: "test-gateway-token", fetcher })).toMatchObject({ ok: false, kind: "configuration_error", reached: false });
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
   it("uses the documented chat contract, disables thinking and preserves token usage", async () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response(`\n\n${JSON.stringify(answer())}`));
     const result = await generateJson({ ...request, fetcher });

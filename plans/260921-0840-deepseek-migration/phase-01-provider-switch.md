@@ -24,4 +24,4 @@ Affected: `apps/worker/src/llm/`, `src/env.ts`, `src/api/admin-probe.ts`, migrat
 
 ## Execution evidence
 
-Local implementation and checks complete; see [plan](plan.md#verification). `0009` uses the accepted 5 RPM/100 RPD explicitly, so config sync cannot silently reduce the model to the unrelated fallback default. Production migration has not been applied and no paid DeepSeek requests have been made. Deploy code first after the key exists, then apply `0009`; the new client guards old-provider model names during that interval.
+Local implementation and checks complete; see [plan](plan.md#verification). `0009` uses the accepted 5 RPM/100 RPD explicitly, so config sync cannot silently reduce the model to the unrelated fallback default. Production code was deployed before migration 0009. Four direct calls accepted 69 claims and the hourly cluster published 5 real cards. A later direct request returned 401 and paused the pipeline. [Live evidence](reports/production-verification.md); gateway routing is the next accepted change.

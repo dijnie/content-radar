@@ -85,7 +85,25 @@ Số đo của test tải sau khi sửa (local, `workerd`): 5,9 giây cho toàn 
 
 Hệ quả đã xử lý: một model trả 5xx giờ chỉ bị bỏ qua cho đúng lời gọi đó và chuỗi rơi xuống model kế tiếp; trước đó mọi 5xx làm cả lô phải retry và năm lần liên tiếp sẽ mở ngắt mạch cho mọi model. Prompt được bổ sung chỉ dẫn không liệt kê chính tác giả bài viết làm entity, vì phản hồi thật đã làm đúng điều đó và nó sẽ dính mọi claim của cùng một tác giả vào nhau.
 
-Còn mở: độ trễ của một lô đủ 10 item chưa đo được vì cả chuỗi đang 503 ở lần thử. Với 20 giây cho 3 bài, một lô 10 bài có thể chạm timeout 60 giây của client; nếu phép đo xác nhận, hướng xử lý là hạ mức thinking của model cho bước bóc claim hoặc giảm cỡ lô. Fixture `extract-recorded-gemini-3.6-flash.json` và `overloaded-503-recorded.json` là bản ghi thật; `rate-limited-429.json` và `location-blocked-400.json` vẫn là bản dựng theo hợp đồng REST vì không tạo ra được theo ý muốn.
+### Lần chạy pipeline thật đầu tiên ở local (2026-09-21)
+
+Poll 11 nguồn thật (4 tài khoản X, 2 truy vấn HN, 3 feed, 2 repo GitHub): cả 11 thành công, 257 item, 186 item qua bộ lọc rẻ. Bóc claim bằng Gemini thật, embedding bằng Workers AI thật.
+
+| Phép đo | Kết quả |
+|---|---|
+| Hạn mức free tier thật | **20 request mỗi ngày mỗi model**, tính theo project. Google nêu trong thân 429: `GenerateRequestsPerDayPerProjectPerModel-FreeTier`, `quotaValue: 20` |
+| 503 có bị tính vào quota không | Rất có thể có: `gemini-3.6-flash` nhận 25 request, chỉ 10 được trả lời, và hết quota ngày. Suy luận từ số đếm, không phải khẳng định của Google |
+| Độ trễ lô đủ 10 item | 7 đến 33 giây qua 7 lô; timeout 60 giây của client còn dư |
+| Chất lượng trích dẫn | 9 lời gọi thành công, 50 claim; 1 claim bị loại vì quote dài quá 300 ký tự, **0 claim bị loại vì `quote_not_found`** |
+| Tỉ lệ 503 | 42 trên 54 lời gọi của pipeline |
+| Item bị `failed` hoặc mất | 0; 100 item nằm lại ở `queued` chờ quota |
+| Job cluster với Workers AI thật | 2,7 giây: 21 claim trong cửa sổ, 84 entity, 10 mention mơ hồ chuyển phân xử, 2 cạnh cosine (0,554 đến 0,608), 1 câu chuyện |
+
+Ba lỗi thiết kế chỉ dữ liệu thật mới lộ ra, đều đã sửa kèm test: mọi 429 bị coi là hết quota ngày, trong khi một trong ba cái là giới hạn theo phút (model đó trả lời lại sau vài giây nhưng vẫn bị đỗ tới nửa đêm Pacific); 503 được hoàn chỗ trong sổ dù Google có vẻ vẫn tính; và mỗi lô gặp quá tải gõ lần lượt cả ba model rồi retry, đốt ba request cho mỗi lần thử. Mức an toàn mặc định 100 RPD của plan cao gấp 5 lần thực tế và đã được thay bằng 20.
+
+Hệ quả cho sản phẩm: 60 request mỗi ngày nhân 10 item mỗi lô là tối đa khoảng 480 item bóc claim mỗi ngày (phần dành cho bóc claim là 80%), chưa trừ các lần 503. Với 119 nguồn, bộ lọc rẻ và thứ tự ưu tiên nguồn sẽ quyết định radar thấy được gì; đây là giới hạn của ràng buộc 0 USD và cần được theo dõi trong tuần chạy thử.
+
+Còn mở: độ trễ của một lô đủ 10 item đã đo được (xem bảng trên), nên mục này đóng. Phần dưới giữ lại để ghi nhận bối cảnh của phép đo đầu tiên: độ trễ của một lô đủ 10 item chưa đo được vì cả chuỗi đang 503 ở lần thử. Với 20 giây cho 3 bài, một lô 10 bài có thể chạm timeout 60 giây của client; nếu phép đo xác nhận, hướng xử lý là hạ mức thinking của model cho bước bóc claim hoặc giảm cỡ lô. Fixture `extract-recorded-gemini-3.6-flash.json` và `overloaded-503-recorded.json` là bản ghi thật; `rate-limited-429.json` và `location-blocked-400.json` vẫn là bản dựng theo hợp đồng REST vì không tạo ra được theo ý muốn.
 
 ## Nạp vector từ BLOB của D1
 

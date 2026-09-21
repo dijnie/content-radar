@@ -169,7 +169,7 @@ describe("consumeLlmBatch", () => {
     expect(usage.results).toEqual([{ model: "gemini-3.7-flash", requests: 1 }, { model: "gemini-3.8-flash", requests: 1 }]);
   });
 
-  it("falls through to the next model when one model is overloaded, without charging it or tripping the circuit", async () => {
+  it("an overloaded model costs quota, rests for a few minutes, and the chain moves on", async () => {
     const ids = await seedItems(2);
     const overloaded = { error: { code: 503, message: "This model is currently experiencing high demand.", status: "UNAVAILABLE" } };
     const gemini = fakeGemini((_call, model) => (model === "gemini-3.8-flash" ? { status: 503, body: overloaded } : null));
@@ -180,22 +180,32 @@ describe("consumeLlmBatch", () => {
       expect(outcomes().every((outcome) => outcome === "ack")).toBe(true);
     }
     expect(await statuses(ids)).toEqual({ extracted: 2 });
-    expect(gemini.calls.slice(0, 2).map((call) => call.model)).toEqual(["gemini-3.8-flash", "gemini-3.7-flash"]);
-    // The overloaded model was never charged or parked, and six overloads in a row did not stop the pipeline.
-    // Its reservations were all released (the row stays, at zero); only the model that answered was charged.
-    expect((await env.DB.prepare("SELECT model, SUM(requests) AS n FROM llm_usage GROUP BY model ORDER BY model").all()).results).toEqual([{ model: "gemini-3.7-flash", n: 6 }, { model: "gemini-3.8-flash", n: 0 }]);
-    expect(await env.DB.prepare("SELECT exhausted_until FROM llm_models WHERE model = 'gemini-3.8-flash'").first()).toEqual({ exhausted_until: null });
+    // Measured on the free tier: a 503 still counts against the 20 daily requests. So the overloaded model is
+    // asked once, charged for it, and left alone while it rests; the other five batches go straight to the next model.
+    expect(gemini.calls.map((call) => call.model)).toEqual(["gemini-3.8-flash", ...Array(6).fill("gemini-3.7-flash")]);
+    expect((await env.DB.prepare("SELECT model, SUM(requests) AS n FROM llm_usage GROUP BY model ORDER BY model").all()).results).toEqual([{ model: "gemini-3.7-flash", n: 6 }, { model: "gemini-3.8-flash", n: 1 }]);
+    expect(await env.DB.prepare("SELECT exhausted_until FROM llm_models WHERE model = 'gemini-3.8-flash'").first()).toEqual({ exhausted_until: NOW + 180 });
     expect(await env.DB.prepare("SELECT value_json FROM settings WHERE key = 'llm_circuit'").first()).toBeNull();
   });
 
-  it("retries later, and counts toward the circuit, only when every model in the chain failed", async () => {
+  it("when the whole chain is overloaded it asks each model once, then waits for them to rest instead of burning quota", async () => {
     const ids = await seedItems(1);
     const gemini = fakeGemini(() => ({ status: 503, body: { error: { code: 503, message: "overloaded", status: "UNAVAILABLE" } } }));
-    const { batch, outcomes } = fakeBatch([{ kind: "extract", itemId: ids[0]! }]);
-    await consumeLlmBatch(batch, testEnv, { now: NOW, fetcher: gemini.fetcher });
+    const first = fakeBatch([{ kind: "extract", itemId: ids[0]! }]);
+    await consumeLlmBatch(first.batch, testEnv, { now: NOW, fetcher: gemini.fetcher });
     expect(gemini.calls.map((call) => call.model)).toEqual(["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash"]);
-    expect(outcomes()).toEqual(["retry:30"]);
-    expect(await env.DB.prepare("SELECT COALESCE(SUM(requests), 0) AS n FROM llm_usage").first()).toEqual({ n: 0 });
+    expect(first.outcomes()).toEqual(["retry:30"]);
+    expect(await env.DB.prepare("SELECT SUM(requests) AS n FROM llm_usage").first()).toEqual({ n: 3 });
+
+    // The redelivery a minute later finds all three resting: not one more request is spent.
+    const again = fakeBatch([{ kind: "extract", itemId: ids[0]! }], 2);
+    await consumeLlmBatch(again.batch, testEnv, { now: NOW + 60, fetcher: gemini.fetcher });
+    expect(gemini.calls).toHaveLength(3);
+    expect(again.outcomes()).toEqual(["retry:60"]);
+    // Once they have rested, the work resumes.
+    const later = fakeBatch([{ kind: "extract", itemId: ids[0]! }], 3);
+    await consumeLlmBatch(later.batch, testEnv, { now: NOW + 181, fetcher: fakeGemini().fetcher });
+    expect(await statuses(ids)).toEqual({ extracted: 1 });
   });
 
   it("releases the reservation and retries with a growing delay when the call never counted", async () => {

@@ -106,7 +106,9 @@ export async function generateJson(request: GeminiRequest): Promise<GeminiResult
   if (response.status === 429) return { ...fail("rate_limited", true, upstreamMessage), quota: parseQuota(body) } as GeminiResult;
   // Refused for the egress location before any quota is charged.
   if (upstreamMessage.includes("User location is not supported")) return fail("location_blocked", false, upstreamMessage);
-  if (response.status >= 500) return fail("transient", false, upstreamMessage);
+  // Measured on the free tier: a model was out of its 20 daily requests after answering only ten,
+  // the rest having been 503s. A server error therefore counts as a request that reached the quota.
+  if (response.status >= 500) return fail("transient", true, upstreamMessage);
   if (!response.ok) return fail("invalid_request", true, upstreamMessage);
 
   const candidate = body.candidates?.[0];

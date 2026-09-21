@@ -133,3 +133,14 @@ export async function markExhausted(db: D1Database, model: LlmModelRow, now: num
   await db.prepare("UPDATE llm_models SET exhausted_until = ?, rpd = COALESCE(?, rpd) WHERE model = ?").bind(until, quota?.scope === "day" ? quota.limit : null, model.model).run();
   return until;
 }
+
+/** How long a model that answered with a server error is left alone. */
+export const OVERLOAD_REST_SECONDS = 3 * 60;
+
+/**
+ * Rests an overloaded model. Every request to it costs one of the day's few, answered or not,
+ * so asking again seconds later is the expensive way to learn that it is still overloaded.
+ */
+export async function restOverloaded(db: D1Database, model: LlmModelRow, now: number): Promise<void> {
+  await db.prepare("UPDATE llm_models SET exhausted_until = MAX(COALESCE(exhausted_until, 0), ?) WHERE model = ?").bind(now + OVERLOAD_REST_SECONDS, model.model).run();
+}

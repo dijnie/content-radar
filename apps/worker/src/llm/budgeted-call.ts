@@ -1,6 +1,6 @@
 import { insertLlmCall, type LlmCallInput, type LlmKind } from "../db/llm-repo";
 import type { Env } from "../env";
-import { commit, markExhausted, release } from "./budget-ledger";
+import { commit, markExhausted, release, restOverloaded } from "./budget-ledger";
 import { circuitOpenUntil, recordFailure, recordSuccess } from "./circuit-breaker";
 import { generateJson } from "./gemini-client";
 import { loadBudgetSettings, reserveOnChain } from "./model-chain";
@@ -34,7 +34,7 @@ export type BudgetedResult =
 /**
  * The pipeline's single door to Gemini (the manual diagnostic probe is the only thing outside it). Reserves budget, calls, then commits when the call
  * counted against Google's quota and releases when it did not. A 429 parks the
- * model and moves down the chain; a 5xx skips the model for this call only. The successful call is logged by the caller,
+ * model and moves down the chain; a 5xx is charged too, and rests the model for a few minutes. The successful call is logged by the caller,
  * which knows how many results it accepted; every failure is logged here.
  */
 export async function budgetedCall(env: LlmEnv, request: BudgetedRequest, deps: LlmDeps = {}, attempt = 0): Promise<BudgetedResult> {
@@ -50,6 +50,7 @@ export async function budgetedCall(env: LlmEnv, request: BudgetedRequest, deps: 
   for (;;) {
     const chain = await reserveOnChain(env.DB, request.kind, now, settings, tried);
     if (!chain.ok) {
+      // Only on the call that saw the errors itself. A later call that merely finds the models resting waits quietly.
       if (serverError !== null) {
         // Every model left in the chain failed the same way: now it is a pipeline problem.
         await recordFailure(env.DB, serverError, now);
@@ -82,6 +83,7 @@ export async function budgetedCall(env: LlmEnv, request: BudgetedRequest, deps: 
     if (result.kind === "transient" && result.httpStatus !== null && result.httpStatus >= 500) {
       // Seen live: one model answering 503 "high demand" while its neighbours were fine.
       serverError = result.kind;
+      await restOverloaded(env.DB, model, now);
       tried.add(model.model);
       continue;
     }

@@ -1,6 +1,8 @@
 # Vận hành
 
-Trạng thái (cập nhật 2026-09-21): hệ thống **chưa được deploy** và chưa có route. Tài nguyên Cloudflare đã tạo (D1 `content-radar`, R2 `content-radar-raw`, queue `radar-poll`, `radar-llm`, `radar-dlq`). Ngày 2026-09-21 migration `0001` đến `0008` đã được áp lên D1 remote và cấu hình đã được đồng bộ (3 chủ đề, 119 nguồn, 13 tác giả); từ thời điểm đó **không sửa các file migration này nữa**, mọi thay đổi schema phải là một migration mới. Những quy trình dưới đây có đánh dấu **chưa thử trên production** là viết theo tài liệu của Cloudflare và theo hành vi đã kiểm chứng ở local; hãy cập nhật chúng khi chạy thật lần đầu.
+Trạng thái (cập nhật 2026-09-21): đã quan sát một bản deploy từ dashboard lúc 07:35 UTC, nhưng URL `workers.dev` trả HTTP 503 `access_not_configured` ở cả `/` và `/api/status`. Bản đó có secret Gemini/GitHub nhưng thiếu binding `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`, `OWNER_EMAIL` và `APP_ORIGIN`; chưa phải bản production sử dụng được. Cấu hình trong repo vẫn đặt `workers_dev: false`, nên trạng thái route trên Cloudflare đang khác repo. Chưa chốt việc dùng URL này hay custom domain; không bỏ lớp xác thực để xử lý lỗi. Bằng chứng ở [báo cáo tiếp tục](../plans/reports/cook-260921-0729-quota-reset-continuation.md).
+
+Tài nguyên Cloudflare đã tạo (D1 `content-radar`, R2 `content-radar-raw`, queue `radar-poll`, `radar-llm`, `radar-dlq`). Ngày 2026-09-21 migration `0001` đến `0008` đã được áp lên D1 remote và cấu hình đã được đồng bộ (3 chủ đề, 119 nguồn, 13 tác giả); từ thời điểm đó **không sửa các file migration này nữa**, mọi thay đổi schema phải là một migration mới. Những quy trình dưới đây có đánh dấu **chưa thử trên production** là viết theo tài liệu của Cloudflare và theo hành vi đã kiểm chứng ở local; hãy cập nhật chúng khi chạy thật lần đầu.
 
 ## Deploy lần đầu
 

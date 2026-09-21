@@ -69,7 +69,7 @@ Lớp truy cập dữ liệu nằm ở `apps/worker/src/db/`, mỗi nhóm bảng
 
 ## Todo
 
-Kiểm chứng local bổ sung ngày 2026-09-20: `npm run config:sync -- --local` chạy hai lần thành công, giữ nguyên 3 topic, 119 source và 13 author. Mục đồng bộ dưới đây còn mở vì phần remote chưa chạy theo phạm vi local đã chốt.
+Kiểm chứng local bổ sung ngày 2026-09-20: `npm run config:sync -- --local` chạy hai lần thành công, giữ nguyên 3 topic, 119 source và 13 author. Ngày 2026-09-21, người dùng cho phép áp migration 0001–0008 và đồng bộ remote; chạy đồng bộ hai lần giữ nguyên số dòng, lần áp migration thứ hai không còn việc chờ. Bằng chứng và quy tắc không sửa migration đã áp nằm trong [hướng dẫn vận hành](../../docs/operations.md).
 
 - [x] Năm file migration áp dụng sạch trên D1 local
 - [x] Lớp repo và `chunkedBatch`

@@ -2,7 +2,7 @@
 
 Ngày đo: 2026-09-20. Môi trường local: Node 24.18, Wrangler 4.135.0, `workerd` qua `@cloudflare/vitest-plugin` 1.1.13, Vitest 4.1.11.
 
-Trạng thái: các mục chạy local đã có kết quả dứt khoát. Các mục cần bản deploy thật **chưa đo được**, vì thiếu custom domain, ứng dụng Access và `GEMINI_API_KEY` do người dùng cung cấp. Không con số nào dưới đây là ước đoán thay cho phép đo còn thiếu.
+Trạng thái cập nhật 2026-09-21: đã có secret Gemini/GitHub và đã chạy pipeline local với dịch vụ thật. Bản deploy từ dashboard quan sát lúc 07:35 UTC trả 503 do thiếu Access; các probe từ Worker **chưa đo được**. Không con số local nào dưới đây thay cho phép đo từ Worker đã deploy. Chi tiết tại [báo cáo tiếp tục](../../reports/cook-260921-0729-quota-reset-continuation.md).
 
 ## Bảng quyết định
 
@@ -109,7 +109,7 @@ Số đo cần cho việc hiệu chỉnh ở tuần chạy thử: với `bge-m3`
 
 Hệ quả cho sản phẩm: 60 request mỗi ngày nhân 10 item mỗi lô là tối đa khoảng 480 item bóc claim mỗi ngày (phần dành cho bóc claim là 80%), chưa trừ các lần 503. Với 119 nguồn, bộ lọc rẻ và thứ tự ưu tiên nguồn sẽ quyết định radar thấy được gì; đây là giới hạn của ràng buộc 0 USD và cần được theo dõi trong tuần chạy thử.
 
-Còn mở: độ trễ của một lô đủ 10 item đã đo được (xem bảng trên), nên mục này đóng. Phần dưới giữ lại để ghi nhận bối cảnh của phép đo đầu tiên: độ trễ của một lô đủ 10 item chưa đo được vì cả chuỗi đang 503 ở lần thử. Với 20 giây cho 3 bài, một lô 10 bài có thể chạm timeout 60 giây của client; nếu phép đo xác nhận, hướng xử lý là hạ mức thinking của model cho bước bóc claim hoặc giảm cỡ lô. Fixture `extract-recorded-gemini-3.6-flash.json` và `overloaded-503-recorded.json` là bản ghi thật; `rate-limited-429.json` và `location-blocked-400.json` vẫn là bản dựng theo hợp đồng REST vì không tạo ra được theo ý muốn.
+Độ trễ của một lô đủ 10 item đã đo được (xem bảng trên), nên không còn là câu hỏi mở của lần probe đầu. Fixture `extract-recorded-gemini-3.6-flash.json`, `overloaded-503-recorded.json` và `rate-limited-429-recorded.json` là bản ghi thật, trong đó bản 429 ghi quota ngày 20 request. Các fixture `rate-limited-429.json` và `location-blocked-400.json` vẫn là bản dựng theo hợp đồng REST. Kiểm chứng tiếp backlog và tổng hợp sau khi quota mở lại được ghi riêng trong [báo cáo tiếp tục ngày 21](../../reports/cook-260921-0729-quota-reset-continuation.md).
 
 ## Nạp vector từ BLOB của D1
 
@@ -146,7 +146,7 @@ Quyết định: lưu embedding dạng BLOB trong D1, nạp theo khúc 500 dòng
 | R2 | `content-radar-raw` | Storage class Standard |
 | Queue | `radar-poll`, `radar-llm`, `radar-dlq` | Lưu giữ message 14 ngày |
 
-Binding queue trong code là `POLL_QUEUE` và `LLM_QUEUE`. Worker chưa được deploy; `wrangler.jsonc` đặt `workers_dev: false` và `preview_urls: false` và chưa khai báo route, nên hiện không hostname nào trỏ tới Worker.
+Binding queue trong code là `POLL_QUEUE` và `LLM_QUEUE`. `wrangler.jsonc` đặt `workers_dev: false` và `preview_urls: false` và chưa khai báo route. Tuy nhiên bản deploy qua dashboard ngày 2026-09-21 đang có URL `workers.dev`, trả 503 do thiếu Access; trạng thái live không khớp cấu hình repo, cần chốt hostname trước khi deploy tiếp.
 
 ## Placement (câu hỏi chưa giải quyết số 3 của plan)
 

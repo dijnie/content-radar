@@ -1,6 +1,6 @@
 # Báo cáo chạy thử 7 ngày
 
-Trạng thái: **chưa bắt đầu.** Tuần chạy thử chỉ bắt đầu được sau lần deploy đầu tiên, và lần deploy đó đang chờ custom domain, ứng dụng Access và các secret từ chủ tài khoản (xem [`spike-results.md`](./spike-results.md), mục "Việc còn lại của phase 1"). File này chưa chứa số đo nào; mọi ô bên dưới để trống cho tới khi có dữ liệu thật.
+Trạng thái: **chưa bắt đầu.** Tuần chạy thử cần một bản deploy có xác thực và hoạt động ổn định. Bản từ dashboard ngày 2026-09-21 hiện trả 503 do thiếu Access; kiểm tra cụ thể ở [báo cáo tiếp tục](../../reports/cook-260921-0729-quota-reset-continuation.md). Các ô kết quả production bên dưới giữ trống cho tới khi có số đo thật; các bằng chứng local được ghi rõ riêng.
 
 ## Cách ghi
 
@@ -41,9 +41,9 @@ Kiểm chứng bổ sung khi tiếp tục phiên cook ngày 2026-09-20: 408 test
 - Bộ nhớ đỉnh của job cluster trên Worker thật (local không áp trần 128 MB). Ở local, 3.500 claim chạy trong 5,9 giây.
 - Giờ Google thật sự đặt lại quota ngày.
 - Gamma 0,25 có phù hợp với dữ liệu thật không: chạy `npm run sweep -- --remote` ở ngày 3 và ngày 7.
-- Độ trễ của một lô bóc claim đủ 10 item so với timeout 60 giây của client (3 bài đã mất 20,7 giây; xem `spike-results.md`).
-- Fixture 429 và lỗi vị trí của Gemini vẫn là bản dựng; phản hồi thành công và 503 đã là bản ghi thật từ ngày 2026-09-21.
+- Độ trễ lô đủ 10 item trên Worker đã deploy. Ở local với Gemini thật đã đo 7–33 giây qua 7 lô trong lần chạy đầu, dưới timeout 60 giây; xem `spike-results.md`.
+- Lỗi vị trí của Gemini vẫn chỉ có fixture dựng; phản hồi thành công, 503 và 429 theo ngày đã có bản ghi thật từ ngày 2026-09-21. Bản 429 thật nằm ở `apps/worker/test/fixtures/gemini/rate-limited-429-recorded.json`.
 
 ## Nhật ký theo ngày
 
-Chưa có.
+Chưa có ngày chạy production. Kiểm chứng quota mở lại và tiếp tục backlog trên local ngày 2026-09-21 được ghi trong [báo cáo tiếp tục](../../reports/cook-260921-0729-quota-reset-continuation.md); không tính lượt này là một ngày của tuần chạy thử.

@@ -70,6 +70,23 @@ Mật độ không phân biệt được "thưa vì bị trần láng giềng" v
 
 Số đo của test tải sau khi sửa (local, `workerd`): 5,9 giây cho toàn bộ job trên 3.500 claim, 6.851 cạnh cosine (trần cho phép 105.000), 41 câu chuyện, cụm lớn nhất 300. Bộ nhớ đỉnh không đo được ở local vì `workerd` local không áp trần và không lộ số đo; phase 9 theo dõi trên Worker thật.
 
+## Gemini thật: lần gọi đầu tiên (2026-09-21, từ máy dev, không phải từ Workers)
+
+Đo bằng key free tier của chủ tài khoản, với đúng prompt và `responseJsonSchema` của bước bóc claim, trên ba bài X công khai lấy từ fixture timeline.
+
+| Câu hỏi | Kết quả |
+|---|---|
+| Key có thấy ba model của chuỗi không | Có: `gemini-3.8-flash`, `gemini-3.7-flash`, `gemini-3.6-flash`, ngữ cảnh 1.048.576 token, đầu ra 65.536 |
+| Gemini có chấp nhận schema bóc claim không (rủi ro plan đã nêu) | Có, HTTP 200 trên `gemini-3.6-flash`; đầu ra qua được schema zod của hệ thống, mỗi item một mục theo `itemId` |
+| `quote` có truy nguyên được không | Có: claim duy nhất trả về khớp nguyên văn với bài gốc qua `quoteFoundIn`; hai bài không liên quan được đánh `relevant = false` |
+| Lỗi vị trí | Không gặp từ máy dev. **Chưa nói lên điều gì về IP của Workers**; vẫn phải đo bằng probe sau khi deploy |
+| Độ ổn định của free tier | Trong khoảng 15 phút: 5 trên 8 lời gọi trả `503 UNAVAILABLE` ("high demand"), lần lượt trên cả ba model |
+| Độ trễ và token | 3 bài ngắn: 20,7 giây, 648 token vào, 199 token ra, **1.912 thinking token** |
+
+Hệ quả đã xử lý: một model trả 5xx giờ chỉ bị bỏ qua cho đúng lời gọi đó và chuỗi rơi xuống model kế tiếp; trước đó mọi 5xx làm cả lô phải retry và năm lần liên tiếp sẽ mở ngắt mạch cho mọi model. Prompt được bổ sung chỉ dẫn không liệt kê chính tác giả bài viết làm entity, vì phản hồi thật đã làm đúng điều đó và nó sẽ dính mọi claim của cùng một tác giả vào nhau.
+
+Còn mở: độ trễ của một lô đủ 10 item chưa đo được vì cả chuỗi đang 503 ở lần thử. Với 20 giây cho 3 bài, một lô 10 bài có thể chạm timeout 60 giây của client; nếu phép đo xác nhận, hướng xử lý là hạ mức thinking của model cho bước bóc claim hoặc giảm cỡ lô. Fixture `extract-recorded-gemini-3.6-flash.json` và `overloaded-503-recorded.json` là bản ghi thật; `rate-limited-429.json` và `location-blocked-400.json` vẫn là bản dựng theo hợp đồng REST vì không tạo ra được theo ý muốn.
+
 ## Nạp vector từ BLOB của D1
 
 Bằng chứng: `apps/worker/test/spike/d1-blob-memory.test.ts`, 3.500 vector Float32 1.024 chiều (4.096 byte mỗi vector, 13,7 MB đóng gói) trên D1 local.

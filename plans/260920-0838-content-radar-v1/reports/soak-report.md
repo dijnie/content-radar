@@ -41,7 +41,8 @@ Kiểm chứng bổ sung khi tiếp tục phiên cook ngày 2026-09-20: 408 test
 - Bộ nhớ đỉnh của job cluster trên Worker thật (local không áp trần 128 MB). Ở local, 3.500 claim chạy trong 5,9 giây.
 - Giờ Google thật sự đặt lại quota ngày.
 - Gamma 0,25 có phù hợp với dữ liệu thật không: chạy `npm run sweep -- --remote` ở ngày 3 và ngày 7.
-- Fixture phản hồi Gemini hiện được dựng theo hợp đồng REST đã tài liệu hoá; cần thay bằng bản ghi thật.
+- Độ trễ của một lô bóc claim đủ 10 item so với timeout 60 giây của client (3 bài đã mất 20,7 giây; xem `spike-results.md`).
+- Fixture 429 và lỗi vị trí của Gemini vẫn là bản dựng; phản hồi thành công và 503 đã là bản ghi thật từ ngày 2026-09-21.
 
 ## Nhật ký theo ngày
 

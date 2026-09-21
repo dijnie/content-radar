@@ -35,7 +35,8 @@ For every claim:
 - has_numbers: true when the claim rests on a number, measurement or benchmark result.
 - first_hand: true when the author measured, built or experienced it themselves.
 - entities: the specific products, models, organisations, people, papers or repositories the claim is about,
-  as written in the item, with a type. Do not list generic words such as "AI" or "model".`;
+  as written in the item, with a type. Do not list generic words such as "AI" or "model", and do not list the
+  item's own author: the author is who speaks, not what the claim is about.`;
 }
 
 export function extractUserPrompt(items: readonly PromptItem[]): string {

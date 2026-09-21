@@ -1,0 +1,15 @@
+{
+ "_fixture_note": "Recorded from the live Gemini API on 2026-09-21 with the system's real extraction prompt and schema, on three public posts from the recorded X timeline fixture. The model was overloaded at that moment.",
+ "recorded": {
+  "at": "2026-09-21T05:23:15.300Z",
+  "model": "gemini-3.8-flash",
+  "httpStatus": 503
+ },
+ "response": {
+  "error": {
+   "code": 503,
+   "message": "This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+   "status": "UNAVAILABLE"
+  }
+ }
+}

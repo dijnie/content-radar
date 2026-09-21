@@ -114,7 +114,7 @@ Ghi kết quả của một item trong một `db.batch`: `INSERT OR IGNORE` các
 - [x] Khớp `quote` có chuẩn hoá Unicode và khớp mờ
 - [x] Consumer lô với ack từng message
 - [x] Bước rút backlog và consumer dead-letter
-- [ ] Fixture và test, gồm ca phát lại lô
+- [x] Fixture và test, gồm ca phát lại lô
 
 ## Success Criteria
 

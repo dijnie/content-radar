@@ -34,7 +34,7 @@ export type BudgetedResult =
 /**
  * The pipeline's single door to Gemini (the manual diagnostic probe is the only thing outside it). Reserves budget, calls, then commits when the call
  * counted against Google's quota and releases when it did not. A 429 parks the
- * model and moves down the chain. The successful call is logged by the caller,
+ * model and moves down the chain; a 5xx skips the model for this call only. The successful call is logged by the caller,
  * which knows how many results it accepted; every failure is logged here.
  */
 export async function budgetedCall(env: LlmEnv, request: BudgetedRequest, deps: LlmDeps = {}, attempt = 0): Promise<BudgetedResult> {
@@ -42,10 +42,21 @@ export async function budgetedCall(env: LlmEnv, request: BudgetedRequest, deps: 
   if ((await circuitOpenUntil(env.DB, now)) !== null) return { status: "park" };
   const settings = await loadBudgetSettings(env.DB);
   const tried = new Set<string>();
+  // Set once a model answered with a server error. Such a model is skipped for this call only:
+  // an overloaded model says nothing about the others, and nothing about tomorrow.
+  let serverError: string | null = null;
+  const retryLater: BudgetedResult = { status: "retry", delaySeconds: Math.min(300, 30 * 2 ** attempt) };
 
   for (;;) {
     const chain = await reserveOnChain(env.DB, request.kind, now, settings, tried);
-    if (!chain.ok) return chain.reason === "rpm_exhausted" ? { status: "retry", delaySeconds: 60 } : { status: "park" };
+    if (!chain.ok) {
+      if (serverError !== null) {
+        // Every model left in the chain failed the same way: now it is a pipeline problem.
+        await recordFailure(env.DB, serverError, now);
+        return retryLater;
+      }
+      return chain.reason === "rpm_exhausted" ? { status: "retry", delaySeconds: 60 } : { status: "park" };
+    }
     const { model, reservation } = chain;
 
     const result = await generateJson({
@@ -68,7 +79,14 @@ export async function budgetedCall(env: LlmEnv, request: BudgetedRequest, deps: 
       continue;
     }
     if (result.kind === "invalid_request") return { status: "rejected" };
+    if (result.kind === "transient" && result.httpStatus !== null && result.httpStatus >= 500) {
+      // Seen live: one model answering 503 "high demand" while its neighbours were fine.
+      serverError = result.kind;
+      tried.add(model.model);
+      continue;
+    }
+    // No HTTP answer at all, or a location block: the next model would fail the same way.
     await recordFailure(env.DB, result.kind, now);
-    return { status: "retry", delaySeconds: Math.min(300, 30 * 2 ** attempt) };
+    return retryLater;
   }
 }

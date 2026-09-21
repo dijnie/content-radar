@@ -1,6 +1,7 @@
 import { getItemsByIds, type ItemRow } from "../db/items-repo";
 import { adjudicateEntities } from "./adjudicate/adjudicate-entities";
 import { extractBatch, type LlmDeps, type LlmEnv } from "./extract/extract-batch";
+import { extractionWindowStart, hasRecentQueuedItems } from "./extraction-priority";
 import type { LlmMessage } from "./messages";
 import { synthesizeStory } from "./synthesize/synthesize-story";
 
@@ -35,6 +36,8 @@ export async function consumeLlmBatch(batch: MessageBatch<LlmMessage>, env: LlmE
   if (extract.length === 0) return;
 
   const items = new Map((await getItemsByIds(env.DB, extract.map((message) => message.body.itemId))).map((item) => [item.id, item]));
+  const since = await extractionWindowStart(env.DB, deps.now ?? Math.floor(Date.now() / 1000));
+  const recentPending = await hasRecentQueuedItems(env.DB, since);
   const groups: Record<"extract" | "extract_backfill", { messages: ExtractMessage[]; items: ItemRow[] }> = {
     extract: { messages: [], items: [] },
     extract_backfill: { messages: [], items: [] },
@@ -47,6 +50,12 @@ export async function consumeLlmBatch(batch: MessageBatch<LlmMessage>, env: LlmE
       continue;
     }
     seen.add(item.id);
+    // Queue order can predate the priority policy, or a newer article may have
+    // arrived since dispatch. Defer old work in D1 without spending quota or retries.
+    if (recentPending && item.published_at < since) {
+      message.ack();
+      continue;
+    }
     // The item's own ingest mode decides the budget share, not a flag that could be forged or lost.
     const group = groups[item.ingest_mode === "backfill" ? "extract_backfill" : "extract"];
     group.messages.push(message);

@@ -2,7 +2,8 @@ import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vitest";
 import { getSource, getSourceHealth } from "../../src/db/sources-repo";
 import { dispatchPolls } from "../../src/ingest/dispatch-polls";
-import { consumePollBatch, pollSource, type IngestEnv } from "../../src/ingest/poll-consumer";
+import { consumePollBatch, ingestPollResult, pollSource, type IngestEnv } from "../../src/ingest/poll-consumer";
+import { mapTimeline } from "../../src/sources/x-fxtwitter";
 import type { LlmMessage, PollMessage } from "../../src/llm/messages";
 import timelineJson from "../fixtures/x/timeline-simonw.json?raw";
 import { seedSource } from "../db/seed";
@@ -44,6 +45,29 @@ async function setup() {
 
 const count = async (sql: string, ...binds: unknown[]) => (await env.DB.prepare(sql).bind(...binds).first<{ n: number }>())!.n;
 
+describe("live extraction priority", () => {
+  it.each([7, 14])("keeps historical articles but only immediately enqueues articles within %i days", async (windowDays) => {
+    const { llm, testEnv } = await setup();
+    const sourceId = await seedSource(env.DB, "x", `age-priority-${windowDays}`);
+    const source = { ...(await getSource(env.DB, sourceId))!, always_pass: 1 };
+    await env.DB.prepare("INSERT INTO settings (key, value_json) VALUES ('core_overrides', ?) ON CONFLICT(key) DO UPDATE SET value_json = excluded.value_json").bind(JSON.stringify({ windowDays })).run();
+    try {
+      const original = mapTimeline(JSON.parse(timelineJson)).items.find((item) => item.kind === "post")!;
+      const cutoff = NOW - windowDays * 86400;
+      const items = [cutoff - 1, cutoff, NOW].map((publishedAt, i) => ({ ...original, externalId: `priority-${windowDays}-${i}`, publishedAt }));
+      const result = await ingestPollResult(testEnv, source, { items, metrics: [] }, { languages: ["en", "vi"], minTextLength: 0, topics: [] }, NOW);
+      expect(result).toEqual({ itemsNew: 3, enqueued: 2 });
+      expect(await count("SELECT COUNT(*) AS n FROM items WHERE source_id = ? AND status = 'queued'", sourceId)).toBe(3);
+      const recent = await env.DB.prepare("SELECT id FROM items WHERE source_id = ? AND published_at >= ? ORDER BY id").bind(sourceId, cutoff).all<{ id: number }>();
+      expect(llm.sent).toEqual(recent.results.map(({ id }) => ({ kind: "extract", itemId: id })));
+      const old = await env.DB.prepare("SELECT raw_r2_key FROM items WHERE source_id = ? AND published_at < ?").bind(sourceId, cutoff).first<{ raw_r2_key: string }>();
+      expect(await env.RAW.get(old!.raw_r2_key)).not.toBeNull();
+    } finally {
+      await env.DB.prepare("DELETE FROM settings WHERE key = 'core_overrides'").run();
+    }
+  });
+});
+
 describe("pollSource", () => {
   let sourceId: number;
   beforeEach(async () => {
@@ -59,7 +83,8 @@ describe("pollSource", () => {
     const sentFirst = llm.sent.length;
     expect(items).toBe(20);
     expect(sentFirst).toBeGreaterThan(0);
-    expect(sentFirst).toBe(await count("SELECT COUNT(*) AS n FROM items WHERE source_id = ? AND status = 'queued'", sourceId));
+    expect(sentFirst).toBe(await count("SELECT COUNT(*) AS n FROM items WHERE source_id = ? AND status = 'queued' AND published_at >= ?", sourceId, NOW - 7 * 86400));
+    expect(await count("SELECT COUNT(*) AS n FROM items WHERE source_id = ? AND status = 'queued' AND published_at < ?", sourceId, NOW - 7 * 86400)).toBeGreaterThan(0);
     expect(await count("SELECT COUNT(*) AS n FROM items WHERE source_id = ? AND filter_reason = 'repost'", sourceId)).toBe(6);
 
     await pollSource(testEnv, sourceId, { now: NOW + 1800, fetcher });

@@ -72,7 +72,7 @@ Phản ứng theo kết quả:
 | Lỗi mạng, `location_blocked`, 5xx | `release`, ghi `llm_calls`, tính vào ngắt mạch, `retry` với độ trễ tăng dần |
 | `invalid_request` trên cả lô | `commit`, tách lô làm đôi để cô lập item gây lỗi; item đơn lẻ vẫn lỗi thì `status = failed` |
 
-Bước rút backlog (`llm/drain-backlog.ts`, gọi từ cron 30 phút): nếu ngắt mạch đang mở hoặc mọi model hết ngân sách thì thôi; ngược lại chọn item `queued` có lần gửi gần nhất cũ hơn 30 phút, item `live` trước `backfill`, cũ nhất trước, số lượng không vượt ngân sách còn lại nhân cỡ lô, tăng `enqueue_attempts` và gửi message. Item vượt 20 lần gửi nhận `status = failed`.
+Bước rút backlog (`llm/drain-backlog.ts`, gọi từ cron 30 phút): nếu ngắt mạch đang mở hoặc mọi model hết ngân sách thì thôi; ngược lại chọn item `queued` có lần gửi gần nhất cũ hơn 30 phút, số lượng không vượt ngân sách còn lại nhân cỡ lô. **Quyết định cập nhật 2026-09-21:** ưu tiên bài trong cửa sổ gom nhóm (mặc định 7 ngày), giữ bài cũ xử lý sau khi không còn bài trong cửa sổ đang chờ. Trong từng nhóm, item `live` trước `backfill`, cũ nhất trước. Consumer cũng hoãn message bài cũ có sẵn nếu còn bài mới; poll trực tiếp không đánh thức ngay bài cũ. `enqueue_attempts` chỉ tăng khi Gemini thực sự được gọi, không tăng do gửi message; item chạm 20 lần thử thực nhận `status = failed`. Xem [chẩn đoán production và kiểm chứng](../journals/2026-09-21-content-radar-empty-production-feed-diagnosis.md).
 
 Schema đầu ra của `extract` (phẳng và nhỏ để Gemini chấp nhận):
 

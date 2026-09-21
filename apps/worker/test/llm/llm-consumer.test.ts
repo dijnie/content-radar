@@ -81,6 +81,7 @@ beforeEach(async () => {
     env.DB.prepare("DELETE FROM llm_usage"),
     env.DB.prepare("DELETE FROM llm_calls"),
     env.DB.prepare("DELETE FROM settings WHERE key = 'llm_circuit'"),
+    env.DB.prepare("DELETE FROM settings WHERE key = 'core_overrides'"),
     env.DB.prepare("UPDATE llm_models SET exhausted_until = NULL, rpm = 1000, rpd = 1000, enabled = 1"),
     env.DB.prepare("UPDATE items SET status = 'irrelevant' WHERE status = 'queued'"),
     env.DB.prepare("INSERT INTO topics (slug, name, keywords_json) VALUES ('ai', 'AI & Agent', '[]') ON CONFLICT(slug) DO NOTHING"),
@@ -88,6 +89,50 @@ beforeEach(async () => {
 });
 
 describe("consumeLlmBatch", () => {
+  it("parks already queued historical messages while recent items wait, then processes them later", async () => {
+    const [old, recent] = await seedItems(2);
+    await env.DB.prepare("UPDATE items SET published_at = ? WHERE id = ?").bind(NOW - 30 * 86400, old).run();
+    const gemini = fakeGemini();
+    const delivery = fakeBatch([{ kind: "extract", itemId: old! }], 6);
+    await consumeLlmBatch(delivery.batch, testEnv, { now: NOW, fetcher: gemini.fetcher });
+    expect(delivery.outcomes()).toEqual(["ack"]);
+    expect(gemini.calls).toEqual([]);
+    expect(await statuses([old!])).toEqual({ queued: 1 });
+    expect(await env.DB.prepare("SELECT enqueue_attempts FROM items WHERE id = ?").bind(old).first()).toEqual({ enqueue_attempts: 0 });
+
+    await consumeLlmBatch(fakeBatch([{ kind: "extract", itemId: recent! }]).batch, testEnv, { now: NOW, fetcher: gemini.fetcher });
+    expect(await drainBacklog(testEnv, NOW)).toEqual({ sent: 1, failed: 0 });
+    await consumeLlmBatch(fakeBatch(sent).batch, testEnv, { now: NOW, fetcher: gemini.fetcher });
+    expect(gemini.calls.map((call) => call.itemIds)).toEqual([[recent], [old]]);
+    expect(await statuses([old!, recent!])).toEqual({ extracted: 2 });
+  });
+
+  it.each([7, 14])("uses the configured %i-day window when prioritizing a mixed batch", async (windowDays) => {
+    await env.DB.prepare("INSERT INTO settings (key, value_json) VALUES ('core_overrides', ?)").bind(JSON.stringify({ windowDays })).run();
+    const [old, recent] = await seedItems(2);
+    await env.DB.prepare("UPDATE items SET published_at = ? WHERE id = ?").bind(NOW - 10 * 86400, old).run();
+    const gemini = fakeGemini();
+    const delivery = fakeBatch([old!, recent!].map((itemId) => ({ kind: "extract", itemId })));
+    await consumeLlmBatch(delivery.batch, testEnv, { now: NOW, fetcher: gemini.fetcher });
+    expect(delivery.outcomes()).toEqual(["ack", "ack"]);
+    expect(gemini.calls.map((call) => call.itemIds)).toEqual([windowDays === 7 ? [recent] : [old, recent]]);
+  });
+
+  it("defers historical backfill behind recent work without changing its budget share", async () => {
+    const [old] = await seedItems(1, "backfill");
+    const [recent] = await seedItems(1);
+    await env.DB.prepare("UPDATE items SET published_at = ? WHERE id = ?").bind(NOW - 10 * 86400, old).run();
+    const gemini = fakeGemini();
+    await consumeLlmBatch(fakeBatch([{ kind: "extract", itemId: old! }]).batch, testEnv, { now: NOW, fetcher: gemini.fetcher });
+    expect(gemini.calls).toEqual([]);
+    await consumeLlmBatch(fakeBatch([{ kind: "extract", itemId: recent! }]).batch, testEnv, { now: NOW, fetcher: gemini.fetcher });
+    expect(await drainBacklog(testEnv, NOW)).toEqual({ sent: 1, failed: 0 });
+    expect(sent).toEqual([{ kind: "extract", itemId: old, backfill: true }]);
+    await consumeLlmBatch(fakeBatch(sent).batch, testEnv, { now: NOW, fetcher: gemini.fetcher });
+    expect(await statuses([old!])).toEqual({ extracted: 1 });
+    expect((await env.DB.prepare("SELECT kind, requests FROM llm_usage ORDER BY kind").all()).results).toEqual([{ kind: "extract", requests: 1 }, { kind: "extract_backfill", requests: 1 }]);
+  });
+
   it("extracts 25 items in exactly three calls and stores traceable claims", async () => {
     const ids = await seedItems(25);
     const gemini = fakeGemini();
@@ -346,6 +391,19 @@ describe("extraction attempts", () => {
 });
 
 describe("drainBacklog", () => {
+  it("reserves scarce extraction capacity for recent items even when old items arrived first", async () => {
+    const old = await seedItems(20);
+    const recent = await seedItems(10);
+    await env.DB.prepare(`UPDATE items SET published_at = ? WHERE id IN (${old.join(",")})`).bind(NOW - 30 * 86400).run();
+    await env.DB.prepare("UPDATE llm_models SET rpd = 0").run();
+    await env.DB.prepare("UPDATE llm_models SET rpd = 2 WHERE model = 'gemini-3.8-flash'").run();
+    expect(await drainBacklog(testEnv, NOW)).toEqual({ sent: 10, failed: 0 });
+    expect(sent.map((message) => (message as { itemId: number }).itemId)).toEqual(recent);
+    // Recent work is still queued but cannot be announced again yet. Old work must wait too.
+    expect(await drainBacklog(testEnv, NOW + 60)).toEqual({ sent: 0, failed: 0 });
+    expect(await statuses(old)).toEqual({ queued: 20 });
+  });
+
   it("serves live items before backfill, oldest first, and gives up after 20 attempts", async () => {
     await env.DB.prepare("UPDATE llm_models SET rpd = 0").run();
     await env.DB.prepare("UPDATE llm_models SET rpd = 10 WHERE model = 'gemini-3.8-flash'").run();

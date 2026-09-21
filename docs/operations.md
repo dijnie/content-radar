@@ -76,6 +76,12 @@ Cần có trước: một ứng dụng Access kiểu self-hosted cho hostname c�
 
 Khi quota không đủ, chỉnh theo thứ tự: siết bộ lọc rẻ (`filter_min_text_length`, từ khoá trong `config/topics.json`), tắt nguồn ưu tiên thấp, rồi mới cân nhắc tăng `max_batch_size` của consumer `radar-llm` nếu tỉ lệ `quote_not_found` còn dưới 15%. Khi áp lực quota và chất lượng kéo ngược nhau, chất lượng thắng.
 
+### Có giao diện nhưng chưa có thẻ
+
+Đối chiếu `items`, `claims.published_at` và `cluster_runs.node_count` trên **D1 remote**. Có bài đã crawl hoặc có claim không đồng nghĩa có dữ liệu trong cửa sổ 7 ngày để gom nhóm. Sự cố ngày 2026-09-21 có 16 claim nhưng tất cả từ bài cũ, nên job cluster hoàn tất với 0 node và 0 thẻ; ba model cũng trả 429. [Bằng chứng và bản sửa](../plans/journals/2026-09-21-content-radar-empty-production-feed-diagnosis.md).
+
+Theo quyết định cùng ngày, bài trong cửa sổ gom nhóm được ưu tiên trước; bài cũ giữ trong D1/R2 và xử lý sau khi không còn bài mới đang chờ. Quy tắc áp dụng cả lúc poll, rút backlog và nhận message đã nằm trong queue. Không cần sửa ngày xuất bản, reset quota hoặc nhập thẻ từ database local. Khi model đang nghỉ, kiểm tra `exhausted_until`; hết thời gian này vẫn cần một lượt bóc claim thành công và job cluster tạo cụm đủ điều kiện mới có thẻ.
+
 ## Cấu hình
 
 Sau khi cập nhật code, chạy migration trước khi khởi động Worker. Với local:

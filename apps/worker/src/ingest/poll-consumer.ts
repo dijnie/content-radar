@@ -4,6 +4,7 @@ import { getItemStates, insertItemLinks, insertMetricSnapshot, upsertItemStateme
 import { getAllSettings } from "../db/settings-repo";
 import { getSource, getSourceHealth, insertPollLog, recordPollError, recordPollOk, scheduleNextPoll, type SourceRow } from "../db/sources-repo";
 import type { Env } from "../env";
+import { extractionWindowStart } from "../llm/extraction-priority";
 import type { LlmMessage, PollMessage } from "../llm/messages";
 import { githubAdapter } from "../sources/github";
 import { hnAdapter } from "../sources/hacker-news";
@@ -81,6 +82,7 @@ export async function ingestPollResult(
   const authorIds = new Map<string, number>();
   const statements: D1PreparedStatement[] = [];
   const newQueued: string[] = [];
+  const since = await extractionWindowStart(env.DB, now);
   let itemsNew = 0;
 
   for (const item of result.items) {
@@ -114,7 +116,9 @@ export async function ingestPollResult(
     );
     if (!existing) {
       itemsNew++;
-      if (decision.pass) newQueued.push(item.externalId);
+      // Historical live items stay in D1 for a later drain. A source's first poll
+      // must not spend the AI budget on its archive before other sources arrive.
+      if (decision.pass && (ingestMode === "backfill" || item.publishedAt >= since)) newQueued.push(item.externalId);
     }
   }
   for (const metrics of result.metrics) statements.push(insertMetricSnapshot(env.DB, platform, { ...metrics, capturedAt: now }));

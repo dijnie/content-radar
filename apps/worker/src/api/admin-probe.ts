@@ -1,9 +1,10 @@
 import type { Env } from "../env";
+import { DEFAULT_DEEPSEEK_MODEL, generateJson } from "../llm/deepseek-client";
 
 // Fixed allow-list: the probe never accepts a caller-supplied URL, so the
 // Worker cannot be used as an open proxy.
 export const PROBE_TARGETS = [
-  "gemini",
+  "deepseek",
   "fxtwitter-timeline",
   "fxtwitter-status",
   "syndication",
@@ -24,8 +25,6 @@ export interface ProbeResult {
   ms: number;
   colo: string | null;
   length: number;
-  /** Only set for `gemini`: upstream refused because of the egress location. */
-  locationBlocked?: boolean;
   error?: string;
 }
 
@@ -41,25 +40,8 @@ function syndicationToken(id: string): string {
 function httpRequestFor(target: ProbeTarget, env: Env): Request | null {
   const headers: Record<string, string> = { "User-Agent": USER_AGENT };
   switch (target) {
-    case "gemini":
-      return new Request(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent",
-        {
-          method: "POST",
-          headers: { ...headers, "Content-Type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: 'Reply with {"ok": true}.' }] }],
-            generationConfig: {
-              responseMimeType: "application/json",
-              responseJsonSchema: {
-                type: "object",
-                properties: { ok: { type: "boolean" } },
-                required: ["ok"],
-              },
-            },
-          }),
-        },
-      );
+    case "deepseek":
+      return null;
     case "fxtwitter-timeline":
       return new Request("https://api.fxtwitter.com/2/profile/jack/statuses", { headers });
     case "fxtwitter-status":
@@ -100,6 +82,15 @@ export async function runProbe(target: ProbeTarget, env: Env, colo: string | nul
   const started = Date.now();
   const base = { target, colo };
   try {
+    if (target === "deepseek") {
+      const result = await generateJson({
+        apiKey: env.DEEPSEEK_API_KEY, model: DEFAULT_DEEPSEEK_MODEL,
+        system: 'Return JSON only. Example: {"ok":true}', user: 'Reply with {"ok":true}.',
+        schema: { type: "object", properties: { ok: { type: "boolean" } }, required: ["ok"] },
+        ...(env.DEEPSEEK_BASE_URL ? { baseUrl: env.DEEPSEEK_BASE_URL } : {}), timeoutMs: PROBE_TIMEOUT_MS,
+      });
+      return { ...base, status: result.httpStatus ?? 0, ms: result.latencyMs, length: result.ok ? JSON.stringify(result.data).length : 0, ...(!result.ok ? { error: result.message } : {}) };
+    }
     const request = httpRequestFor(target, env);
     if (request === null) {
       const output = await env.AI.run("@cf/baai/bge-m3", { text: ["content radar probe"] });
@@ -109,7 +100,6 @@ export async function runProbe(target: ProbeTarget, env: Env, colo: string | nul
     const response = await fetch(request, { signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) });
     const body = await response.text();
     const result: ProbeResult = { ...base, status: response.status, ms: Date.now() - started, length: body.length };
-    if (target === "gemini") result.locationBlocked = body.includes("User location is not supported");
     return result;
   } catch (err) {
     const error = err instanceof Error ? err.name : "unknown_error";

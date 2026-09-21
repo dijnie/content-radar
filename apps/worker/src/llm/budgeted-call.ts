@@ -1,11 +1,11 @@
 import { insertLlmCall, type LlmCallInput, type LlmKind } from "../db/llm-repo";
 import type { Env } from "../env";
-import { commit, markExhausted, release, restOverloaded } from "./budget-ledger";
-import { circuitOpenUntil, recordFailure, recordSuccess } from "./circuit-breaker";
-import { generateJson } from "./gemini-client";
+import { commit, markRateLimited, release, restOverloaded } from "./budget-ledger";
+import { circuitOpenUntil, pauseCircuit, recordFailure, recordSuccess } from "./circuit-breaker";
+import { generateJson } from "./deepseek-client";
 import { loadBudgetSettings, reserveOnChain } from "./model-chain";
 
-export type LlmEnv = Pick<Env, "DB" | "RAW" | "LLM_QUEUE" | "GEMINI_API_KEY" | "GEMINI_BASE_URL">;
+export type LlmEnv = Pick<Env, "DB" | "RAW" | "LLM_QUEUE" | "DEEPSEEK_API_KEY" | "DEEPSEEK_BASE_URL">;
 
 export interface LlmDeps {
   now?: number;
@@ -28,7 +28,7 @@ export type BudgetedResult =
   | { status: "retry"; delaySeconds: number }
   /** Leave work in D1 for the next scheduler run: no budget, open circuit or prolonged unavailability. */
   | { status: "park" }
-  /** Gemini rejected the request itself; retrying it unchanged is pointless. */
+  /** DeepSeek rejected the request itself; retrying it unchanged is pointless. */
   | { status: "rejected" };
 
 // Both queue configs allow five retries. Stop availability waits before that
@@ -36,10 +36,9 @@ export type BudgetedResult =
 const MAX_AVAILABILITY_RETRIES = 4;
 
 /**
- * The pipeline's single door to Gemini (the manual diagnostic probe is the only thing outside it). Reserves budget, calls, then commits when the call
- * counted against Google's quota and releases when it did not. A 429 parks the
- * model and moves down the chain; a 5xx is charged too, and rests the model for a few minutes. The successful call is logged by the caller,
- * which knows how many results it accepted; every failure is logged here.
+ * Reserves an application request slot before each provider attempt. HTTP responses
+ * count toward this local cap; network failures before headers release the slot.
+ * Actual paid usage is recorded separately in token counts returned by DeepSeek.
  */
 export async function budgetedCall(env: LlmEnv, request: BudgetedRequest, deps: LlmDeps = {}, attempt = 0): Promise<BudgetedResult> {
   const now = deps.now ?? Math.floor(Date.now() / 1000);
@@ -66,8 +65,8 @@ export async function budgetedCall(env: LlmEnv, request: BudgetedRequest, deps: 
     const { model, reservation } = chain;
 
     const result = await generateJson({
-      apiKey: env.GEMINI_API_KEY, model: model.model, system: request.system, user: request.user, schema: request.schema,
-      ...(env.GEMINI_BASE_URL ? { baseUrl: env.GEMINI_BASE_URL } : {}), ...(deps.fetcher ? { fetcher: deps.fetcher } : {}),
+      apiKey: env.DEEPSEEK_API_KEY, model: model.model, system: request.system, user: request.user, schema: request.schema,
+      ...(env.DEEPSEEK_BASE_URL ? { baseUrl: env.DEEPSEEK_BASE_URL } : {}), ...(deps.fetcher ? { fetcher: deps.fetcher } : {}),
     });
     const log: LlmCallInput = { at: now, model: model.model, kind: request.kind, promptVersion: request.promptVersion, status: "ok", httpStatus: result.httpStatus, latencyMs: result.latencyMs, itemIds: request.subjectIds };
 
@@ -77,23 +76,27 @@ export async function budgetedCall(env: LlmEnv, request: BudgetedRequest, deps: 
       return { status: "ok", data: result.data, model: model.model, log: { ...log, tokensIn: result.tokensIn, tokensOut: result.tokensOut } };
     }
 
-    await (result.reached ? commit(env.DB, reservation) : release(env.DB, reservation));
-    await insertLlmCall(env.DB, { ...log, status: result.kind, error: result.message });
+    await (result.reached ? commit(env.DB, reservation, result.tokensIn, result.tokensOut) : release(env.DB, reservation));
+    await insertLlmCall(env.DB, { ...log, status: result.kind, error: result.message, tokensIn: result.tokensIn, tokensOut: result.tokensOut });
+    if (result.kind === "configuration_error" || result.kind === "insufficient_balance") {
+      await pauseCircuit(env.DB, result.kind, now);
+      return { status: "park" };
+    }
     if (result.kind === "rate_limited") {
-      await markExhausted(env.DB, model, now, result.quota);
+      await markRateLimited(env.DB, model, now, result.retryDelaySeconds);
       tried.add(model.model);
       continue;
     }
     if (result.kind === "invalid_request") return { status: "rejected" };
     if (result.kind === "transient" && result.httpStatus !== null && result.httpStatus >= 500) {
-      // Seen live: one model answering 503 "high demand" while its neighbours were fine.
+      // Briefly rest the unavailable model before the next queue delivery.
       serverError = result.kind;
       await restOverloaded(env.DB, model, now);
       tried.add(model.model);
       continue;
     }
-    // No HTTP answer at all, or a location block: the next model would fail the same way.
+    // Network failures or invalid output wait without bisecting otherwise valid items.
     await recordFailure(env.DB, result.kind, now);
-    return retryLater;
+    return parkForAvailability ? { status: "park" } : retryLater;
   }
 }

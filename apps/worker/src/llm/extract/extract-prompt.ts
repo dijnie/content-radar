@@ -1,4 +1,4 @@
-export const EXTRACT_PROMPT_VERSION = 1;
+export const EXTRACT_PROMPT_VERSION = 2;
 
 export interface PromptItem {
   itemId: number;
@@ -36,7 +36,10 @@ For every claim:
 - first_hand: true when the author measured, built or experienced it themselves.
 - entities: the specific products, models, organisations, people, papers or repositories the claim is about,
   as written in the item, with a type. Do not list generic words such as "AI" or "model", and do not list the
-  item's own author: the author is who speaks, not what the claim is about.`;
+  item's own author: the author is who speaks, not what the claim is about.
+
+Return JSON only. Example shape (use the supplied IDs, never copy these example IDs):
+{"items":[{"itemId":1,"relevant":false,"topics":[],"claims":[]}]}`;
 }
 
 export function extractUserPrompt(items: readonly PromptItem[]): string {

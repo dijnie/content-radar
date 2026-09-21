@@ -28,7 +28,7 @@ interface Prepared {
   text: string;
 }
 
-/** The text handed to Gemini. The very same string is what quotes are verified against. */
+/** The text handed to DeepSeek. The very same string is what quotes are verified against. */
 async function promptText(env: LlmEnv, item: ItemRow): Promise<string> {
   let text = item.text_excerpt;
   if (text.length >= TEXT_EXCERPT_MAX && item.raw_r2_key) {
@@ -76,7 +76,7 @@ async function validateItem(prepared: Prepared, rawClaims: unknown[], topics: st
 }
 
 /**
- * Extracts claims for a batch of queued items through the single Gemini door.
+ * Extracts claims for a batch of queued items through the single DeepSeek door.
  * Budget is reserved before every call and committed or released afterwards;
  * each item's result is written in its own D1 batch so one bad item cannot
  * take the others down.
@@ -112,7 +112,7 @@ export async function extractBatch(env: LlmEnv, items: ItemRow[], kind: Extract<
     { ...deps, now },
     attempt,
   );
-  // Only a call that reached Gemini counts against the item; a parked or postponed batch costs it nothing.
+  // Only a call that reached DeepSeek counts against the item; a parked or postponed batch costs it nothing.
   if (call.status === "ok" || call.status === "rejected") await chunkedBatch(env.DB, itemIds.map((id) => countExtractionAttempt(env.DB, id)));
   if (call.status === "rejected") return splitAndRetry(env, prepared, kind, deps, attempt);
   if (call.status !== "ok") return call;
@@ -154,7 +154,7 @@ export async function extractBatch(env: LlmEnv, items: ItemRow[], kind: Extract<
   return { status: "done", itemIds: done };
 }
 
-/** A request Gemini rejects is bisected to isolate the offending item; a single item that still fails is marked `failed`. */
+/** A request DeepSeek rejects is bisected to isolate the offending item; a single item that still fails is marked `failed`. */
 async function splitAndRetry(env: LlmEnv, prepared: Prepared[], kind: Extract<LlmKind, "extract" | "extract_backfill">, deps: LlmDeps, attempt: number): Promise<BatchOutcome> {
   if (prepared.length === 1) {
     const { item } = prepared[0]!;

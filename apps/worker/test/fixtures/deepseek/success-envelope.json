@@ -1,0 +1,5 @@
+{
+  "_fixture_note": "Synthetic response based on the official DeepSeek Chat Completions contract; not a live API recording.",
+  "choices": [{ "index": 0, "message": { "role": "assistant", "content": "__TEXT__" }, "finish_reason": "stop" }],
+  "usage": { "prompt_tokens": 1840, "completion_tokens": 412, "total_tokens": 2252 }
+}

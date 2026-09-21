@@ -91,7 +91,7 @@ export async function resolveEntitiesStep(ctx: JobContext): Promise<{ resolved: 
     }
   }
 
-  // One message is one Gemini call, drawn from the share adjudication and synthesis split.
+  // One message is one DeepSeek call, drawn from the share adjudication and synthesis split.
   // What does not fit today stays `pending` and is picked up by a later run.
   const settings = await loadBudgetSettings(db);
   let calls = 0;

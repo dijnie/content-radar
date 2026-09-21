@@ -1,3 +1,4 @@
+import { seedTestModels } from "./seed-models";
 import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vitest";
 import { upsertItem } from "../../src/db/items-repo";
@@ -6,9 +7,8 @@ import { drainBacklog } from "../../src/llm/drain-backlog";
 import type { LlmEnv } from "../../src/llm/extract/extract-batch";
 import { consumeLlmBatch } from "../../src/llm/llm-consumer";
 import type { LlmMessage } from "../../src/llm/messages";
-import locationBlocked from "../fixtures/gemini/location-blocked-400.json";
-import rateLimited from "../fixtures/gemini/rate-limited-429.json";
-import successEnvelope from "../fixtures/gemini/success-envelope.json";
+const rateLimited = { error: { type: "rate_limit_error", message: "Too many concurrent requests" } };
+import successEnvelope from "../fixtures/deepseek/success-envelope.json";
 import { itemInput, seedSource } from "../db/seed";
 
 const NOW = Date.UTC(2026, 8, 20, 18, 0, 0) / 1000;
@@ -17,12 +17,12 @@ let sequence = 0;
 type Reply = { status: number; body: unknown };
 const textOf = (n: number) => `Post ${n}: our team measured that latency dropped ${n}% on the internal benchmark after the rewrite of the serving stack.`;
 
-/** Stands in for Gemini: answers every <item> in the prompt with one claim quoting that item verbatim. */
-function fakeGemini(script: (call: number, model: string, itemIds: number[]) => Reply | null = () => null) {
+/** Stands in for DeepSeek: answers every <item> in the prompt with one claim quoting that item verbatim. */
+function fakeDeepSeek(script: (call: number, model: string, itemIds: number[]) => Reply | null = () => null) {
   const calls: { model: string; itemIds: number[] }[] = [];
   const fetcher = (async (input: RequestInfo | URL, init?: RequestInit) => {
-    const model = /models\/([^:]+):/.exec(String(input))![1]!;
-    const prompt: string = JSON.parse(String(init!.body)).contents[0].parts[0].text;
+    const model = JSON.parse(String(init!.body)).model as string;
+    const prompt: string = JSON.parse(String(init!.body)).messages[1].content;
     const items = [...prompt.matchAll(/<item itemId="(\d+)"[^>]*>\n([\s\S]*?)\n<\/item>/g)].map((match) => ({ id: Number(match[1]), text: match[2]! }));
     calls.push({ model, itemIds: items.map((item) => item.id) });
     const scripted = script(calls.length, model, items.map((item) => item.id));
@@ -38,7 +38,7 @@ function fakeGemini(script: (call: number, model: string, itemIds: number[]) => 
       })),
     };
     const envelope = structuredClone(successEnvelope) as typeof successEnvelope;
-    envelope.candidates[0]!.content.parts[0]!.text = JSON.stringify(payload);
+    envelope.choices[0]!.message.content = JSON.stringify(payload);
     return Response.json(envelope);
   }) as typeof fetch;
   return { fetcher, calls };
@@ -74,7 +74,7 @@ let testEnv: LlmEnv;
 beforeEach(async () => {
   sent = [];
   testEnv = {
-    DB: env.DB, RAW: env.RAW, GEMINI_API_KEY: "test-key",
+    DB: env.DB, RAW: env.RAW, DEEPSEEK_API_KEY: "test-key",
     LLM_QUEUE: { sendBatch: async (messages: Iterable<{ body: LlmMessage }>) => void sent.push(...[...messages].map((message) => message.body)) } as unknown as Queue<LlmMessage>,
   };
   await env.DB.batch([
@@ -86,24 +86,25 @@ beforeEach(async () => {
     env.DB.prepare("UPDATE items SET status = 'irrelevant' WHERE status = 'queued'"),
     env.DB.prepare("INSERT INTO topics (slug, name, keywords_json) VALUES ('ai', 'AI & Agent', '[]') ON CONFLICT(slug) DO NOTHING"),
   ]);
+  await seedTestModels(env.DB);
 });
 
 describe("consumeLlmBatch", () => {
   it("parks already queued historical messages while recent items wait, then processes them later", async () => {
     const [old, recent] = await seedItems(2);
     await env.DB.prepare("UPDATE items SET published_at = ? WHERE id = ?").bind(NOW - 30 * 86400, old).run();
-    const gemini = fakeGemini();
+    const deepseek = fakeDeepSeek();
     const delivery = fakeBatch([{ kind: "extract", itemId: old! }], 6);
-    await consumeLlmBatch(delivery.batch, testEnv, { now: NOW, fetcher: gemini.fetcher });
+    await consumeLlmBatch(delivery.batch, testEnv, { now: NOW, fetcher: deepseek.fetcher });
     expect(delivery.outcomes()).toEqual(["ack"]);
-    expect(gemini.calls).toEqual([]);
+    expect(deepseek.calls).toEqual([]);
     expect(await statuses([old!])).toEqual({ queued: 1 });
     expect(await env.DB.prepare("SELECT enqueue_attempts FROM items WHERE id = ?").bind(old).first()).toEqual({ enqueue_attempts: 0 });
 
-    await consumeLlmBatch(fakeBatch([{ kind: "extract", itemId: recent! }]).batch, testEnv, { now: NOW, fetcher: gemini.fetcher });
+    await consumeLlmBatch(fakeBatch([{ kind: "extract", itemId: recent! }]).batch, testEnv, { now: NOW, fetcher: deepseek.fetcher });
     expect(await drainBacklog(testEnv, NOW)).toEqual({ sent: 1, failed: 0 });
-    await consumeLlmBatch(fakeBatch(sent).batch, testEnv, { now: NOW, fetcher: gemini.fetcher });
-    expect(gemini.calls.map((call) => call.itemIds)).toEqual([[recent], [old]]);
+    await consumeLlmBatch(fakeBatch(sent).batch, testEnv, { now: NOW, fetcher: deepseek.fetcher });
+    expect(deepseek.calls.map((call) => call.itemIds)).toEqual([[recent], [old]]);
     expect(await statuses([old!, recent!])).toEqual({ extracted: 2 });
   });
 
@@ -111,42 +112,42 @@ describe("consumeLlmBatch", () => {
     await env.DB.prepare("INSERT INTO settings (key, value_json) VALUES ('core_overrides', ?)").bind(JSON.stringify({ windowDays })).run();
     const [old, recent] = await seedItems(2);
     await env.DB.prepare("UPDATE items SET published_at = ? WHERE id = ?").bind(NOW - 10 * 86400, old).run();
-    const gemini = fakeGemini();
+    const deepseek = fakeDeepSeek();
     const delivery = fakeBatch([old!, recent!].map((itemId) => ({ kind: "extract", itemId })));
-    await consumeLlmBatch(delivery.batch, testEnv, { now: NOW, fetcher: gemini.fetcher });
+    await consumeLlmBatch(delivery.batch, testEnv, { now: NOW, fetcher: deepseek.fetcher });
     expect(delivery.outcomes()).toEqual(["ack", "ack"]);
-    expect(gemini.calls.map((call) => call.itemIds)).toEqual([windowDays === 7 ? [recent] : [old, recent]]);
+    expect(deepseek.calls.map((call) => call.itemIds)).toEqual([windowDays === 7 ? [recent] : [old, recent]]);
   });
 
   it("defers historical backfill behind recent work without changing its budget share", async () => {
     const [old] = await seedItems(1, "backfill");
     const [recent] = await seedItems(1);
     await env.DB.prepare("UPDATE items SET published_at = ? WHERE id = ?").bind(NOW - 10 * 86400, old).run();
-    const gemini = fakeGemini();
-    await consumeLlmBatch(fakeBatch([{ kind: "extract", itemId: old! }]).batch, testEnv, { now: NOW, fetcher: gemini.fetcher });
-    expect(gemini.calls).toEqual([]);
-    await consumeLlmBatch(fakeBatch([{ kind: "extract", itemId: recent! }]).batch, testEnv, { now: NOW, fetcher: gemini.fetcher });
+    const deepseek = fakeDeepSeek();
+    await consumeLlmBatch(fakeBatch([{ kind: "extract", itemId: old! }]).batch, testEnv, { now: NOW, fetcher: deepseek.fetcher });
+    expect(deepseek.calls).toEqual([]);
+    await consumeLlmBatch(fakeBatch([{ kind: "extract", itemId: recent! }]).batch, testEnv, { now: NOW, fetcher: deepseek.fetcher });
     expect(await drainBacklog(testEnv, NOW)).toEqual({ sent: 1, failed: 0 });
     expect(sent).toEqual([{ kind: "extract", itemId: old, backfill: true }]);
-    await consumeLlmBatch(fakeBatch(sent).batch, testEnv, { now: NOW, fetcher: gemini.fetcher });
+    await consumeLlmBatch(fakeBatch(sent).batch, testEnv, { now: NOW, fetcher: deepseek.fetcher });
     expect(await statuses([old!])).toEqual({ extracted: 1 });
     expect((await env.DB.prepare("SELECT kind, requests FROM llm_usage ORDER BY kind").all()).results).toEqual([{ kind: "extract", requests: 1 }, { kind: "extract_backfill", requests: 1 }]);
   });
 
   it("extracts 25 items in exactly three calls and stores traceable claims", async () => {
     const ids = await seedItems(25);
-    const gemini = fakeGemini();
+    const deepseek = fakeDeepSeek();
     for (const chunk of [ids.slice(0, 10), ids.slice(10, 20), ids.slice(20)]) {
       const { batch, outcomes } = fakeBatch(chunk.map((itemId) => ({ kind: "extract", itemId })));
-      await consumeLlmBatch(batch, testEnv, { now: NOW, fetcher: gemini.fetcher });
+      await consumeLlmBatch(batch, testEnv, { now: NOW, fetcher: deepseek.fetcher });
       expect(outcomes().every((outcome) => outcome === "ack")).toBe(true);
     }
-    expect(gemini.calls.map((call) => call.itemIds.length)).toEqual([10, 10, 5]);
+    expect(deepseek.calls.map((call) => call.itemIds.length)).toEqual([10, 10, 5]);
     expect(await statuses(ids)).toEqual({ extracted: 25 });
 
     const claim = await env.DB.prepare("SELECT c.*, i.text_excerpt FROM claims c JOIN items i ON i.id = c.item_id WHERE c.item_id = ?").bind(ids[6]).first<Record<string, unknown>>();
     expect(String(claim!.text_excerpt)).toContain(String(claim!.quote));
-    expect(claim).toMatchObject({ kind: "measurement", has_numbers: 1, first_hand: 1, model: "gemini-3.8-flash", prompt_version: 1, topics_json: '["ai"]' });
+    expect(claim).toMatchObject({ kind: "measurement", has_numbers: 1, first_hand: 1, model: "deepseek-flash", prompt_version: 2, topics_json: '["ai"]' });
     expect(claim!.llm_call_id).toEqual(expect.any(Number));
     // Two surface forms of one entity collapse to a single normalized mention.
     const mentions = await env.DB.prepare("SELECT normalized FROM entity_mentions WHERE claim_id = ?").bind(claim!.id).all();
@@ -156,30 +157,30 @@ describe("consumeLlmBatch", () => {
 
   it("replaying a half-processed batch creates no duplicate claims and spends no call on finished items", async () => {
     const ids = await seedItems(6);
-    const gemini = fakeGemini();
-    await consumeLlmBatch(fakeBatch(ids.slice(0, 3).map((itemId) => ({ kind: "extract", itemId }))).batch, testEnv, { now: NOW, fetcher: gemini.fetcher });
+    const deepseek = fakeDeepSeek();
+    await consumeLlmBatch(fakeBatch(ids.slice(0, 3).map((itemId) => ({ kind: "extract", itemId }))).batch, testEnv, { now: NOW, fetcher: deepseek.fetcher });
     // The consumer "died" before acknowledging: the queue redelivers the whole batch of six.
     const replay = fakeBatch(ids.map((itemId) => ({ kind: "extract", itemId })));
-    await consumeLlmBatch(replay.batch, testEnv, { now: NOW, fetcher: gemini.fetcher });
+    await consumeLlmBatch(replay.batch, testEnv, { now: NOW, fetcher: deepseek.fetcher });
 
     expect(replay.outcomes().every((outcome) => outcome === "ack")).toBe(true);
-    expect(gemini.calls.map((call) => call.itemIds)).toEqual([ids.slice(0, 3), ids.slice(3)]);
+    expect(deepseek.calls.map((call) => call.itemIds)).toEqual([ids.slice(0, 3), ids.slice(3)]);
     expect(await claimCount(ids)).toBe(6);
 
     await env.DB.prepare(`UPDATE items SET status = 'queued' WHERE id IN (${ids.join(",")})`).run();
-    await consumeLlmBatch(fakeBatch(ids.map((itemId) => ({ kind: "extract", itemId }))).batch, testEnv, { now: NOW, fetcher: gemini.fetcher });
+    await consumeLlmBatch(fakeBatch(ids.map((itemId) => ({ kind: "extract", itemId }))).batch, testEnv, { now: NOW, fetcher: deepseek.fetcher });
     expect(await claimCount(ids)).toBe(6);
   });
 
   it("when every model is out of daily budget: acks, leaves items queued, calls nothing, and the drain resends them later", async () => {
     const ids = await seedItems(4);
     await env.DB.prepare("UPDATE llm_models SET rpd = 0").run();
-    const gemini = fakeGemini();
+    const deepseek = fakeDeepSeek();
     const { batch, outcomes } = fakeBatch(ids.map((itemId) => ({ kind: "extract", itemId })));
-    await consumeLlmBatch(batch, testEnv, { now: NOW, fetcher: gemini.fetcher });
+    await consumeLlmBatch(batch, testEnv, { now: NOW, fetcher: deepseek.fetcher });
 
     expect(outcomes()).toEqual(["ack", "ack", "ack", "ack"]);
-    expect(gemini.calls).toEqual([]);
+    expect(deepseek.calls).toEqual([]);
     expect(await statuses(ids)).toEqual({ queued: 4 });
     expect(await drainBacklog(testEnv, NOW)).toEqual({ sent: 0, failed: 0 });
 
@@ -193,126 +194,126 @@ describe("consumeLlmBatch", () => {
   it("waits seconds, not hours, when only the per-minute limit is hit", async () => {
     const ids = await seedItems(2);
     await env.DB.prepare("UPDATE llm_models SET rpm = 0").run();
-    const gemini = fakeGemini();
+    const deepseek = fakeDeepSeek();
     const { batch, outcomes } = fakeBatch(ids.map((itemId) => ({ kind: "extract", itemId })));
-    await consumeLlmBatch(batch, testEnv, { now: NOW, fetcher: gemini.fetcher });
+    await consumeLlmBatch(batch, testEnv, { now: NOW, fetcher: deepseek.fetcher });
     expect(outcomes()).toEqual(["retry:60", "retry:60"]);
-    expect(gemini.calls).toEqual([]);
+    expect(deepseek.calls).toEqual([]);
   });
 
   it("returns prolonged quota waits to D1 before the queue dead-letters untouched items", async () => {
     const ids = await seedItems(2);
     await env.DB.prepare("UPDATE llm_models SET rpm = 0").run();
-    const gemini = fakeGemini();
+    const deepseek = fakeDeepSeek();
     const bodies: LlmMessage[] = ids.map((itemId) => ({ kind: "extract", itemId }));
 
     // Both Wrangler configs allow five retries, hence at most six deliveries.
     for (let attempts = 1; attempts <= 6; attempts++) {
       const delivery = fakeBatch(bodies, attempts);
-      await consumeLlmBatch(delivery.batch, testEnv, { now: NOW + (attempts - 1) * 60, fetcher: gemini.fetcher });
+      await consumeLlmBatch(delivery.batch, testEnv, { now: NOW + (attempts - 1) * 60, fetcher: deepseek.fetcher });
       if (delivery.outcomes().every((outcome) => outcome === "ack")) break;
       if (attempts === 6) await consumeDeadLetters(fakeBatch(bodies).batch, testEnv, NOW + 360);
     }
 
-    expect(gemini.calls).toEqual([]);
+    expect(deepseek.calls).toEqual([]);
     expect(await statuses(ids)).toEqual({ queued: 2 });
     expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM llm_calls WHERE status = 'dead_letter'").first()).toEqual({ n: 0 });
 
     // Recovery uses the normal ledger drain; no operator has to repair item status.
     await env.DB.prepare("UPDATE llm_models SET rpm = 1000").run();
     expect(await drainBacklog(testEnv, NOW + 1800)).toEqual({ sent: 2, failed: 0 });
-    await consumeLlmBatch(fakeBatch(sent).batch, testEnv, { now: NOW + 1800, fetcher: gemini.fetcher });
+    await consumeLlmBatch(fakeBatch(sent).batch, testEnv, { now: NOW + 1800, fetcher: deepseek.fetcher });
     expect(await statuses(ids)).toEqual({ extracted: 2 });
     expect(await claimCount(ids)).toBe(2);
   });
 
   it("parks known model overload even on the last delivery instead of failing the items", async () => {
     const ids = await seedItems(2);
-    const gemini = fakeGemini(() => ({ status: 503, body: { error: { code: 503, message: "overloaded", status: "UNAVAILABLE" } } }));
+    const deepseek = fakeDeepSeek(() => ({ status: 503, body: { error: { code: 503, message: "overloaded", status: "UNAVAILABLE" } } }));
     const delivery = fakeBatch(ids.map((itemId) => ({ kind: "extract", itemId })), 6);
-    await consumeLlmBatch(delivery.batch, testEnv, { now: NOW, fetcher: gemini.fetcher });
+    await consumeLlmBatch(delivery.batch, testEnv, { now: NOW, fetcher: deepseek.fetcher });
 
     expect(delivery.outcomes()).toEqual(["ack", "ack"]);
     expect(await statuses(ids)).toEqual({ queued: 2 });
-    expect(gemini.calls).toHaveLength(3);
+    expect(deepseek.calls).toHaveLength(3);
     expect(await env.DB.prepare("SELECT SUM(requests) AS n FROM llm_usage").first()).toEqual({ n: 3 });
   });
 
   it("moves to the second model when the first answers 429, and parks the first", async () => {
     const ids = await seedItems(2);
-    const gemini = fakeGemini((call) => (call === 1 ? { status: 429, body: rateLimited } : null));
-    await consumeLlmBatch(fakeBatch(ids.map((itemId) => ({ kind: "extract", itemId }))).batch, testEnv, { now: NOW, fetcher: gemini.fetcher });
+    const deepseek = fakeDeepSeek((call) => (call === 1 ? { status: 429, body: rateLimited } : null));
+    await consumeLlmBatch(fakeBatch(ids.map((itemId) => ({ kind: "extract", itemId }))).batch, testEnv, { now: NOW, fetcher: deepseek.fetcher });
 
-    expect(gemini.calls.map((call) => call.model)).toEqual(["gemini-3.8-flash", "gemini-3.7-flash"]);
+    expect(deepseek.calls.map((call) => call.model)).toEqual(["deepseek-flash", "deepseek-test-secondary"]);
     expect(await statuses(ids)).toEqual({ extracted: 2 });
-    const parked = await env.DB.prepare("SELECT exhausted_until FROM llm_models WHERE model = 'gemini-3.8-flash'").first<{ exhausted_until: number }>();
+    const parked = await env.DB.prepare("SELECT exhausted_until FROM llm_models WHERE model = 'deepseek-flash'").first<{ exhausted_until: number }>();
     expect(parked?.exhausted_until).toBeGreaterThan(NOW);
-    // The 429 counted against Google's quota, so its reservation stands.
+    // The 429 counted against the application request cap, so its reservation stands.
     const usage = await env.DB.prepare("SELECT model, requests FROM llm_usage ORDER BY model").all();
-    expect(usage.results).toEqual([{ model: "gemini-3.7-flash", requests: 1 }, { model: "gemini-3.8-flash", requests: 1 }]);
+    expect(usage.results).toEqual([{ model: "deepseek-flash", requests: 1 }, { model: "deepseek-test-secondary", requests: 1 }]);
   });
 
   it("an overloaded model costs quota, rests for a few minutes, and the chain moves on", async () => {
     const ids = await seedItems(2);
     const overloaded = { error: { code: 503, message: "This model is currently experiencing high demand.", status: "UNAVAILABLE" } };
-    const gemini = fakeGemini((_call, model) => (model === "gemini-3.8-flash" ? { status: 503, body: overloaded } : null));
+    const deepseek = fakeDeepSeek((_call, model) => (model === "deepseek-flash" ? { status: 503, body: overloaded } : null));
     for (let round = 0; round < 6; round++) {
       const more = round === 0 ? ids : await seedItems(1);
       const { batch, outcomes } = fakeBatch(more.map((itemId) => ({ kind: "extract", itemId })));
-      await consumeLlmBatch(batch, testEnv, { now: NOW + round, fetcher: gemini.fetcher });
+      await consumeLlmBatch(batch, testEnv, { now: NOW + round, fetcher: deepseek.fetcher });
       expect(outcomes().every((outcome) => outcome === "ack")).toBe(true);
     }
     expect(await statuses(ids)).toEqual({ extracted: 2 });
-    // Measured on the free tier: a 503 still counts against the 20 daily requests. So the overloaded model is
-    // asked once, charged for it, and left alone while it rests; the other five batches go straight to the next model.
-    expect(gemini.calls.map((call) => call.model)).toEqual(["gemini-3.8-flash", ...Array(6).fill("gemini-3.7-flash")]);
-    expect((await env.DB.prepare("SELECT model, SUM(requests) AS n FROM llm_usage GROUP BY model ORDER BY model").all()).results).toEqual([{ model: "gemini-3.7-flash", n: 6 }, { model: "gemini-3.8-flash", n: 1 }]);
-    expect(await env.DB.prepare("SELECT exhausted_until FROM llm_models WHERE model = 'gemini-3.8-flash'").first()).toEqual({ exhausted_until: NOW + 180 });
+    // The application counts HTTP attempts conservatively, then rests the model.
+    // Later batches use the next enabled model without repeatedly calling the unavailable one.
+    expect(deepseek.calls.map((call) => call.model)).toEqual(["deepseek-flash", ...Array(6).fill("deepseek-test-secondary")]);
+    expect((await env.DB.prepare("SELECT model, SUM(requests) AS n FROM llm_usage GROUP BY model ORDER BY model").all()).results).toEqual([{ model: "deepseek-flash", n: 1 }, { model: "deepseek-test-secondary", n: 6 }]);
+    expect(await env.DB.prepare("SELECT exhausted_until FROM llm_models WHERE model = 'deepseek-flash'").first()).toEqual({ exhausted_until: NOW + 180 });
     expect(await env.DB.prepare("SELECT value_json FROM settings WHERE key = 'llm_circuit'").first()).toBeNull();
   });
 
   it("when the whole chain is overloaded it asks each model once, then waits for them to rest instead of burning quota", async () => {
     const ids = await seedItems(1);
-    const gemini = fakeGemini(() => ({ status: 503, body: { error: { code: 503, message: "overloaded", status: "UNAVAILABLE" } } }));
+    const deepseek = fakeDeepSeek(() => ({ status: 503, body: { error: { code: 503, message: "overloaded", status: "UNAVAILABLE" } } }));
     const first = fakeBatch([{ kind: "extract", itemId: ids[0]! }]);
-    await consumeLlmBatch(first.batch, testEnv, { now: NOW, fetcher: gemini.fetcher });
-    expect(gemini.calls.map((call) => call.model)).toEqual(["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash"]);
+    await consumeLlmBatch(first.batch, testEnv, { now: NOW, fetcher: deepseek.fetcher });
+    expect(deepseek.calls.map((call) => call.model)).toEqual(["deepseek-flash", "deepseek-test-secondary", "deepseek-test-tertiary"]);
     expect(first.outcomes()).toEqual(["retry:30"]);
     expect(await env.DB.prepare("SELECT SUM(requests) AS n FROM llm_usage").first()).toEqual({ n: 3 });
 
     // The redelivery a minute later finds all three resting: not one more request is spent.
     const again = fakeBatch([{ kind: "extract", itemId: ids[0]! }], 2);
-    await consumeLlmBatch(again.batch, testEnv, { now: NOW + 60, fetcher: gemini.fetcher });
-    expect(gemini.calls).toHaveLength(3);
+    await consumeLlmBatch(again.batch, testEnv, { now: NOW + 60, fetcher: deepseek.fetcher });
+    expect(deepseek.calls).toHaveLength(3);
     expect(again.outcomes()).toEqual(["retry:60"]);
     // Once they have rested, the work resumes.
     const later = fakeBatch([{ kind: "extract", itemId: ids[0]! }], 3);
-    await consumeLlmBatch(later.batch, testEnv, { now: NOW + 181, fetcher: fakeGemini().fetcher });
+    await consumeLlmBatch(later.batch, testEnv, { now: NOW + 181, fetcher: fakeDeepSeek().fetcher });
     expect(await statuses(ids)).toEqual({ extracted: 1 });
   });
 
   it("releases the reservation and retries with a growing delay when the call never counted", async () => {
     const ids = await seedItems(1);
-    const gemini = fakeGemini(() => ({ status: 400, body: locationBlocked }));
+    const deepseek = fakeDeepSeek(() => { throw new TypeError("network unavailable"); });
     const first = fakeBatch([{ kind: "extract", itemId: ids[0]! }], 1);
-    await consumeLlmBatch(first.batch, testEnv, { now: NOW, fetcher: gemini.fetcher });
+    await consumeLlmBatch(first.batch, testEnv, { now: NOW, fetcher: deepseek.fetcher });
     const third = fakeBatch([{ kind: "extract", itemId: ids[0]! }], 3);
-    await consumeLlmBatch(third.batch, testEnv, { now: NOW, fetcher: gemini.fetcher });
+    await consumeLlmBatch(third.batch, testEnv, { now: NOW, fetcher: deepseek.fetcher });
 
     expect(first.outcomes()).toEqual(["retry:30"]);
     expect(third.outcomes()).toEqual(["retry:120"]);
     expect(await env.DB.prepare("SELECT COALESCE(SUM(requests), 0) AS n FROM llm_usage").first()).toEqual({ n: 0 });
-    expect(await env.DB.prepare("SELECT status, COUNT(*) AS n FROM llm_calls GROUP BY status").all().then((r) => r.results)).toEqual([{ status: "location_blocked", n: 2 }]);
+    expect(await env.DB.prepare("SELECT status, COUNT(*) AS n FROM llm_calls GROUP BY status").all().then((r) => r.results)).toEqual([{ status: "transient", n: 2 }]);
   });
 
-  it("opens the circuit after five location failures and then stops calling", async () => {
+  it("opens the circuit after five network failures and then stops calling", async () => {
     const ids = await seedItems(1);
-    const gemini = fakeGemini(() => ({ status: 400, body: locationBlocked }));
-    for (let i = 0; i < 5; i++) await consumeLlmBatch(fakeBatch([{ kind: "extract", itemId: ids[0]! }]).batch, testEnv, { now: NOW, fetcher: gemini.fetcher });
+    const deepseek = fakeDeepSeek(() => { throw new TypeError("network unavailable"); });
+    for (let i = 0; i < 5; i++) await consumeLlmBatch(fakeBatch([{ kind: "extract", itemId: ids[0]! }]).batch, testEnv, { now: NOW, fetcher: deepseek.fetcher });
     const parked = fakeBatch([{ kind: "extract", itemId: ids[0]! }]);
-    await consumeLlmBatch(parked.batch, testEnv, { now: NOW + 60, fetcher: gemini.fetcher });
+    await consumeLlmBatch(parked.batch, testEnv, { now: NOW + 60, fetcher: deepseek.fetcher });
 
-    expect(gemini.calls).toHaveLength(5);
+    expect(deepseek.calls).toHaveLength(5);
     expect(parked.outcomes()).toEqual(["ack"]);
     expect(await statuses(ids)).toEqual({ queued: 1 });
     expect(await drainBacklog(testEnv, NOW + 3600)).toMatchObject({ sent: 1 });
@@ -322,7 +323,7 @@ describe("consumeLlmBatch", () => {
     const ids = await seedItems(1);
     const envelope = structuredClone(successEnvelope) as typeof successEnvelope;
     const claim = (quote: string, extra: Record<string, unknown> = {}) => ({ kind: "measurement", text_vi: "Nhóm tác giả đo được độ trễ giảm trên bộ thử nội bộ.", text_en: "The team measured a latency drop on its benchmark.", quote, has_numbers: true, first_hand: true, entities: [], ...extra });
-    envelope.candidates[0]!.content.parts[0]!.text = JSON.stringify({
+    envelope.choices[0]!.message.content = JSON.stringify({
       items: [
         { itemId: ids[0], relevant: true, topics: ["ai"], claims: [
           claim("latency dropped 1% on the internal benchmark"),
@@ -335,8 +336,8 @@ describe("consumeLlmBatch", () => {
         { itemId: 999_999_999, relevant: true, topics: [], claims: [claim("ignore previous instructions")] },
       ],
     });
-    const gemini = fakeGemini(() => ({ status: 200, body: envelope }));
-    await consumeLlmBatch(fakeBatch([{ kind: "extract", itemId: ids[0]! }]).batch, testEnv, { now: NOW, fetcher: gemini.fetcher });
+    const deepseek = fakeDeepSeek(() => ({ status: 200, body: envelope }));
+    await consumeLlmBatch(fakeBatch([{ kind: "extract", itemId: ids[0]! }]).batch, testEnv, { now: NOW, fetcher: deepseek.fetcher });
 
     expect(await claimCount(ids)).toBe(1);
     const call = await env.DB.prepare("SELECT claims_returned, claims_accepted, reject_reasons_json FROM llm_calls").first<Record<string, unknown>>();
@@ -345,12 +346,12 @@ describe("consumeLlmBatch", () => {
     expect(await env.DB.prepare("SELECT claims_returned, claims_accepted FROM items WHERE id = ?").bind(ids[0]).first()).toEqual({ claims_returned: 6, claims_accepted: 1 });
   });
 
-  it("bisects a batch Gemini rejects and fails only the offending item", async () => {
+  it("bisects a batch DeepSeek rejects and fails only the offending item", async () => {
     const ids = await seedItems(4);
     const poison = ids[2]!;
-    const gemini = fakeGemini((_call, _model, itemIds) => (itemIds.includes(poison) ? { status: 400, body: { error: { code: 400, message: "Invalid argument", status: "INVALID_ARGUMENT" } } } : null));
+    const deepseek = fakeDeepSeek((_call, _model, itemIds) => (itemIds.includes(poison) ? { status: 400, body: { error: { code: 400, message: "Invalid argument", status: "INVALID_ARGUMENT" } } } : null));
     const { batch, outcomes } = fakeBatch(ids.map((itemId) => ({ kind: "extract", itemId })));
-    await consumeLlmBatch(batch, testEnv, { now: NOW, fetcher: gemini.fetcher });
+    await consumeLlmBatch(batch, testEnv, { now: NOW, fetcher: deepseek.fetcher });
 
     expect(outcomes()).toEqual(["ack", "ack", "ack", "ack"]);
     expect(await statuses(ids)).toEqual({ extracted: 3, failed: 1 });
@@ -359,32 +360,32 @@ describe("consumeLlmBatch", () => {
 
   it("charges backfill items to the backfill share whatever the message claims", async () => {
     const ids = await seedItems(2, "backfill");
-    const gemini = fakeGemini();
-    await consumeLlmBatch(fakeBatch(ids.map((itemId) => ({ kind: "extract", itemId }))).batch, testEnv, { now: NOW, fetcher: gemini.fetcher });
+    const deepseek = fakeDeepSeek();
+    await consumeLlmBatch(fakeBatch(ids.map((itemId) => ({ kind: "extract", itemId }))).batch, testEnv, { now: NOW, fetcher: deepseek.fetcher });
     expect((await env.DB.prepare("SELECT kind, requests FROM llm_usage").all()).results).toEqual([{ kind: "extract_backfill", requests: 1 }]);
   });
 
 });
 
 describe("extraction attempts", () => {
-  it("are not spent by wake-ups that never reach Gemini, only by real calls", async () => {
+  it("are not spent by wake-ups that never reach DeepSeek, only by real calls", async () => {
     const ids = await seedItems(2);
     const attempts = async () => (await env.DB.prepare(`SELECT MAX(enqueue_attempts) AS n FROM items WHERE id IN (${ids.join(",")})`).first<{ n: number }>())!.n;
-    const gemini = fakeGemini();
+    const deepseek = fakeDeepSeek();
 
     // A day without budget: thirty drains and thirty parked batches later the items are untouched.
     await env.DB.prepare("UPDATE llm_models SET rpd = 0").run();
     for (let tick = 0; tick < 30; tick++) {
       await env.DB.prepare(`UPDATE items SET queued_at = 0 WHERE id IN (${ids.join(",")})`).run();
       await drainBacklog(testEnv, NOW + tick * 1800);
-      await consumeLlmBatch(fakeBatch(ids.map((itemId) => ({ kind: "extract", itemId }))).batch, testEnv, { now: NOW + tick * 1800, fetcher: gemini.fetcher });
+      await consumeLlmBatch(fakeBatch(ids.map((itemId) => ({ kind: "extract", itemId }))).batch, testEnv, { now: NOW + tick * 1800, fetcher: deepseek.fetcher });
     }
     expect(await attempts()).toBe(0);
     expect(await statuses(ids)).toEqual({ queued: 2 });
 
-    // A call Gemini rejects is a real attempt.
+    // A call DeepSeek rejects is a real attempt.
     await env.DB.prepare("UPDATE llm_models SET rpd = 1000").run();
-    const rejecting = fakeGemini(() => ({ status: 200, body: { candidates: [{ content: { parts: [{ text: "not json" }] } }] } }));
+    const rejecting = fakeDeepSeek(() => ({ status: 200, body: { choices: [{ message: { content: "{}" }, finish_reason: "stop" }] } }));
     await consumeLlmBatch(fakeBatch([{ kind: "extract", itemId: ids[0]! }]).batch, testEnv, { now: NOW, fetcher: rejecting.fetcher });
     expect(await env.DB.prepare("SELECT status, enqueue_attempts FROM items WHERE id = ?").bind(ids[0]).first()).toEqual({ status: "failed", enqueue_attempts: 1 });
   });
@@ -396,7 +397,7 @@ describe("drainBacklog", () => {
     const recent = await seedItems(10);
     await env.DB.prepare(`UPDATE items SET published_at = ? WHERE id IN (${old.join(",")})`).bind(NOW - 30 * 86400).run();
     await env.DB.prepare("UPDATE llm_models SET rpd = 0").run();
-    await env.DB.prepare("UPDATE llm_models SET rpd = 2 WHERE model = 'gemini-3.8-flash'").run();
+    await env.DB.prepare("UPDATE llm_models SET rpd = 2 WHERE model = 'deepseek-flash'").run();
     expect(await drainBacklog(testEnv, NOW)).toEqual({ sent: 10, failed: 0 });
     expect(sent.map((message) => (message as { itemId: number }).itemId)).toEqual(recent);
     // Recent work is still queued but cannot be announced again yet. Old work must wait too.
@@ -406,7 +407,7 @@ describe("drainBacklog", () => {
 
   it("serves live items before backfill, oldest first, and gives up after 20 attempts", async () => {
     await env.DB.prepare("UPDATE llm_models SET rpd = 0").run();
-    await env.DB.prepare("UPDATE llm_models SET rpd = 10 WHERE model = 'gemini-3.8-flash'").run();
+    await env.DB.prepare("UPDATE llm_models SET rpd = 10 WHERE model = 'deepseek-flash'").run();
     const backfill = await seedItems(3, "backfill");
     const live = await seedItems(3);
     const stuck = (await seedItems(1))[0]!;

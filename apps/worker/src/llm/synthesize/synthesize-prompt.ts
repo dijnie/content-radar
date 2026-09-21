@@ -1,4 +1,4 @@
-export const SYNTHESIZE_PROMPT_VERSION = 1;
+export const SYNTHESIZE_PROMPT_VERSION = 2;
 
 export interface SynthesisClaim {
   claimId: number;
@@ -23,7 +23,10 @@ Return:
     context  - background, relayed news or related information that does not itself support or dispute it;
     counter  - disputes, qualifies or contradicts the central claim.
 - questions: two to five concrete verification questions in Vietnamese that a careful writer should answer before
-  publishing, such as what was measured, on what data, by whom, and what would change the conclusion.`;
+  publishing, such as what was measured, on what data, by whom, and what would change the conclusion.
+
+Return JSON only. Example shape (use the supplied IDs, never copy these example IDs):
+{"headline_vi":"Tác giả báo cáo kết quả thử nghiệm có điều kiện.","roles":[{"claimId":1,"role":"evidence"}],"questions":["Bộ thử gồm những gì?","Ai đã đo kết quả?"]}`;
 
 export function synthesizeUserPrompt(claims: readonly SynthesisClaim[]): string {
   const clean = (value: string) => value.replace(/<\/?claim\b/gi, "<​claim");

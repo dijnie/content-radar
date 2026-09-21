@@ -35,13 +35,12 @@ Cần có trước: một ứng dụng Access kiểu self-hosted cho hostname c�
 
    ```bash
    cd apps/worker
-   for name in GEMINI_API_KEY GITHUB_TOKEN OWNER_EMAIL ACCESS_TEAM_DOMAIN ACCESS_AUD APP_ORIGIN; do npx wrangler secret put "$name"; done
+   for name in DEEPSEEK_API_KEY GITHUB_TOKEN OWNER_EMAIL ACCESS_TEAM_DOMAIN ACCESS_AUD APP_ORIGIN; do npx wrangler secret put "$name"; done
    ```
 
-   `ACCESS_TEAM_DOMAIN` không có dấu gạch chéo cuối. `APP_ORIGIN` là origin chính xác đang dùng, hiện là `https://content-radar.<subdomain>.workers.dev`. `OWNER_EMAIL` phải trùng email trong policy. Thiếu một trong ba biến Access thì mọi request nhận 503 `access_not_configured`: Worker từ chối thay vì mở. Chỉ đặt secret còn thiếu; không cần ghi lại key Gemini/GitHub khi sửa Access.
+   `ACCESS_TEAM_DOMAIN` không có dấu gạch chéo cuối. `APP_ORIGIN` là origin chính xác đang dùng, hiện là `https://content-radar.<subdomain>.workers.dev`. `OWNER_EMAIL` phải trùng email trong policy. Thiếu một trong ba biến Access thì mọi request nhận 503 `access_not_configured`: Worker từ chối thay vì mở. Chỉ đặt secret còn thiếu; không cần ghi lại key DeepSeek/GitHub khi sửa Access.
 
-4. Điền hạn mức Gemini thật vào [`scripts/set-llm-limits.sql`](../scripts/set-llm-limits.sql) rồi chạy nó. Khi còn để `NULL`, hệ thống dùng mức an toàn 5 RPM và 20 RPD mỗi model. Con số 20 là hạn mức free tier thật đo được ngày 2026-09-21 (Google nêu nó trong thân lỗi 429). Worker cũng tự ghi `rpd` và `rpm` vào `llm_models` mỗi khi nhận một 429, nên file này chủ yếu để đặt trước hoặc sửa tay.
-
+4. Migration `0009_deepseek_models.sql` bật `deepseek-flash` với trần ứng dụng đã chọn: 100 request/ngày Pacific, tối đa 5 request/phút. [`scripts/set-llm-limits.sql`](../scripts/set-llm-limits.sql) áp lại đúng các mức này khi cần. Không phải quota của DeepSeek; 429 không tự sửa các trần. Với model có giới hạn `NULL`, giá trị dự phòng lấy từ `settings` (repo mặc định 5/20).
 5. `npm run deploy`, rồi kiểm tra không hostname nào hở:
 
    ```bash
@@ -52,24 +51,28 @@ Cần có trước: một ứng dụng Access kiểu self-hosted cho hostname c�
 
    Mong đợi 302 sang miền team Access; client không phải trình duyệt có thể nhận 403. Trang Access dùng JavaScript tự chuyển sang `dash.cloudflare.com/oauth2/auth`, không hiện form nhập email/gửi mã riêng. Không được trả nội dung ứng dụng khi chưa đăng nhập. Kiểm tra cả API, static assets và route quản trị; đối chiếu dashboard/API rằng preview URL đã tắt. Sau đó mở URL gốc trong cùng trình duyệt đã đăng nhập tài khoản Cloudflare của chủ sở hữu, mở radar và bấm "System status". Nếu phiên Cloudflare hết hạn, Cloudflare có thể yêu cầu đăng nhập hoặc xác thực lại theo bảo mật tài khoản. Chỉ có redirect chưa chứng minh phiên truy cập Worker hoàn chỉnh thành công.
 
-6. Chạy các probe để biết nguồn nào chặn IP của Workers và Gemini có lỗi vị trí không (việc còn nợ của phase 1). Đo `gemini` 10 lần; nếu có `locationBlocked: true` thì thêm `"placement": { "region": "aws:us-east-1" }` vào `wrangler.jsonc`, deploy lại và đo lại. Ghi kết quả vào [`spike-results.md`](../plans/260920-0838-content-radar-v1/reports/spike-results.md).
+6. Sau đăng nhập, có thể chạy probe `GET /api/admin/probe?target=deepseek` để kiểm tra key và kết nối. Các target nguồn vẫn là `fxtwitter-timeline`, `fxtwitter-status`, `syndication`, `hn-algolia`, `hn-firebase`, `github-api`, `github-atom`, `rss-uber`, `rss-medium`, `workers-ai-embed`.
 
-   ```
-   /api/admin/probe?target=gemini | fxtwitter-timeline | fxtwitter-status | syndication | hn-algolia
-                                  | hn-firebase | github-api | github-atom | rss-uber | rss-medium | workers-ai-embed
-   ```
+   Probe DeepSeek gọi API thật **ngoài sổ ngân sách tự động**, vẫn tính phí; không chạy lặp để đo quota. 401/403/404 cần kiểm tra key/model/endpoint, 402 cần kiểm tra số dư. Endpoint mặc định là `https://api.deepseek.com`; chỉ đặt `DEEPSEEK_BASE_URL` nếu chủ động dùng proxy tương thích và tin cậy.
 
-   Nếu vẫn lỗi vị trí sau khi đặt placement, đặt secret `GEMINI_BASE_URL` thành URL AI Gateway của nhà cung cấp Google AI Studio.
+## Chuyển Worker đang chạy Gemini sang DeepSeek
 
-   Probe Gemini gọi API thật nhưng chưa đi qua sổ ngân sách của pipeline. Khi đối chiếu hạn mức ngày, tính cả số call probe đã chạy; `llm_usage` không chứa các call này.
+Khác deploy lần đầu, migration `0009` thay model đang hoạt động nên phải theo thứ tự:
+
+1. Thêm secret `DEEPSEEK_API_KEY` trên Worker và kiểm tra **tên binding**, không xuất giá trị key. Ghi lại version Worker, danh sách model bật và bookmark D1.
+2. Build/test và deploy code DeepSeek trước. Nếu còn model Gemini trong DB, client mới sẽ mở ngắt mạch, giữ bài chờ và không gửi tên model sai sang DeepSeek.
+3. Áp migration `0009` bằng `npx wrangler d1 migrations apply content-radar --remote`. Migration tắt Gemini, bật Flash với 5/100 và xoá ngắt mạch cũ. Không reset usage hoặc xoá dữ liệu.
+4. Đọc lại model, trần và version deploy; kiểm tra `llm_calls` có model mới, claim gần đây có quote hợp lệ và job cluster tạo thẻ. Key tồn tại hoặc deploy xanh chưa chứng minh API hoạt động.
+
+Cron rút backlog mỗi 30 phút, cluster phút 05 mỗi giờ; có claim chưa đồng nghĩa có thẻ ngay. Phiên bản trước chuyển đổi là `d26e9daf-c9ee-48e3-aba8-628f65f0ca18`. Khi rollback: tắt DeepSeek trước, rollback Worker về version này, rồi khôi phục đúng các model Gemini đã bật và xoá `llm_circuit`. Giữ cooldown/usage Gemini để không giả vờ còn quota. Không rollback D1; giữ secret cũ cho tới khi không cần đường quay lại.
 
 ## Đọc trang trạng thái
 
 | Mục | Bình thường | Cần xem |
 |---|---|---|
 | Backlog | Trống, hoặc item cũ nhất dưới vài giờ | Tuổi item cũ nhất tăng đều qua các ngày: quota không đủ cho lượng item |
-| LLM circuit | `closed` | `open`: năm lỗi liên tiếp cùng loại, thường là lỗi vị trí hoặc mạng; xem `llm_calls` |
-| Gemini budget | Dưới hạn mức; ghi chú "safe default" nghĩa là chưa điền số thật | `parked`: model vừa gặp 429, tự mở lại sau nửa đêm Pacific |
+| LLM circuit | `closed` | `open`: năm lỗi liên tiếp cùng loại, hoặc lỗi key/số dư mở ngay; xem `llm_calls` |
+| DeepSeek app budget | Dưới trần 100/ngày và 5/phút; usage theo ngày Pacific | `parked`: 429/5xx nghỉ vài phút; hết trần ngày chờ ngày Pacific mới |
 | Cards | Số thẻ "on fallback headline" nhỏ | Tăng đều: nhu cầu tổng hợp vượt 20% dành riêng; nâng `synthesis_min_score` |
 | Cluster runs | `done` mỗi giờ | `failed` quá hai lần liên tiếp: đọc cột Note |
 | Sources | 0 failing | Xem mục "Khi một nguồn bị chặn" |
@@ -84,7 +87,7 @@ Theo quyết định cùng ngày, bài trong cửa sổ gom nhóm được ưu t
 
 ## Cấu hình
 
-Sau khi cập nhật code, chạy migration trước khi khởi động Worker. Với local:
+Với database local, cập nhật code rồi chạy migration trước khi khởi động Worker:
 
 ```bash
 cd apps/worker
@@ -116,7 +119,7 @@ Lỗi của một nguồn không ảnh hưởng nguồn khác. Từ lần lỗi 
 Thứ tự an toàn cho mọi thay đổi schema: migration chỉ **mở rộng** (thêm cột, thêm bảng), deploy code, và chỉ thu hẹp schema ở lần phát hành kế tiếp. Nhờ vậy phiên bản Worker trước luôn chạy được trên schema hiện tại.
 
 - **Deploy lỗi:** `cd apps/worker && npx wrangler rollback`. Lệnh đưa Worker về phiên bản trước và không đụng dữ liệu. Đây là đường khôi phục chính.
-- **Dữ liệu hỏng:** Time Travel khôi phục D1 về một thời điểm trong 30 ngày: `npx wrangler d1 time-travel restore content-radar --timestamp=<unix>`. Đây là phương án cuối, vì nó quay ngược **mọi thứ**: sổ ngân sách Gemini (hệ thống sẽ tưởng còn quota đã dùng), trạng thái Saved, Dismissed, Written và `user_actions`. Ghi bookmark trước mỗi lần áp dụng migration để có điểm quay về chính xác.
+- **Dữ liệu hỏng:** Time Travel khôi phục D1 về một thời điểm trong 30 ngày: `npx wrangler d1 time-travel restore content-radar --timestamp=<unix>`. Đây là phương án cuối, vì nó quay ngược **mọi thứ**: sổ ngân sách LLM (hệ thống sẽ tưởng còn lượt đã dùng), trạng thái Saved, Dismissed, Written và `user_actions`. Ghi bookmark trước mỗi lần áp dụng migration để có điểm quay về chính xác.
 - **Sao lưu:** `scripts/backup-d1.sh [thư-mục]` xuất toàn bộ database ra một file SQL có ngày, mặc định ở `~/backups/content-radar`, quyền 600. Script từ chối ghi vào trong repo. File chứa toàn bộ dữ liệu: giữ ngoài git, ngoài thư mục mà phiên analyst đọc được, và không tải lên dịch vụ bên ngoài.
 
 ## Dead-letter queue
@@ -141,4 +144,4 @@ Cập nhật baseline tác giả; dựng lại `story_daily` và `entity_daily` 
 
 ## Chi phí dự kiến
 
-Ước tính từ bảng giá của Cloudflare, **chưa được đo**; tuần chạy thử là lúc kiểm chứng. Workers Paid là 5 USD mỗi tháng và gồm 10 triệu request cùng 30 triệu CPU-ms. D1 (5 GB, 25 tỉ dòng đọc, 50 triệu dòng ghi), R2 (10 GB, 1 triệu thao tác Class A), Queues (1 triệu thao tác), Workers AI (10.000 neuron mỗi ngày) và Access (50 người dùng) đều có mức miễn phí mà quy mô một người dùng nằm gọn bên trong. Điểm dễ vượt nhất là thao tác Class A của R2; vì vậy consumer chỉ ghi R2 cho item mới hoặc có nội dung đổi, thay vì ghi lại mọi item ở mỗi lần poll. Gemini chạy ở free tier nên chi phí LLM là 0 USD, với cái giá là Google được dùng nội dung gửi lên để cải thiện sản phẩm; hệ thống chỉ gửi nội dung công khai.
+Ước tính từ bảng giá của Cloudflare, **chưa được đo**; tuần chạy thử là lúc kiểm chứng. Workers Paid là 5 USD mỗi tháng và gồm 10 triệu request cùng 30 triệu CPU-ms. D1 (5 GB, 25 tỉ dòng đọc, 50 triệu dòng ghi), R2 (10 GB, 1 triệu thao tác Class A), Queues (1 triệu thao tác), Workers AI (10.000 neuron mỗi ngày) và Access (50 người dùng) đều có mức miễn phí mà quy mô một người dùng nằm gọn bên trong. Điểm dễ vượt nhất là thao tác Class A của R2; vì vậy consumer chỉ ghi R2 cho item mới hoặc có nội dung đổi, thay vì ghi lại mọi item ở mỗi lần poll. DeepSeek là API trả phí theo token. Trần 100 request/ngày và tối đa 8.192 token đầu ra/request giúp giới hạn mức dùng nhưng không phải trần tiền. Đối chiếu usage với dashboard nhà cung cấp; xem [giá hiện hành](https://api-docs.deepseek.com/quick_start/pricing). Hệ thống chỉ gửi nội dung công khai.

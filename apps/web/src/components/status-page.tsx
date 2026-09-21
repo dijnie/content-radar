@@ -41,7 +41,7 @@ export function StatusPage({ timeZone }: { timeZone: string }) {
       </section>
 
       <section className="panel">
-        <h2>Gemini budget, Pacific day {status.pacificDay}</h2>
+        <h2>DeepSeek app budget, Pacific day {status.pacificDay}</h2>
         {status.llm.models.map((model) => {
           const used = status.llm.usageToday.filter((row) => row.model === model.model);
           const total = used.reduce((sum, row) => sum + row.requests, 0);

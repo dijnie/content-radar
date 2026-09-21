@@ -2,7 +2,7 @@
 
 Radar cá nhân trả lời một câu hỏi: **giới nghiên cứu và ứng dụng AI/Agent (cùng System Design, Backend) đang có gì thú vị, và đang dịch chuyển về hướng nào?**
 
-Hệ thống crawl nguồn công khai (X qua FxTwitter, Hacker News, RSS, GitHub), dùng Gemini free tier bóc từng bài thành các claim có trích dẫn nguyên văn, gom claim thành câu chuyện bằng graph và phân cụm, chấm điểm 0–100, rồi hiển thị thành các thẻ lead. D1 đồng thời là kho dữ liệu để Claude hoặc Codex phân tích sâu hơn. Toàn bộ chạy trên một Cloudflare Worker; chi phí LLM là 0 USD.
+Hệ thống crawl nguồn công khai (X qua FxTwitter, Hacker News, RSS, GitHub), dùng DeepSeek bóc từng bài thành các claim có trích dẫn nguyên văn, gom claim thành câu chuyện bằng graph và phân cụm, chấm điểm 0–100, rồi hiển thị thành các thẻ lead. D1 đồng thời là kho dữ liệu để Claude hoặc Codex phân tích sâu hơn. Toàn bộ chạy trên một Cloudflare Worker; DeepSeek tính phí theo token, với trần tự động 100 request/ngày và 5 request/phút.
 
 - Kiến trúc và các quyết định thiết kế: [`docs/architecture.md`](docs/architecture.md)
 - Vận hành, deploy, sự cố: [`docs/operations.md`](docs/operations.md)
@@ -11,7 +11,7 @@ Hệ thống crawl nguồn công khai (X qua FxTwitter, Hacker News, RSS, GitHub
 ## Yêu cầu
 
 - Node 22 trở lên và npm.
-- Để deploy: tài khoản Cloudflare có Workers Paid, một custom domain trên Cloudflare, một ứng dụng Cloudflare Access cho domain đó, API key Gemini free tier, và một GitHub PAT fine-grained chỉ đọc dữ liệu public.
+- Để deploy: tài khoản Cloudflare có Workers Paid, một ứng dụng Cloudflare Access cho hostname Worker (`workers.dev` hiện tại), API key DeepSeek có số dư, và một GitHub PAT fine-grained chỉ đọc dữ liệu public.
 
 Không cần gì trong số đó để chạy test.
 

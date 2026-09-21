@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Backfills the tracked X accounts through the Worker's own endpoint, one handle
 # every 30 seconds. Run it from day 3 of the soak week, once live ingest is stable:
-# backfilled items draw on their own capped share of the Gemini budget.
+# backfilled items draw on their own capped share of the DeepSeek budget.
 #
 #   RADAR_ORIGIN=https://radar.example.com scripts/backfill-kols.sh [days]     default 15
 #

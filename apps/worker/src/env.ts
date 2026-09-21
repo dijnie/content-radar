@@ -6,7 +6,7 @@ export interface Env {
   AI: Ai;
   ASSETS: Fetcher;
 
-  GEMINI_API_KEY: string;
+  DEEPSEEK_API_KEY: string;
   GITHUB_TOKEN: string;
   OWNER_EMAIL: string;
   /** Team origin, e.g. https://<team>.cloudflareaccess.com (no trailing slash). */
@@ -15,8 +15,8 @@ export interface Env {
   ACCESS_AUD: string;
   /** Exact deployed origin, e.g. https://radar.example.com. */
   APP_ORIGIN: string;
-  /** Optional AI Gateway base URL for Gemini; unset means Google's endpoint. */
-  GEMINI_BASE_URL?: string;
+  /** Optional compatible gateway base URL; unset means https://api.deepseek.com. */
+  DEEPSEEK_BASE_URL?: string;
 }
 
 declare global {

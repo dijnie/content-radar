@@ -1,6 +1,5 @@
 import type { LlmKind, LlmModelRow } from "../db/llm-repo";
-import type { QuotaInfo } from "./gemini-client";
-import { nextPacificMidnight, pacificDay } from "./pacific-day";
+import { pacificDay } from "./pacific-day";
 
 export interface BudgetSettings {
   safeDefaultRpm: number;
@@ -19,8 +18,6 @@ export interface Reservation {
 }
 export type ReserveResult = { ok: true; reservation: Reservation } | { ok: false; reason: ReserveFailure };
 
-/** A 429 this soon after the assumed reset means the real reset is later than assumed. */
-const RESET_DOUBT_WINDOW_SECONDS = 6 * 3600;
 const EXTRACT_KINDS: readonly LlmKind[] = ["extract", "extract_backfill"];
 
 export function limitsOf(model: LlmModelRow, settings: BudgetSettings): { rpm: number; rpd: number } {
@@ -38,7 +35,7 @@ async function usageByKind(db: D1Database, dayPt: string, model: string): Promis
  * Requests of this kind still allowed today on this model, ignoring the per-minute
  * limit. The day is split into two shares that never borrow from each other:
  * extraction (live plus backfill) gets `1 - synthesisReservedShare`, synthesis and
- * adjudication together get `synthesisReservedShare`. Quota is the scarce resource
+ * adjudication together get `synthesisReservedShare`. Request budget is limited
  * and extraction is the pipeline, so the smaller share is a ceiling for its kinds,
  * not only a floor. Backfill is further capped inside the extraction share.
  */
@@ -92,7 +89,7 @@ export async function reserve(db: D1Database, model: LlmModelRow, kind: LlmKind,
   return row ? { ok: true, reservation: { dayPt, model: model.model, kind } } : { ok: false, reason: "kind_cap_reached" };
 }
 
-/** The call reached Gemini (200, 429 or a rejected request): the reservation stands. */
+/** An HTTP response was received: count this attempt toward the application cap. */
 export async function commit(db: D1Database, reservation: Reservation, tokensIn = 0, tokensOut = 0): Promise<void> {
   await db
     .prepare("UPDATE llm_usage SET tokens_in = tokens_in + ?, tokens_out = tokens_out + ? WHERE day_pt = ? AND model = ? AND kind = ?")
@@ -100,7 +97,7 @@ export async function commit(db: D1Database, reservation: Reservation, tokensIn 
     .run();
 }
 
-/** The call never counted against Google's quota: give the reservation back. */
+/** The call received no HTTP response: give the application request slot back. */
 export async function release(db: D1Database, reservation: Reservation): Promise<void> {
   await db
     .prepare("UPDATE llm_usage SET requests = requests - 1 WHERE day_pt = ? AND model = ? AND kind = ? AND requests > 0")
@@ -108,29 +105,10 @@ export async function release(db: D1Database, reservation: Reservation): Promise
     .run();
 }
 
-/** A per-minute park never lasts less than this, even if Google suggests a shorter wait. */
-const MIN_MINUTE_PARK_SECONDS = 15;
-const DEFAULT_MINUTE_PARK_SECONDS = 60;
-
-/**
- * Parks a model after a 429 for as long as the exhausted quota calls for, and keeps the
- * limit Google reported so the ledger works from the real number instead of a guess.
- *
- * - per-minute quota: parked for the suggested retry delay, a matter of seconds;
- * - per-day quota, or a 429 that does not say: parked until the next Pacific midnight. If
- *   that 429 comes right after a reset we believed in, the real reset is later than
- *   assumed, so the model is parked for one more hour instead of a whole day.
- */
-export async function markExhausted(db: D1Database, model: LlmModelRow, now: number, quota?: QuotaInfo): Promise<number> {
-  if (quota?.scope === "minute") {
-    const until = now + Math.max(MIN_MINUTE_PARK_SECONDS, quota.retryDelaySeconds ?? DEFAULT_MINUTE_PARK_SECONDS);
-    await db.prepare("UPDATE llm_models SET exhausted_until = ?, rpm = COALESCE(?, rpm) WHERE model = ?").bind(until, quota.limit, model.model).run();
-    return until;
-  }
-  const previous = model.exhausted_until;
-  const resetWasWrong = previous !== null && previous <= now && now - previous < RESET_DOUBT_WINDOW_SECONDS;
-  const until = resetWasWrong ? now + 3600 : nextPacificMidnight(now);
-  await db.prepare("UPDATE llm_models SET exhausted_until = ?, rpd = COALESCE(?, rpd) WHERE model = ?").bind(until, quota?.scope === "day" ? quota.limit : null, model.model).run();
+/** DeepSeek 429 is temporary concurrency pressure, never a next-day quota reset. */
+export async function markRateLimited(db: D1Database, model: LlmModelRow, now: number, retryDelaySeconds = 60): Promise<number> {
+  const until = now + Math.max(1, Math.min(300, retryDelaySeconds));
+  await db.prepare("UPDATE llm_models SET exhausted_until = MAX(COALESCE(exhausted_until, 0), ?) WHERE model = ?").bind(until, model.model).run();
   return until;
 }
 

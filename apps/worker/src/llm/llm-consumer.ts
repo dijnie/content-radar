@@ -8,7 +8,7 @@ import { synthesizeStory } from "./synthesize/synthesize-story";
 type ExtractMessage = Message<LlmMessage> & { body: Extract<LlmMessage, { kind: "extract" }> };
 
 /**
- * `radar-llm` consumer and the only caller of the Gemini client. Every message
+ * `radar-llm` consumer routes automated DeepSeek calls through the budget ledger. Every message
  * is acknowledged on its own once its item's result is committed. A message
  * whose item is no longer `queued` is acknowledged without a call, which makes
  * redelivery and replayed batches harmless.

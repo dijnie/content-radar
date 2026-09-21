@@ -30,3 +30,8 @@ export async function recordSuccess(db: D1Database): Promise<void> {
   const state = await getSetting<CircuitState>(db, KEY);
   if (state && (state.count > 0 || state.errorKind !== null)) await setSetting(db, KEY, { ...CLOSED, openUntil: state.openUntil });
 }
+
+/** Account/configuration failures need operator attention, not item retries. */
+export async function pauseCircuit(db: D1Database, errorKind: string, now: number): Promise<void> {
+  await setSetting(db, KEY, { errorKind, count: 0, openUntil: now + OPEN_SECONDS } satisfies CircuitState);
+}

@@ -131,7 +131,7 @@ describe("GET /api/status", () => {
   it("reports sources, backlog, budget, circuit, runs and fallback headlines", async () => {
     const body = (await (await handleStatus(env, NOW)).json()) as Record<string, any>;
     expect(body.pacificDay).toBe("2026-09-20");
-    expect(body.llm.models.map((model: { model: string }) => model.model)).toEqual(["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash"]);
+    expect(body.llm.models.map((model: { model: string }) => model.model)).toEqual(["deepseek-flash"]);
     expect(body.llm).toMatchObject({ circuitOpenUntil: null, reservedShare: 0.2 });
     expect(body.clusterRuns[0]).toMatchObject({ status: "done" });
     expect(body.cards).toMatchObject({ alive: 13, fallbackHeadlines: 13 });

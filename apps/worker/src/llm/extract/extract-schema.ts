@@ -33,7 +33,7 @@ export function parseClaim(value: unknown): ExtractedClaim | null {
   return result.success ? result.data : null;
 }
 
-/** Flat JSON Schema sent as `responseJsonSchema`. Gemini rejects large or deeply nested schemas. */
+/** JSON Schema supplied as prompt guidance; the response is validated locally. */
 export const EXTRACT_JSON_SCHEMA = {
   type: "object",
   required: ["items"],

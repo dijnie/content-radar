@@ -16,7 +16,7 @@ export function App() {
       {!onStatus && <Toolbar filters={filters} counts={stories.counts} topics={stories.topics} onChange={setFilters} />}
       <div className="subbar">
         <p className="caption">{onStatus ? "System status" : filters.sort === "score" ? "Highest score first." : "Newest first."}</p>
-        <button type="button" className="text-button" onClick={() => setFilters({ view: onStatus ? "stories" : "status" })}>{onStatus ? "← Back to stories" : "System status"}</button>
+        {onStatus && <button type="button" className="text-button" onClick={() => setFilters({ view: "stories" })}>← Back to stories</button>}
       </div>
 
       <main id="content" tabIndex={-1}>
@@ -37,6 +37,7 @@ export function App() {
           </>
         )}
       </main>
+      {!onStatus && <footer className="page-foot"><button type="button" className="text-button" onClick={() => setFilters({ view: "status" })}>System status</button></footer>}
     </div>
   );
 }

@@ -1,0 +1,60 @@
+{
+  "viewports": [
+    {
+      "width": 2048,
+      "columns": 2,
+      "overflow": false,
+      "sourceMenusClipped": false
+    },
+    {
+      "width": 1440,
+      "columns": 2,
+      "overflow": false,
+      "sourceMenusClipped": false
+    },
+    {
+      "width": 901,
+      "columns": 2,
+      "overflow": false,
+      "sourceMenusClipped": false
+    },
+    {
+      "width": 900,
+      "columns": 1,
+      "overflow": false,
+      "sourceMenusClipped": false
+    },
+    {
+      "width": 768,
+      "columns": 1,
+      "overflow": false,
+      "sourceMenusClipped": false
+    },
+    {
+      "width": 390,
+      "columns": 1,
+      "overflow": false,
+      "sourceMenusClipped": false
+    },
+    {
+      "width": 375,
+      "columns": 1,
+      "overflow": false,
+      "sourceMenusClipped": false
+    },
+    {
+      "width": 320,
+      "columns": 1,
+      "overflow": false,
+      "sourceMenusClipped": false
+    },
+    {
+      "width": 844,
+      "columns": 1,
+      "overflow": false,
+      "sourceMenusClipped": false
+    }
+  ],
+  "textScale200Percent": "passed",
+  "data": "Existing local API stories; no network stubs or injected cards"
+}

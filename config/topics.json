@@ -1,7 +1,7 @@
 [
   {
     "slug": "ai",
-    "name": "AI & Agent",
+    "name": "AI",
     "keywords": [
       "ai", "llm", "agent", "agentic", "model", "gpt", "claude", "gemini", "llama", "qwen", "deepseek", "mistral",
       "transformer", "inference", "fine-tuning", "finetune", "rag", "embedding", "benchmark", "eval", "reasoning",

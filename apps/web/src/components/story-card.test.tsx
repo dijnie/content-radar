@@ -29,7 +29,7 @@ describe("StoryCard", () => {
       "EVIDENCEluongnv89 tự đo và ghi 141 tps.", "COUNTERyinsenw_ nhận xét API bên thứ ba kém ổn định.", "CONTEXTLangChain đo trên dữ liệu hai tuần.",
     ]);
     expect(within(card).getByText("2 independent sources")).toBeTruthy();
-    expect(within(card).getByText(/· 4 questions to verify/)).toBeTruthy();
+    expect(within(card).getByRole("button", { name: "4 questions to verify" }).getAttribute("aria-expanded")).toBe("false");
     expect(within(card).getByText("counterpoint")).toBeTruthy();
     expect(within(card).getByText("+2 more claims")).toBeTruthy();
     expect(within(card).getByText("11 Sep 2026, 20:39 ICT")).toBeTruthy();
@@ -41,7 +41,7 @@ describe("StoryCard", () => {
     render(<StoryCard story={LEAD} timeZone="Asia/Ho_Chi_Minh" onAction={() => {}} />);
     expect(screen.getByText("LEAD")).toBeTruthy();
     expect(screen.getByText("1 independent source")).toBeTruthy();
-    expect(screen.getByText(/· 3 questions to verify/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "3 questions to verify" })).toBeTruthy();
     expect(screen.queryByText("counterpoint")).toBeNull();
     expect(screen.getByText("chưa tổng hợp")).toBeTruthy();
     const link = screen.getByRole("link", { name: "Link" });
@@ -54,7 +54,7 @@ describe("StoryCard", () => {
     const user = userEvent.setup();
     render(<StoryCard story={READY} timeZone="UTC" onAction={onAction} />);
 
-    await user.tab(); // questions summary
+    await user.tab(); // questions count
     await user.tab(); // Link
     expect(document.activeElement?.textContent).toContain("Link");
     await user.keyboard("{Enter}");
@@ -63,6 +63,42 @@ describe("StoryCard", () => {
     await user.click(screen.getByRole("button", { name: "Save" }));
     await user.click(screen.getByRole("button", { name: "Written" }));
     expect(onAction.mock.calls.map(([story, action]) => [story.id, action])).toEqual([[2, "save"], [2, "written"]]);
+  });
+
+  it("opens and closes verification questions from their count with the keyboard", async () => {
+    const user = userEvent.setup();
+    render(<StoryCard story={READY} timeZone="UTC" onAction={() => {}} />);
+    const toggle = screen.getByRole("button", { name: "4 questions to verify" });
+    const questions = document.getElementById(toggle.getAttribute("aria-controls")!);
+    expect(questions?.hidden).toBe(true);
+    await user.tab();
+    await user.keyboard("{Enter}");
+    expect(questions?.hidden).toBe(false);
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(questions?.textContent).toContain(READY.questions[0]);
+    await user.keyboard(" ");
+    expect(questions?.hidden).toBe(true);
+  });
+
+  it("dismisses source links with Escape, outside click, or focus leaving the list", async () => {
+    const user = userEvent.setup();
+    render(<StoryCard story={READY} timeZone="UTC" onAction={() => {}} />);
+    const trigger = screen.getByRole("button", { name: "Link" });
+    await user.click(trigger);
+    await user.tab();
+    expect(document.activeElement?.getAttribute("href")).toBe(READY.links[0]?.url);
+    await user.keyboard("{Escape}");
+    expect(document.activeElement).toBe(trigger);
+    expect(screen.queryByRole("list", { name: "Original sources" })).toBeNull();
+    await user.click(trigger);
+    await user.click(screen.getByRole("heading", { name: READY.label! }));
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    await user.click(trigger);
+    await user.tab();
+    await user.tab();
+    await user.tab();
+    expect(document.activeElement?.textContent).toBe("Save");
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
   });
 
   it("offers Restore instead of Save and Dismiss once a story left the inbox", () => {

@@ -31,6 +31,17 @@ afterEach(() => {
 });
 
 describe("App", () => {
+  it("keeps ranked cards in reading and keyboard order across rows", async () => {
+    vi.stubGlobal("fetch", async () => new Response(JSON.stringify(page([story(1, "first"), story(2, "second"), story(3, "third"), story(4, "fourth")]))));
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByRole("heading", { name: "first" });
+    expect(screen.getAllByRole("heading").map((heading) => heading.textContent)).toEqual(["first", "second", "third", "fourth"]);
+    screen.getAllByRole("button", { name: "Written" })[0]!.focus();
+    await user.tab();
+    expect(document.activeElement).toBe(screen.getAllByRole("button", { name: "Save" })[1]);
+  });
+
   it("removes a saved card at once, moves the tab counts, and posts JSON", async () => {
     const user = userEvent.setup();
     render(<App />);
@@ -67,6 +78,10 @@ describe("App", () => {
     await waitFor(() => expect(window.location.search).toBe("?topic=backend&q=deepseek&sort=newest"));
     await waitFor(() => expect(requests.at(-1)).toBe("GET /api/stories?tab=inbox&sort=newest&topic=backend&q=deepseek"));
     expect(screen.getByText("Newest first.")).toBeTruthy();
+
+    await user.clear(screen.getByRole("searchbox"));
+    await waitFor(() => expect(window.location.search).toBe("?topic=backend&sort=newest"));
+    await waitFor(() => expect(requests.at(-1)).toBe("GET /api/stories?tab=inbox&sort=newest&topic=backend"));
   });
 
   it("round-trips filters through the URL and ignores junk", () => {

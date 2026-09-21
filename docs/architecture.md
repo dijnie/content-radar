@@ -130,6 +130,19 @@ Thẻ không phụ thuộc LLM để hiện ra: mọi câu chuyện có headline
 
 Giới hạn của tính tất định: trên cùng tập claim, embedding và tham số đã lưu (`cluster_runs.params_json`), chạy lại với cùng seed cho cùng phân hoạch. Tập claim thì không tái lập được, vì việc bóc claim dùng LLM.
 
+## Giao diện và thao tác
+
+Giao diện bám theo [ảnh tham chiếu](https://www.facebook.com/photo/?fbid=29387863247481748): thanh lọc phía trên, thẻ trắng viền mảnh, hai thẻ mỗi hàng có cùng chiều cao. Trên màn hình từ 900px trở xuống, thẻ chuyển thành một cột. Thứ tự DOM luôn theo thứ tự API để đọc bằng bàn phím và trình đọc màn hình khớp thứ tự điểm/thời gian. Nội dung, số đếm và điểm lấy từ D1; không dùng các con số trong ảnh làm dữ liệu mẫu.
+
+- `Ready · Lead`, `Saved`, `Dismissed` có số đếm; các chủ đề lấy từ cấu hình. Chủ đề `ai` mang nhãn `AI`, vẫn bao gồm nội dung Agent theo bộ từ khóa hiện tại.
+- Tìm kiếm, chủ đề, tab và sắp xếp `Newest`/`Score` nằm trên URL để tải lại trang giữ bộ lọc.
+- Bấm số `questions to verify` để mở/đóng danh sách câu hỏi ngay dưới dòng nguồn. Nút có trạng thái mở và điều khiển được bằng bàn phím.
+- `Link` mở nguồn gốc; nếu có nhiều nguồn thì mở danh sách liên kết. Escape đóng danh sách và trả focus về nút, click bên ngoài hoặc rời danh sách bằng Tab cũng đóng nó.
+- `Save` chuyển sang Saved; `Written` cũng nằm trong Saved với nhãn riêng; `Dismiss` chuyển sang Dismissed. `Restore` trả về trạng thái inbox, với điều kiện hiển thị inbox hiện có. API lưu trạng thái và nhật ký thao tác; giao diện cập nhật lạc quan và hoàn tác khi request thất bại.
+- `System status` nằm dưới danh sách thẻ; trang trạng thái có nút quay lại và giữ bộ lọc.
+
+Màu, kích thước và breakpoint thuộc [`apps/web/src/styles.css`](../apps/web/src/styles.css). Ảnh tĩnh không xác định được font gốc, thuật toán điểm hoặc các hành vi ẩn; các phần đó tiếp tục theo hợp đồng và kiểm thử của dự án.
+
 ## Bảo mật
 
 - **Mọi request, kể cả static assets, đi qua kiểm tra JWT của Cloudflare Access trong code** (`RS256`, `iss`, `aud`, `exp`, email chủ sở hữu; lỗi tải JWKS thì từ chối) rồi qua lớp chống CSRF (`Sec-Fetch-Site`, `Origin` khớp chính xác, `POST` phải là JSON). Mọi route API nằm trong một bảng route chỉ tới được sau hai lớp này; một test đi qua cả bảng bằng `fetch` thật của Worker. Theo lựa chọn ngày 2026-09-21, `workers_dev` bật với Access che toàn bộ hostname, preview URL tắt. Access dùng Cloudflare làm identity provider, chỉ thành viên account được xác thực, tự chuyển sang đăng nhập Cloudflare; policy và Worker tiếp tục giới hạn một chủ sở hữu. Không dùng mã email của Access hay tài khoản/mật khẩu do ứng dụng tự quản lý. Trạng thái deployment thực tế phải đối chiếu theo [hướng dẫn vận hành](operations.md).

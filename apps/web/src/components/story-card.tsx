@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { Story, StoryAction } from "../types";
 import { CardActions } from "./card-actions";
 import { ClaimLine } from "./claim-line";
@@ -20,6 +21,7 @@ interface Props {
 }
 
 export function StoryCard({ story, timeZone, onAction }: Props) {
+  const [questionsOpen, setQuestionsOpen] = useState(false);
   const hidden = story.claimCount - story.claims.length;
   return (
     <article className={`card card--${story.status}`} aria-labelledby={`story-${story.id}`}>
@@ -43,14 +45,18 @@ export function StoryCard({ story, timeZone, onAction }: Props) {
 
       <p className="card-meta">
         <strong className={`sources sources--${story.status}`}>{plural(story.independentSources, "independent source", "independent sources")}</strong>
-        <span> · {plural(story.questions.length, "question", "questions")} to verify</span>
+        <span aria-hidden="true">·</span>
+        {story.questions.length > 0 ? (
+          <button type="button" className="questions-toggle" aria-expanded={questionsOpen} aria-controls={`questions-${story.id}`} onClick={() => setQuestionsOpen((open) => !open)}>
+            {plural(story.questions.length, "question", "questions")} to verify
+          </button>
+        ) : <span>0 questions to verify</span>}
         {story.hasCounter && <span className="chip chip--counter">counterpoint</span>}
       </p>
       {story.questions.length > 0 && (
-        <details className="questions">
-          <summary>Questions to verify</summary>
-          <ol>{story.questions.map((question) => <li key={question}>{question}</li>)}</ol>
-        </details>
+        <ol className="questions" id={`questions-${story.id}`} hidden={!questionsOpen}>
+          {story.questions.map((question, index) => <li key={index}>{question}</li>)}
+        </ol>
       )}
 
       <footer className="card-foot">

@@ -2,6 +2,8 @@
 
 Ngày: 2026-09-21 UTC. Phạm vi: giữ xác thực Cloudflare Access theo quyết định mới nhất; chỉ chủ sở hữu được vào URL `workers.dev` hiện tại. Không triển khai email/mật khẩu riêng trong ứng dụng.
 
+**Cập nhật 08:17 UTC:** theo làm rõ của người dùng, đã thay phương thức mã email ban đầu bằng đăng nhập tài khoản Cloudflare. Diễn biến ban đầu dưới đây là lịch sử; cấu hình hiện hành nằm ở mục cập nhật cuối báo cáo và `docs/operations.md`.
+
 ## Thực hiện
 
 - Trước sửa: `/` trả 503 `access_not_configured`; Worker thiếu `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`, `OWNER_EMAIL`, `APP_ORIGIN`. Zero Trust đã có tổ chức, identity provider mã email và reusable policy chỉ cho đúng một email; chưa có ứng dụng Access cho Content Radar.
@@ -26,7 +28,16 @@ Ngày: 2026-09-21 UTC. Phạm vi: giữ xác thực Cloudflare Access theo quy�
 - Giữ Access, binding xác thực và cấu hình origin khi deploy về sau. Nếu cần đóng URL khẩn cấp, tắt route `workers.dev`; không xoá Access khi route còn mở. Hoàn tác code không cần hoàn tác D1 hay bỏ xác thực.
 - Tài liệu chính thức: [Access trên Workers](https://developers.cloudflare.com/workers/configuration/cloudflare-access/), [workers.dev](https://developers.cloudflare.com/workers/configuration/routing/workers-dev/), [mã đăng nhập email](https://developers.cloudflare.com/cloudflare-one/integrations/identity-providers/one-time-pin/).
 
+## Chuyển sang đăng nhập tài khoản Cloudflare lúc 08:17 UTC
+
+- Người dùng yêu cầu không nhập email hay gửi mã riêng tại Access; dùng phiên đăng nhập Cloudflare. Cấu hình mã email trước đó không đáp ứng đúng yêu cầu này.
+- Tạo identity provider loại `cloudflare`, `restrict_to_account_members: true`, theo [tài liệu chính thức](https://developers.cloudflare.com/cloudflare-one/integrations/identity-providers/cloudflare/). Đổi `allowed_idps` của Content Radar sang duy nhất provider mới và bật `auto_redirect_to_identity: true`.
+- Giữ nguyên ứng dụng/AUD, hostname, policy một chủ sở hữu, thời hạn 24 giờ, Worker và các binding. Không deploy code hay thay đổi dữ liệu. Provider mã email cũ vẫn còn cho ứng dụng khác; Content Radar không chọn nó. Provider mới thuộc cấp tổ chức: các ứng dụng khác dùng danh sách IdP mặc định có thể thấy thêm lựa chọn Cloudflare; không sửa policy hay danh sách IdP của chúng.
+- Đọc lại API xác nhận chỉ provider `cloudflare`, giới hạn thành viên account, tự chuyển đăng nhập, audience giữ nguyên và policy vẫn chỉ một email. Email là điều kiện cấp quyền từ danh tính Cloudflare, không phải ô nhập liệu cho người dùng.
+- HTTP trang Access trả 200, không có input hoặc `Send login code`; `data-auto-redirect-to-identity=true`, đích `dash.cloudflare.com/oauth2/auth`, không có thông báo ngăn chuyển. JavaScript trang Access thực hiện tự chuyển. API status/stories và static asset không đăng nhập vẫn nhận 302 tới Access.
+- Rà soát cấu hình trực tiếp; không chạy lại unit test vì không đổi code/config repo, 33 test trước đó vẫn là bằng chứng cho JWT/CSRF. Không có phiên dashboard của chủ sở hữu trong công cụ để kiểm chứng bước sau đăng nhập.
+
 ## Còn chờ
 
-- Chủ sở hữu hoàn tất mã email, mở radar và System status; không yêu cầu gửi mã hoặc mật khẩu vào chat.
+- Chủ sở hữu mở lại URL radar trong cùng trình duyệt đã đăng nhập Cloudflare, kiểm tra radar và System status. Không yêu cầu gửi cookie, mã hoặc mật khẩu vào chat.
 - Các tiêu chí production khác và tuần chạy thử vẫn theo plan gốc; thay đổi Access không hoàn tất những tiêu chí đó.

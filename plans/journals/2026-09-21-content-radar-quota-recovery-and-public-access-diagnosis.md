@@ -28,4 +28,8 @@ Người dùng chốt giữ Cloudflare Access. Dùng tổ chức Zero Trust, mã
 
 Sau khi tạo ứng dụng, redirect đã hoạt động nhưng trang Access tạm trả 404; người dùng xác nhận cùng lỗi. Kiểm tra tiếp mà không sửa thêm ứng dụng/policy, trang đăng nhập trả 200 và hiện form gửi mã cho Content Radar. Không coi 302 là kiểm chứng đủ. 33 test Access/CSRF và dry-run deploy qua; đăng nhập hoàn chỉnh vẫn chờ chủ sở hữu. [Báo cáo Access](../reports/cook-260921-0804-cloudflare-access.md) và [vận hành](../../docs/operations.md) ghi lại cấu hình, bằng chứng và giới hạn.
 
+## Làm rõ cách đăng nhập lúc 08:16 UTC
+
+Người dùng muốn dùng phiên tài khoản Cloudflare, không nhập email/gửi mã riêng tại Access. Tra tài liệu và API hiện hành xác nhận provider `cloudflare` hỗ trợ điều này. Đã thêm provider giới hạn thành viên account, chọn riêng provider này cho Content Radar và bật tự chuyển. Giữ nguyên policy một chủ sở hữu và kiểm tra JWT trong Worker. HTTP/HTML xác nhận hết form mã email, tự chuyển tới `/oauth2/auth` của dashboard; bước đăng nhập hoàn chỉnh cần trình duyệt chủ sở hữu. Hướng dẫn vận hành đã sửa theo lựa chọn mới nhất.
+
 > Historical work record — not durable authority. Prefer docs/specs/ADRs for current decisions.

@@ -1,13 +1,13 @@
 import { insertLlmCall } from "../db/llm-repo";
 import type { Env } from "../env";
-import type { LlmMessage, PollMessage } from "./messages";
+import type { LlmMessage, PollQueueMessage } from "./messages";
 
 /**
  * `radar-dlq` consumer. A dead-lettered extraction means the item exhausted its
  * retries: it is marked `failed` with a visible reason instead of vanishing. A
- * dead-lettered poll needs nothing, the source's next_poll_at already retries it.
+ * Tracked crawl/feed jobs recover from D1; legacy polls use source next_poll_at.
  */
-export async function consumeDeadLetters(batch: MessageBatch<LlmMessage | PollMessage>, env: Pick<Env, "DB">, now = Math.floor(Date.now() / 1000)): Promise<void> {
+export async function consumeDeadLetters(batch: MessageBatch<LlmMessage | PollQueueMessage>, env: Pick<Env, "DB">, now = Math.floor(Date.now() / 1000)): Promise<void> {
   for (const message of batch.messages) {
     const body = message.body;
     if ("kind" in body && body.kind === "extract") {

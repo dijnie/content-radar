@@ -1,0 +1,103 @@
+{
+  "capturedAt": "2026-09-21T11:54:25.890480+00:00",
+  "environment": "local",
+  "crawl": {
+    "id": 1,
+    "kind": "crawl",
+    "status": "partial",
+    "trigger": "manual",
+    "startedAt": 1789989338,
+    "finishedAt": 1789990562,
+    "crawlId": null,
+    "sources": 121,
+    "failures": 3,
+    "posts": 1465,
+    "articles": 343,
+    "itemsNew": 1555,
+    "entries": 0,
+    "error": null
+  },
+  "feeds": [
+    {
+      "feed": "news",
+      "publication": {
+        "runId": 9,
+        "crawlId": 1,
+        "publishedAt": 1789991591,
+        "total": 16
+      },
+      "total": 1,
+      "counts": {
+        "news": 16
+      },
+      "awaitingEditorial": 0
+    },
+    {
+      "feed": "hands-on",
+      "publication": {
+        "runId": 10,
+        "crawlId": 1,
+        "publishedAt": 1789991638,
+        "total": 46
+      },
+      "total": 36,
+      "counts": {
+        "field-tests": 4,
+        "playbooks": 6,
+        "toolbox": 36
+      },
+      "awaitingEditorial": 768
+    },
+    {
+      "feed": "deep-dives",
+      "publication": {
+        "runId": 11,
+        "crawlId": 1,
+        "publishedAt": 1789991638,
+        "total": 14
+      },
+      "total": 14,
+      "counts": {
+        "deep-dives": 14,
+        "month1": 14,
+        "month2": 14,
+        "month3": 14,
+        "read": 0,
+        "unread": 14
+      },
+      "awaitingEditorial": 947
+    }
+  ],
+  "browser": {
+    "desktopWidth": 1440,
+    "mobileWidth": 390,
+    "horizontalOverflow": false,
+    "browserErrors": 0,
+    "checked": [
+      "Jobs failures filter and source diagnostics",
+      "News source details and quote",
+      "Hands-on pagination 1 to 2 and category reset",
+      "Deep dives empty state and all controls",
+      "Stories still has two real cards",
+      "Populated Deep dives read/unread persists across reload, restored afterwards",
+      "Real Playbook cards",
+      "Deep dives and Hands-on populated mobile overflow check",
+      "Real Field test cards after budgeted first-hand classification"
+    ]
+  },
+  "ai": {
+    "route": "existing Cloudflare AI Gateway binding, gateway",
+    "result": "budgeted extraction successful; direct-key route returned 401",
+    "rpd": 100,
+    "rpm": 5,
+    "quotaReset": false,
+    "configurationCircuitClearedAfterRouteChange": true
+  },
+  "cluster": {
+    "id": 4,
+    "status": "done",
+    "claims": 218,
+    "edges": 43,
+    "communities": 16
+  }
+}

@@ -1,4 +1,5 @@
 export const CORE_VERSION = "0.1.0";
+export type * from "./editorial-types.ts";
 export * from "./platform.ts";
 export * from "./text/normalize-entity.ts";
 export * from "./params.ts";

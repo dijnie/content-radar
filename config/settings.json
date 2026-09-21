@@ -9,5 +9,14 @@
   "filter_languages": ["en", "vi"],
   "filter_min_text_length": 40,
   "hn_min_points": 20,
-  "core_overrides": {}
+  "core_overrides": {},
+  "editorial_scoring": {
+    "newsMinScore": 55,
+    "weights": { "starsToday": 35, "trendingRank": 25, "adoption": 20, "freshness": 10, "health": 10 },
+    "starsTodayCap": 1000,
+    "starsCap": 100000,
+    "rankLimit": 25,
+    "freshDays": 90,
+    "labLeaderAuthorKeys": []
+  }
 }

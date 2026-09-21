@@ -4,14 +4,27 @@ import { StoryGrid } from "./components/story-grid";
 import { Toolbar } from "./components/toolbar";
 import { useStories } from "./hooks/use-stories";
 import { useUrlState } from "./hooks/use-url-state";
+import { FeedPage } from "./components/editorial/feed-page";
+import { JobsPage } from "./components/editorial/jobs-page";
+import type { Filters } from "./types";
+import "./editorial.css";
+
+const NAVIGATION = [
+  { view: "stories", label: "Stories" }, { view: "news", label: "News" }, { view: "hands-on", label: "Hands-on" },
+  { view: "deep-dives", label: "Deep dives" }, { view: "jobs", label: "Jobs" },
+] as const;
 
 export function App() {
   const [filters, setFilters] = useUrlState();
+  return <div className="page"><nav className="app-navigation" aria-label="Content Radar">{NAVIGATION.map(({ view, label }) => <a key={view} href={view === "stories" ? "?" : `?view=${view}`} aria-current={filters.view === view ? "page" : undefined}>{label}</a>)}</nav>{filters.view === "news" || filters.view === "hands-on" || filters.view === "deep-dives" ? <main><FeedPage key={filters.view} feed={filters.view} /></main> : filters.view === "jobs" ? <main><JobsPage /></main> : <StoryViews filters={filters} setFilters={setFilters} />}</div>;
+}
+
+function StoryViews({ filters, setFilters }: { filters: Filters; setFilters: (patch: Partial<Filters>) => void }) {
   const stories = useStories(filters);
   const onStatus = filters.view === "status";
 
   return (
-    <div className="page">
+    <>
       <a className="skip-link" href="#content">Skip to stories</a>
       {!onStatus && <Toolbar filters={filters} counts={stories.counts} topics={stories.topics} onChange={setFilters} />}
       <div className="subbar">
@@ -38,6 +51,6 @@ export function App() {
         )}
       </main>
       {!onStatus && <footer className="page-foot"><button type="button" className="text-button" onClick={() => setFilters({ view: "status" })}>System status</button></footer>}
-    </div>
+    </>
   );
 }

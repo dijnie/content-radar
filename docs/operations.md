@@ -4,6 +4,20 @@ Trạng thái (cập nhật 2026-09-21): người dùng chọn giữ Cloudflare 
 
 Tài nguyên Cloudflare đã tạo (D1 `content-radar`, R2 `content-radar-raw`, queue `radar-poll`, `radar-llm`, `radar-dlq`). Ngày 2026-09-21 migration `0001` đến `0009` đã được áp lên D1 remote và cấu hình đã được đồng bộ (3 chủ đề, 119 nguồn, 13 tác giả); từ thời điểm đó **không sửa các file migration này nữa**, mọi thay đổi schema phải là một migration mới. Những quy trình dưới đây có đánh dấu **chưa thử trên production** là viết theo tài liệu của Cloudflare và theo hành vi đã kiểm chứng ở local; hãy cập nhật chúng khi chạy thật lần đầu.
 
+## Jobs và feed editorial
+
+Bản bổ sung ngày 2026-09-21 đã áp migration `0010` và đồng bộ 121 nguồn ở **local**; chưa triển khai phần này lên production. Khi phát hành, ghi bookmark D1, áp migration mới và sync cấu hình rồi deploy theo quy trình bên dưới. Không sửa lại migration đã áp. Không cần queue, secret hay dịch vụ trả phí mới.
+
+- **Jobs → Run** crawl mọi nguồn đang bật; bấm lần nữa trong khi chạy trả lại cùng crawl. Mở một dòng để xem lỗi nguồn. `partial` nghĩa là một số nguồn lỗi, các nguồn thành công vẫn dùng được.
+- **From crawl → Build News/Hands-on/Deep dives** tạo bản riêng từ crawl hoàn tất. Build thất bại giữ bản công bố trước; Rerun thử lại từ cùng crawl. Lịch bật/tắt và khoảng phút được lưu riêng từng feed (30 đến 10.080 phút); cron 30 phút là độ phân giải thực tế của lịch.
+- News cần claim và Stories từ job cluster; Deep dives, Field tests và Playbooks cần extraction đã trả phân loại hợp lệ. Chỉ toolbox repository có thể xuất hiện ngay sau crawl mà chưa cần LLM. Phần chờ phân tích hiển thị ngay trên feed. Giữ trần DeepSeek hiện tại, chờ backlog xử lý; không nhập thẻ giả hoặc reset quota để làm đầy giao diện.
+- Cấu hình `editorial_scoring` đặt ngưỡng News và trọng số/trần repository; công thức ở [kiến trúc](architecture.md#điểm-repository). Sync cấu hình rồi dựng feed mới để áp dụng, bản đã công bố giữ điểm cũ. Mặc định lab leader chưa gắn; điền các `authorKey` thật vào `labLeaderAuthorKeys` khi có danh sách xác nhận.
+- GitHub `trending:daily` lấy hạng/ngày thật; `search:` không có hạng Trending. Hugging Face Papers lấy abstract từ API công khai. Website đổi cấu trúc hoặc chặn truy cập sẽ hiện lỗi trong Jobs; metadata thiếu giữ trạng thái không có số liệu.
+
+API cùng đi qua Access/CSRF: `GET /api/jobs`, `GET /api/jobs/:kind/:id`, `POST /api/jobs/crawls`, `POST /api/jobs/feeds/:feed`, `POST /api/jobs/schedules/:feed`, `GET /api/feeds/:feed`, `GET /api/feeds/:feed/detail?key=...`, `POST /api/feeds/deep-dives/read`. `feed` là `news`, `hands-on` hoặc `deep-dives`; payload build là `{ "crawlId": null }` (mới nhất) hoặc một ID hoàn tất. Payload lịch là `{ "enabled": true, "intervalMinutes": 60 }`; thao tác đọc là `{ "key": "item:123", "read": true }`.
+
+Cron khôi phục intent crawl/build bị mất queue và lease quá hạn. Khi kiểm tra local, sửa code có thể khởi động lại Worker giữa một poll; chờ lease 15 phút rồi gọi tick poll để kiểm chứng recovery. Không cần sửa trạng thái D1 bằng tay. Lịch sử crawl/feed hiện được giữ; theo dõi dung lượng bảng snapshot khi chạy dài ngày. Rollback code giữ nguyên schema mở rộng và dữ liệu, gồm trạng thái đọc.
+
 ## Deploy lần đầu
 
 Cần có trước: một ứng dụng Access kiểu self-hosted cho hostname của Worker với policy cho đúng một email. Hostname hiện tại là `content-radar.<subdomain>.workers.dev`; không cần custom domain. Lấy **Application Audience (AUD) tag** của ứng dụng và miền team dạng `https://<team>.cloudflareaccess.com`. Xem [Access trên Workers](https://developers.cloudflare.com/workers/configuration/cloudflare-access/).
@@ -29,7 +43,7 @@ Cần có trước: một ứng dụng Access kiểu self-hosted cho hostname c�
    cd ../.. && npm run config:sync -- --remote
    ```
 
-   Bước này đã được thực hiện ngày 2026-09-21; chạy lại là an toàn vì migration đã áp dụng thì bị bỏ qua và `config:sync` là idempotent. Lưu ý: trên remote, `wrangler d1 execute --file` đi qua đường import hàng loạt và chỉ trả bản tóm tắt, không trả dòng kết quả. Dùng `--file` cho việc ghi, và `--command` (hoặc `npm run soak-report -- --remote`) khi cần đọc kết quả.
+   Bước này đã được thực hiện tới migration `0009` ngày 2026-09-21; migration mới cần áp khi phát hành tương ứng. Chạy lại là an toàn vì migration đã áp dụng thì bị bỏ qua và `config:sync` là idempotent. Lưu ý: trên remote, `wrangler d1 execute --file` đi qua đường import hàng loạt và chỉ trả bản tóm tắt, không trả dòng kết quả. Dùng `--file` cho việc ghi, và `--command` (hoặc `npm run soak-report -- --remote`) khi cần đọc kết quả.
 
 3. Đặt secret (mỗi lệnh hỏi giá trị, không ghi vào file hay lịch sử shell):
 
@@ -66,6 +80,7 @@ Cấu hình production trong `wrangler.jsonc` có binding `AI` và `AI_GATEWAY_I
 - Có thể tạo bản sao bằng Secrets Store API `/secrets/{id}/duplicate`, tên `gateway_deepseek_default`, scope `ai_gateway`, không cần đọc giá trị key. Khi tạo provider config qua API, runtime tra secret theo tên; `secret_id` không phải khoá tra runtime. Đối chiếu [quy ước BYOK](https://developers.cloudflare.com/ai-gateway/configuration/bring-your-own-keys/) và kiểm chứng bằng lượt gọi thật.
 - Giữ trần 100/ngày và 5/phút của ứng dụng. Binding trả Response thô, timeout 60 giây, một upstream attempt, bỏ cache và metadata `application=content-radar`. Mã HTTP, `Retry-After` và token usage vẫn đi qua sổ hiện có.
 - Thiếu binding, tên Gateway sai, Gateway 400 hoặc lỗi 401/403/404 thì tạm dừng và giữ việc trong D1. Binding 400 được coi là cấu hình cần sửa, vì Gateway dùng mã này khi thiếu BYOK; xem Gateway log để phân biệt lỗi tham số. Không tự quay lại key trực tiếp hay model khác.
+- Local đã kiểm chứng Gateway ngày 2026-09-21: key direct hiện có trả 401; đặt `AI_GATEWAY_ID=gateway` trong file ignored `apps/worker/.dev.vars`, nạp lại cấu hình dev và extraction thực tế thành công qua binding. Khi đổi đường gọi sau lỗi cấu hình, chỉ có thể gỡ `llm_circuit` loại `configuration_error`; giữ nguyên `llm_usage`, trần và `exhausted_until`. Không cần chép key BYOK từ Gateway về máy.
 - Local gọi trực tiếp bằng `DEEPSEEK_API_KEY` khi không đặt `AI_GATEWAY_ID`. Muốn kiểm tra Gateway thật ở local thì dùng AI binding remote và đặt `AI_GATEWAY_ID=gateway`; lượt gọi vẫn tính phí. Không xoá usage/cooldown để làm lại lượt.
 - `.dev.vars` gốc repo không tự trở thành secret production. Wrangler local đọc `apps/worker/.dev.vars`; cả hai file đều nằm ngoài git. Đường binding không cần đưa key hoặc token từ các file này lên Worker.
 
@@ -126,7 +141,7 @@ Lỗi của một nguồn không ảnh hưởng nguồn khác. Từ lần lỗi 
 
 - Một feed RSS: thường do site chặn bot. Tắt nguồn trong `sources.json` hoặc đổi URL feed.
 - **Mọi** nguồn `x` cùng lỗi: FxTwitter đổi schema hoặc siết truy cập. Adapter tự lùi về RSS của FxTwitter cộng API theo từng status, rồi Syndication cho like và reply. Nếu kéo dài quá 48 giờ thì lối thoát là tự host FxEmbed trên một Worker riêng; X là trục nguồn chính nên đây là việc phải quyết, không phải việc chờ.
-- GitHub 403 hoặc 429: kiểm tra PAT còn hạn. Feed `releases.atom` không tính vào hạn mức REST; chỉ các nguồn `search:` dùng API.
+- GitHub 403 hoặc 429: kiểm tra PAT còn hạn. Feed `releases.atom` không tính vào hạn mức REST; các nguồn `search:` và phần metadata bổ sung của `trending:daily` dùng API.
 
 ## Rollback và khôi phục
 
@@ -142,7 +157,7 @@ Thứ tự an toàn cho mọi thay đổi schema: migration chỉ **mở rộng*
 
 Message hỏng sau 5 lần retry vào `radar-dlq`, và Worker tự tiêu thụ queue này. Riêng chờ quota theo phút hoặc model quá tải được trả về D1 sau tối đa bốn retry ngắn, trước trần queue: item vẫn `queued`, headline vẫn đủ điều kiện tổng hợp và phân xử entity trở về `pending`. Cron rút backlog hoặc job cluster sẽ thử lại khi có ngân sách; không phải sửa trạng thái bằng tay cho các lần chờ này.
 
-Một message `extract` thực sự chết thì item tương ứng thành `failed` với `filter_reason = 'dead_letter'` kèm một dòng trong `llm_calls`, để không item nào biến mất trong im lặng. Message poll chết thì không cần làm gì: `next_poll_at` của nguồn đã tự lo việc thử lại. Tìm item hỏng:
+Một message `extract` thực sự chết thì item tương ứng thành `failed` với `filter_reason = 'dead_letter'` kèm một dòng trong `llm_calls`, để không item nào biến mất trong im lặng. Message crawl hoặc build chết vẫn có intent trong D1; cron khôi phục theo lease và số lần xử lý. Poll cũ không có crawl ID dùng `next_poll_at` để thử lại. Message editorial bổ sung không làm item đã extracted thành failed; giới hạn lần phân tích và cron quản lý việc thử lại. Tìm item hỏng:
 
 ```sql
 SELECT id, platform, url, filter_reason FROM items WHERE status = 'failed' ORDER BY id DESC LIMIT 50;

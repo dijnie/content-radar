@@ -1,4 +1,4 @@
-import type { Platform } from "@radar/core";
+import type { Platform, RepositoryFacts } from "@radar/core";
 import type { ItemKind } from "../db/items-repo";
 import type { SourceRow } from "../db/sources-repo";
 import type { HttpOptions, HttpTextResponse } from "./http-client";
@@ -27,6 +27,7 @@ export interface NormalizedItem {
   publishedAt: number;
   /** Set when only the feed summary is available, not the article body. */
   summaryOnly?: boolean;
+  repository?: RepositoryFacts;
   raw: unknown;
 }
 

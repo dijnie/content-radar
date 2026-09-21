@@ -18,7 +18,7 @@ type Reply = { status: number; body: unknown };
 const textOf = (n: number) => `Post ${n}: our team measured that latency dropped ${n}% on the internal benchmark after the rewrite of the serving stack.`;
 
 /** Stands in for DeepSeek: answers every <item> in the prompt with one claim quoting that item verbatim. */
-function fakeDeepSeek(script: (call: number, model: string, itemIds: number[]) => Reply | null = () => null) {
+function fakeDeepSeek(script: (call: number, model: string, itemIds: number[]) => Reply | null = () => null, editorial?: unknown) {
   const calls: { model: string; itemIds: number[] }[] = [];
   const fetcher = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const model = JSON.parse(String(init!.body)).model as string;
@@ -29,7 +29,7 @@ function fakeDeepSeek(script: (call: number, model: string, itemIds: number[]) =
     if (scripted) return Response.json(scripted.body, { status: scripted.status });
     const payload = {
       items: items.map((item) => ({
-        itemId: item.id, relevant: true, topics: ["ai", "not-a-topic"],
+        itemId: item.id, relevant: true, topics: ["ai", "not-a-topic"], editorial,
         claims: [{
           kind: "measurement", text_vi: "Nhóm tác giả đo được độ trễ giảm trên bộ thử nội bộ sau khi viết lại.", text_en: "The team measured a latency drop on its internal benchmark after a rewrite.",
           quote: /latency dropped \d+% on the internal benchmark/.exec(item.text)![0], has_numbers: true, first_hand: true,
@@ -90,6 +90,45 @@ beforeEach(async () => {
 });
 
 describe("consumeLlmBatch", () => {
+  it("stores validated editorial metadata in the same budgeted extraction call", async () => {
+    const [id] = await seedItems(1);
+    const editorial = { category: "field_test", pillar: "inference", summary_vi: "Nhóm tác giả đo độ trễ trên bộ thử nội bộ.", question_vi: "Độ trễ thay đổi ra sao?" };
+    const deepseek = fakeDeepSeek(() => null, editorial);
+    await consumeLlmBatch(fakeBatch([{ kind: "extract", itemId: id! }]).batch, testEnv, { now: NOW, fetcher: deepseek.fetcher });
+    expect(deepseek.calls).toHaveLength(1);
+    expect(await env.DB.prepare("SELECT category, pillar, summary_vi, question_vi FROM item_editorial WHERE item_id = ?").bind(id).first()).toEqual(editorial);
+    expect(await env.DB.prepare("SELECT editorial_attempts FROM items WHERE id = ?").bind(id).first()).toEqual({ editorial_attempts: 1 });
+    expect((await env.DB.prepare("SELECT SUM(requests) AS n FROM llm_usage").first<{ n: number }>())!.n).toBe(1);
+  });
+
+  it("preserves verified claims when editorial metadata is malformed", async () => {
+    const [id] = await seedItems(1);
+    const deepseek = fakeDeepSeek(() => null, { category: "made-up", summary_vi: "Invalid" });
+    await consumeLlmBatch(fakeBatch([{ kind: "extract", itemId: id! }]).batch, testEnv, { now: NOW, fetcher: deepseek.fetcher });
+    expect(await claimCount([id!])).toBe(1);
+    expect(await env.DB.prepare("SELECT 1 FROM item_editorial WHERE item_id = ?").bind(id).first()).toBeNull();
+    expect(await statuses([id!])).toEqual({ extracted: 1 });
+  });
+
+  it("holds new crawl items without starving items from an earlier completed crawl", async () => {
+    const [old, fresh] = await seedItems(2);
+    const sourceId = (await env.DB.prepare("SELECT source_id FROM items WHERE id = ?").bind(old).first<{ source_id: number }>())!.source_id;
+    const previous = (await env.DB.prepare("INSERT INTO crawl_runs (trigger, status, started_at, finished_at) VALUES ('manual', 'ok', ?, ?) RETURNING id").bind(NOW - 100, NOW - 50).first<{ id: number }>())!.id;
+    const active = (await env.DB.prepare("INSERT INTO crawl_runs (trigger, status, started_at) VALUES ('manual', 'running', ?) RETURNING id").bind(NOW - 10).first<{ id: number }>())!.id;
+    await env.DB.batch([
+      env.DB.prepare("INSERT INTO crawl_items (crawl_id, item_id, snapshot_json) VALUES (?, ?, '{}')").bind(previous, old),
+      env.DB.prepare("INSERT INTO crawl_sources (crawl_id, source_id) VALUES (?, ?)").bind(active, sourceId),
+      env.DB.prepare("UPDATE items SET fetched_at = ? WHERE id IN (?, ?)").bind(NOW, old, fresh),
+    ]);
+    const deepseek = fakeDeepSeek();
+    await consumeLlmBatch(fakeBatch([old!, fresh!].map((itemId) => ({ kind: "extract", itemId }))).batch, testEnv, { now: NOW, fetcher: deepseek.fetcher });
+    expect(deepseek.calls.map((call) => call.itemIds)).toEqual([[old]]);
+    expect(await statuses([fresh!])).toEqual({ queued: 1 });
+    await env.DB.prepare("UPDATE crawl_runs SET status = 'ok', finished_at = ? WHERE id = ?").bind(NOW, active).run();
+    await drainBacklog(testEnv, NOW + 61);
+    expect(sent.some((message) => message.kind === "extract" && message.itemId === fresh)).toBe(true);
+  });
+
   it("parks already queued historical messages while recent items wait, then processes them later", async () => {
     const [old, recent] = await seedItems(2);
     await env.DB.prepare("UPDATE items SET published_at = ? WHERE id = ?").bind(NOW - 30 * 86400, old).run();
@@ -147,7 +186,7 @@ describe("consumeLlmBatch", () => {
 
     const claim = await env.DB.prepare("SELECT c.*, i.text_excerpt FROM claims c JOIN items i ON i.id = c.item_id WHERE c.item_id = ?").bind(ids[6]).first<Record<string, unknown>>();
     expect(String(claim!.text_excerpt)).toContain(String(claim!.quote));
-    expect(claim).toMatchObject({ kind: "measurement", has_numbers: 1, first_hand: 1, model: "deepseek-flash", prompt_version: 2, topics_json: '["ai"]' });
+    expect(claim).toMatchObject({ kind: "measurement", has_numbers: 1, first_hand: 1, model: "deepseek-flash", prompt_version: 3, topics_json: '["ai"]' });
     expect(claim!.llm_call_id).toEqual(expect.any(Number));
     // Two surface forms of one entity collapse to a single normalized mention.
     const mentions = await env.DB.prepare("SELECT normalized FROM entity_mentions WHERE claim_id = ?").bind(claim!.id).all();

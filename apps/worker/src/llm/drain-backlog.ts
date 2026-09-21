@@ -4,7 +4,7 @@ import { listEnabledModels } from "../db/llm-repo";
 import type { Env } from "../env";
 import { remainingToday } from "./budget-ledger";
 import { circuitOpenUntil } from "./circuit-breaker";
-import { extractionWindowStart, hasRecentQueuedItems } from "./extraction-priority";
+import { CRAWL_FINISHED_SQL, extractionWindowStart, hasRecentQueuedItems } from "./extraction-priority";
 import type { LlmMessage } from "./messages";
 import { loadBudgetSettings } from "./model-chain";
 
@@ -45,7 +45,7 @@ export async function drainBacklog(env: Pick<Env, "DB" | "LLM_QUEUE">, now: numb
     const limit = Math.min(MAX_ITEMS_PER_DRAIN - sent, requests * BATCH_SIZE);
     if (limit <= 0) continue;
     const { results } = await env.DB
-      .prepare("SELECT id FROM items WHERE status = 'queued' AND ingest_mode = ? AND (queued_at IS NULL OR queued_at <= ?) AND (? = 0 OR published_at >= ?) ORDER BY published_at, id LIMIT ?")
+      .prepare(`SELECT id FROM items WHERE status = 'queued' AND ingest_mode = ? AND (queued_at IS NULL OR queued_at <= ?) AND (? = 0 OR published_at >= ?) AND ${CRAWL_FINISHED_SQL} ORDER BY published_at, id LIMIT ?`)
       .bind(mode, now - RESEND_AFTER_SECONDS, recentPending ? 1 : 0, since, limit)
       .all<{ id: number }>();
     if (results.length === 0) continue;

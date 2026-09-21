@@ -10,7 +10,7 @@ let jwt: string;
 
 /** A concrete path for every route pattern in the table. */
 function pathFor(pattern: RegExp): string {
-  return pattern.source.replace(/^\^|\$$/g, "").replaceAll("\\/", "/").replace(/\(\?<id>[^)]*\)/, "1");
+  return pattern.source.replace(/^\^|\$$/g, "").replaceAll("\\/", "/").replace(/\(\?<id>[^)]*\)/, "1").replace(/\(\?<feed>[^)]*\)/, "news").replace(/\(\?<kind>[^)]*\)/, "crawl");
 }
 
 beforeAll(async () => {
@@ -32,7 +32,9 @@ describe("every route sits behind Access and the CSRF guard", () => {
   it("covers the whole route table, including both admin routes", () => {
     expect(routes.map((route) => `${route.method} ${route.path}`).sort()).toEqual([
       "GET /api/admin/probe", "GET /api/status", "GET /api/stories", "GET /api/stories/1", "POST /api/admin/backfill", "POST /api/stories/1/action",
-    ]);
+      "GET /api/jobs", "GET /api/jobs/crawl/1", "POST /api/jobs/crawls", "POST /api/jobs/feeds/news", "POST /api/jobs/schedules/news",
+      "GET /api/feeds/news", "GET /api/feeds/news/detail", "POST /api/feeds/deep-dives/read",
+    ].sort());
   });
 
   it.each(ROUTES.map((route) => [route.method, pathFor(route.pattern)] as const))("%s %s answers 401 without a token", async (method, path) => {

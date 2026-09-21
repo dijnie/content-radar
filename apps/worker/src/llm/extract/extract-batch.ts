@@ -9,6 +9,7 @@ import { budgetedCall, type LlmDeps, type LlmEnv } from "../budgeted-call";
 import { EXTRACT_PROMPT_VERSION, extractSystemPrompt, extractUserPrompt, type PromptItem } from "./extract-prompt";
 import { EXTRACT_JSON_SCHEMA, extractResponseSchema, parseClaim, QUOTE_MAX_LENGTH } from "./extract-schema";
 import { normalizeForMatch, quoteFoundIn } from "./quote-match";
+import { editorialSchema, type Editorial } from "./editorial-schema";
 
 export const ITEM_TEXT_MAX = 6000;
 export const BATCH_TEXT_MAX = 40_000;
@@ -113,7 +114,10 @@ export async function extractBatch(env: LlmEnv, items: ItemRow[], kind: Extract<
     attempt,
   );
   // Only a call that reached DeepSeek counts against the item; a parked or postponed batch costs it nothing.
-  if (call.status === "ok" || call.status === "rejected") await chunkedBatch(env.DB, itemIds.map((id) => countExtractionAttempt(env.DB, id)));
+  if (call.status === "ok" || call.status === "rejected") await chunkedBatch(env.DB, itemIds.flatMap((id) => [
+    countExtractionAttempt(env.DB, id),
+    env.DB.prepare("UPDATE items SET editorial_attempts = editorial_attempts + 1 WHERE id = ?").bind(id),
+  ]));
   if (call.status === "rejected") return splitAndRetry(env, prepared, kind, deps, attempt);
   if (call.status !== "ok") return call;
 
@@ -124,14 +128,18 @@ export async function extractBatch(env: LlmEnv, items: ItemRow[], kind: Extract<
   }
   const byId = new Map(prepared.map((entry) => [entry.item.id, entry]));
   const rejected: Record<string, number> = {};
-  const outcomes: { prepared: Prepared; relevant: boolean; returned: number; accepted: Accepted[] }[] = [];
+  const outcomes: { prepared: Prepared; relevant: boolean; returned: number; accepted: Accepted[]; editorial: Editorial | null }[] = [];
   for (const entry of parsed.data.items) {
     const target = byId.get(entry.itemId);
     // Ids are taken from our own request only; anything else in the output is ignored.
     if (!target || outcomes.some((outcome) => outcome.prepared === target)) continue;
     const claimTopics = entry.topics.filter((topic) => topicSlugs.has(topic));
     const accepted = entry.relevant ? await validateItem(target, entry.claims, claimTopics, call.model, now, rejected) : [];
-    outcomes.push({ prepared: target, relevant: entry.relevant, returned: entry.claims.length, accepted });
+    const parsedEditorial = editorialSchema.safeParse(entry.editorial);
+    let editorial = entry.relevant && accepted.length && parsedEditorial.success ? parsedEditorial.data : null;
+    // Field tests require a verified first-hand claim, not merely the model's category label.
+    if (editorial?.category === "field_test" && !accepted.some(({ claim }) => claim.firstHand && (claim.kind === "measurement" || claim.kind === "experience"))) editorial = null;
+    outcomes.push({ prepared: target, relevant: entry.relevant, returned: entry.claims.length, accepted, editorial });
   }
 
   const returned = outcomes.reduce((sum, outcome) => sum + outcome.returned, 0);
@@ -145,6 +153,11 @@ export async function extractBatch(env: LlmEnv, items: ItemRow[], kind: Extract<
     const { item } = outcome.prepared;
     await env.DB.batch([
       ...outcome.accepted.flatMap(({ claim, mentions }) => [insertClaim(env.DB, { ...claim, llmCallId }), ...insertMentions(env.DB, item.id, claim.contentHash, mentions)]),
+      ...(outcome.editorial ? [env.DB.prepare(`INSERT INTO item_editorial (item_id, content_hash, category, pillar, summary_vi, question_vi, model, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(item_id) DO UPDATE SET content_hash = excluded.content_hash,
+        category = excluded.category, pillar = excluded.pillar, summary_vi = excluded.summary_vi,
+        question_vi = excluded.question_vi, model = excluded.model, updated_at = excluded.updated_at`)
+        .bind(item.id, item.content_hash, outcome.editorial.category, outcome.editorial.pillar, outcome.editorial.summary_vi, outcome.editorial.question_vi, call.model, now)] : []),
       env.DB
         .prepare("UPDATE items SET status = ?, claims_returned = ?, claims_accepted = ? WHERE id = ? AND status = 'queued'")
         .bind(outcome.relevant ? "extracted" : "irrelevant", outcome.returned, outcome.accepted.length, item.id),

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { Filters, Sort, Tab } from "../types";
 
 const TABS: readonly Tab[] = ["inbox", "saved", "dismissed"];
+const VIEWS: readonly Filters["view"][] = ["stories", "status", "news", "hands-on", "deep-dives", "jobs"];
 
 export function parseFilters(search: string): Filters {
   const params = new URLSearchParams(search);
@@ -11,13 +12,13 @@ export function parseFilters(search: string): Filters {
     topic: params.get("topic") || null,
     q: params.get("q") ?? "",
     sort: (params.get("sort") as Sort) === "newest" ? "newest" : "score",
-    view: params.get("view") === "status" ? "status" : "stories",
+    view: VIEWS.includes(params.get("view") as Filters["view"]) ? params.get("view") as Filters["view"] : "stories",
   };
 }
 
 export function serializeFilters(filters: Filters): string {
   const params = new URLSearchParams();
-  if (filters.view === "status") params.set("view", "status");
+  if (filters.view !== "stories") params.set("view", filters.view);
   if (filters.tab !== "inbox") params.set("tab", filters.tab);
   if (filters.topic) params.set("topic", filters.topic);
   if (filters.q) params.set("q", filters.q);

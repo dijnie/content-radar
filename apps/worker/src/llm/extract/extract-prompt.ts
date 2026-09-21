@@ -1,4 +1,4 @@
-export const EXTRACT_PROMPT_VERSION = 2;
+export const EXTRACT_PROMPT_VERSION = 3;
 
 export interface PromptItem {
   itemId: number;
@@ -23,6 +23,13 @@ For every item return exactly one entry with its itemId:
 - topics: the matching topic slugs, empty when not relevant.
 - claims: zero to six claims. Only extract a claim that a named person, team, or clearly identified source stands
   behind. Skip jokes, vague hype, questions and promotion. An irrelevant item has no claims.
+- editorial: classify the actual content: news (announcement or current debate), tool (a reusable repository, skill
+  or library), field_test (the author's own hands-on test with concrete observations), playbook (reproducible steps
+  or a practical procedure), deep_dive (a research paper or substantial engineering explanation), other.
+  Include pillar: architecture, agents, evaluation, training, inference, data, infrastructure, security, tooling, other.
+  summary_vi: a faithful Vietnamese summary using only supported facts and retaining caveats; never invent results.
+  question_vi: the specific technical question the paper/article addresses, in Vietnamese; null if none is stated.
+  A link, abstract or announcement alone is not evidence that the author ran a tool. Do not classify promotion as field_test.
 
 For every claim:
 - kind: measurement (they measured it), experience (they used it), announcement (they are releasing or changing

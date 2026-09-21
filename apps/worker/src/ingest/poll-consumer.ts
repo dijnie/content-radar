@@ -4,6 +4,8 @@ import { getItemStates, insertItemLinks, insertMetricSnapshot, upsertItemStateme
 import { getAllSettings } from "../db/settings-repo";
 import { getSource, getSourceHealth, insertPollLog, recordPollError, recordPollOk, scheduleNextPoll, type SourceRow } from "../db/sources-repo";
 import type { Env } from "../env";
+import { claimCrawlSource, finishCrawlSource } from "../jobs/crawl-runs";
+import { recordCrawlItems } from "../jobs/crawl-snapshots";
 import { extractionWindowStart } from "../llm/extraction-priority";
 import type { LlmMessage, PollMessage } from "../llm/messages";
 import { githubAdapter } from "../sources/github";
@@ -27,6 +29,7 @@ export interface IngestDeps {
   now?: number;
   fetcher?: typeof fetch;
   adapters?: Partial<Record<SourceRow["type"], SourceAdapter>>;
+  crawl?: { id: number; token: string };
 }
 
 function ownHosts(env: Pick<Env, "APP_ORIGIN">): string[] {
@@ -76,6 +79,7 @@ export async function ingestPollResult(
   filter: FilterConfig,
   now: number,
   ingestMode: IngestMode = "live",
+  deferExtraction = false,
 ): Promise<{ itemsNew: number; enqueued: number }> {
   const platform = source.type;
   const known = await getItemStates(env.DB, platform, result.items.map((item) => item.externalId));
@@ -122,11 +126,14 @@ export async function ingestPollResult(
     }
   }
   for (const metrics of result.metrics) statements.push(insertMetricSnapshot(env.DB, platform, { ...metrics, capturedAt: now }));
+  for (const item of result.items) if (item.repository) statements.push(env.DB.prepare(`INSERT INTO repository_snapshots (item_id, captured_at, data_json)
+    SELECT id, ?, ? FROM items WHERE platform = ? AND external_id = ? ON CONFLICT(item_id, captured_at) DO NOTHING`)
+    .bind(now, JSON.stringify(item.repository), platform, item.externalId));
   await chunkedBatch(env.DB, statements);
 
   // Only items that this poll created are announced; anything already known
   // has either been announced before or is past `queued`.
-  const queued = await getItemStates(env.DB, platform, newQueued);
+  const queued = await getItemStates(env.DB, platform, deferExtraction ? [] : newQueued);
   const messages = [...queued.values()]
     .filter((state) => state.status === "queued")
     .map((state) => ({ body: { kind: "extract", itemId: state.id, ...(ingestMode === "backfill" ? { backfill: true } : {}) } satisfies LlmMessage }));
@@ -145,8 +152,12 @@ export async function ingestPollResult(
 export async function pollSource(env: IngestEnv, sourceId: number, deps: IngestDeps = {}): Promise<void> {
   const now = deps.now ?? Math.floor(Date.now() / 1000);
   const source = await getSource(env.DB, sourceId);
-  if (!source || source.enabled !== 1) return;
+  if (!source || source.enabled !== 1) {
+    if (deps.crawl) await finishCrawlSource(env.DB, deps.crawl.id, sourceId, deps.crawl.token, now, 0, "source disabled");
+    return;
+  }
   const started = Date.now();
+  const finishedAt = () => now + Math.floor((Date.now() - started) / 1000);
   const { ctx, filter } = await buildAdapterContext(env, now, deps.fetcher);
 
   let result: PollResult;
@@ -161,26 +172,36 @@ export async function pollSource(env: IngestEnv, sourceId: number, deps: IngestD
       insertPollLog(env.DB, { sourceId: source.id, at: now, status: "error", httpStatus: http?.status ?? null, durationMs: Date.now() - started, error: message }),
       scheduleNextPoll(env.DB, source.id, nextPollAt(now, source.poll_interval_min, failures)),
     ]);
+    if (deps.crawl) await finishCrawlSource(env.DB, deps.crawl.id, source.id, deps.crawl.token, finishedAt(), 0, message);
     return;
   }
 
-  const { itemsNew } = await ingestPollResult(env, source, result, filter, now);
+  const { itemsNew } = await ingestPollResult(env, source, result, filter, now, "live", Boolean(deps.crawl));
+  if (deps.crawl) await recordCrawlItems(env.DB, source, result, deps.crawl.id, deps.crawl.token, now);
   await env.DB.batch([
     recordPollOk(env.DB, source.id, now, itemsNew),
     insertPollLog(env.DB, { sourceId: source.id, at: now, status: "ok", httpStatus: 200, itemsNew, durationMs: Date.now() - started }),
     scheduleNextPoll(env.DB, source.id, nextPollAt(now, source.poll_interval_min, 0)),
   ]);
+  if (deps.crawl) await finishCrawlSource(env.DB, deps.crawl.id, source.id, deps.crawl.token, finishedAt(), itemsNew, null);
 }
 
 /** `radar-poll` consumer: one source per message, each acknowledged on its own. */
 export async function consumePollBatch(batch: MessageBatch<PollMessage>, env: IngestEnv, deps: IngestDeps = {}): Promise<void> {
   for (const message of batch.messages) {
+    let crawl: IngestDeps["crawl"];
     try {
-      await pollSource(env, message.body.sourceId, deps);
+      if (message.body.crawlId !== undefined) {
+        const token = await claimCrawlSource(env.DB, message.body.crawlId, message.body.sourceId, deps.now ?? Math.floor(Date.now() / 1000));
+        if (!token) { message.ack(); continue; }
+        crawl = { id: message.body.crawlId, token };
+      }
+      await pollSource(env, message.body.sourceId, { ...deps, ...(crawl ? { crawl } : {}) });
       message.ack();
     } catch (err) {
       // Only infrastructure failures (D1, R2, queue) reach here; the queue retries them.
       console.error(JSON.stringify({ event: "poll_failed", sourceId: message.body.sourceId, error: String(err) }));
+      if (crawl) await env.DB.prepare("UPDATE crawl_sources SET status = 'queued', lease_until = 0 WHERE crawl_id = ? AND source_id = ? AND token = ? AND status = 'running'").bind(crawl.id, message.body.sourceId, crawl.token).run();
       message.retry({ delaySeconds: 60 });
     }
   }

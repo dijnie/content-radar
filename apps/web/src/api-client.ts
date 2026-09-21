@@ -6,7 +6,7 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, { credentials: "same-origin", ...init });
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as { error?: string } | null;

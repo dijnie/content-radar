@@ -1,13 +1,14 @@
 import { canonicalizeUrl } from "./canonical-url";
 import { parseFeed } from "./feed-parser";
 import { FEED_ENTRIES_PER_POLL, mapFeedEntry } from "./rss-feed";
+import { pollGithubTrending } from "./github-trending";
 import { cleanText, type AdapterContext, type NormalizedItem, type PollResult, type SourceAdapter } from "./source-adapter";
 
 const API_HOST = "api.github.com";
 const SEARCH_PREFIX = "search:";
 const SEARCH_RESULTS = 10;
-/** Trending proxy: repositories pushed within this window, ordered by stars. */
-const TRENDING_WINDOW_DAYS = 7;
+/** Repository discovery by recent pushes and total stars; independent of Trending. */
+const SEARCH_WINDOW_DAYS = 7;
 
 interface SearchRepo {
   id: number;
@@ -21,6 +22,8 @@ interface SearchRepo {
   language: string | null;
   topics?: string[];
   owner: { login: string };
+  archived?: boolean;
+  license?: { spdx_id: string } | null;
 }
 
 function mapRepo(repo: SearchRepo, ctx: AdapterContext): NormalizedItem {
@@ -38,14 +41,19 @@ function mapRepo(repo: SearchRepo, ctx: AdapterContext): NormalizedItem {
     title: cleanText(repo.full_name),
     text: cleanText([repo.full_name, repo.description, facts].filter(Boolean).join("\n")),
     lang: "en",
-    // A repository surfaces when it starts trending, not when it was created.
+    // Discovery uses its recent push rather than its original creation date.
     publishedAt: Math.min(ctx.now, Math.floor(Date.parse(repo.pushed_at) / 1000) || ctx.now),
     raw: repo,
+    repository: {
+      fullName: repo.full_name, stars: repo.stargazers_count, forks: repo.forks_count ?? null,
+      starsToday: null, trendingRank: null, pushedAt: Math.floor(Date.parse(repo.pushed_at) / 1000) || null,
+      archived: repo.archived ?? null, license: repo.license?.spdx_id ?? null, capturedAt: ctx.now,
+    },
   };
 }
 
 async function pollSearch(query: string, ctx: AdapterContext): Promise<PollResult> {
-  const since = new Date((ctx.now - TRENDING_WINDOW_DAYS * 86_400) * 1000).toISOString().slice(0, 10);
+  const since = new Date((ctx.now - SEARCH_WINDOW_DAYS * 86_400) * 1000).toISOString().slice(0, 10);
   const url = new URL(`https://${API_HOST}/search/repositories`);
   url.searchParams.set("q", `${query} pushed:>${since}`);
   url.searchParams.set("sort", "stars");
@@ -75,6 +83,7 @@ async function pollReleases(source: { id: number; key: string }, ctx: AdapterCon
 export const githubAdapter: SourceAdapter = {
   type: "github",
   poll(source, ctx) {
+    if (source.key === "trending:daily") return pollGithubTrending(ctx);
     return source.key.startsWith(SEARCH_PREFIX) ? pollSearch(source.key.slice(SEARCH_PREFIX.length), ctx) : pollReleases(source, ctx);
   },
 };

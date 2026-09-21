@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { PLATFORMS, X_HANDLE_PATTERN } from "../packages/core/src/platform.ts";
+import { editorialScoringSchema } from "../apps/worker/src/feeds/editorial-scoring.ts";
 
 const SLUG = z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/);
 const HTTPS_URL = z.url({ protocol: /^https$/ });
@@ -31,7 +32,7 @@ export const sourceSchema = z.discriminatedUnion("type", [
   // key: "owner/repo" for releases, or "search:<query>" for the trending proxy
   z.strictObject({
     type: z.literal("github"),
-    key: z.string().regex(/^([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+|search:.{1,120})$/),
+    key: z.string().regex(/^([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+|search:.{1,120}|trending:daily)$/),
     ...sourceBase,
   }),
 ]);
@@ -57,6 +58,7 @@ export const settingsSchema = z.strictObject({
   hn_min_points: z.int().min(0),
   // Overrides for algorithm parameters owned by packages/core/src/params.ts.
   core_overrides: z.record(z.string(), z.unknown()),
+  editorial_scoring: editorialScoringSchema.optional(),
 });
 
 export const stopEntitiesSchema = z.array(z.string().min(1)).min(1);

@@ -7,14 +7,19 @@ Tài liệu này giải thích hệ thống hoạt động thế nào và vì sa
 ```mermaid
 flowchart TD
   subgraph "Cron */30"
-    D[dispatch-polls] -->|radar-poll| P[poll-consumer]
-    DR[drain-backlog]
+    D[start-crawl + recover] -->|radar-poll| P[poll-consumer]
+    DR[drain-backlog + drain-editorial]
+    FS[schedule-feeds + recover]
   end
   P --> AD[adapter: x, hn, rss, github]
   AD --> R2[(R2: payload thô)]
   AD --> F[cheap-filter]
   F -->|items: queued hoặc filtered_out| D1[(D1)]
-  F -->|radar-llm: extract| L[llm-consumer]
+  P -->|crawl hoàn tất và snapshot nguồn| D1
+  DR --> L[llm-consumer]
+  FS -->|radar-poll: build-feed| FB[feed builder]
+  D1 --> FB
+  FB -->|công bố nguyên khối| D1
   DR -->|radar-llm: item queued còn tồn| L
   L -->|budgeted-call| G[AI Gateway: DeepSeek]
   L -->|claims, entity_mentions| D1
@@ -29,7 +34,7 @@ flowchart TD
     M[daily-maintenance]
   end
   M --> D1
-  D1 --> API[API sau Access + CSRF] --> WEB[Giao diện thẻ lead]
+  D1 --> API[API sau Access + CSRF] --> WEB[Stories / News / Hands-on / Deep dives / Jobs]
   D1 --> AN[Phiên analyst qua token D1]
 ```
 
@@ -40,13 +45,39 @@ Một Worker duy nhất xử lý `fetch`, `scheduled` và `queue`, và phục v�
 Queues giao message ít nhất một lần, chỉ giữ 14 ngày, và message hết hạn thì biến mất chứ không vào dead-letter. Vì vậy không công việc nào chỉ tồn tại trong queue:
 
 - Item mới được ghi **cùng trạng thái cuối của nó** (`queued` kèm `queued_at`, hoặc `filtered_out` kèm lý do) trong một câu lệnh, rồi message mới được gửi. Consumer chết giữa chừng thì item vẫn nằm đó ở trạng thái `queued`.
-- Ưu tiên bóc claim cho bài trong cửa sổ gom nhóm hiện tại (mặc định 7 ngày, cùng `core_overrides.windowDays` với cluster). Poll trực tiếp vẫn lưu bài cũ vào D1/R2 nhưng chỉ đánh thức ngay bài trong cửa sổ; bài cũ chờ lượt rút backlog. Backfill thủ công vẫn gửi message theo hợp đồng hiện có.
+- Ưu tiên bóc claim cho bài trong cửa sổ gom nhóm hiện tại (mặc định 7 ngày, cùng `core_overrides.windowDays` với cluster). Crawl lưu bài cũ vào D1/R2 và dừng sau chống trùng; bài mới thuộc crawl đang chạy chờ crawl hoàn tất rồi mới được rút backlog. Bài đã thuộc crawl hoàn tất trước đó vẫn được xử lý khi crawl tiếp theo chạy. Đường poll cũ không có crawl ID giữ hành vi đánh thức ngay bài trong cửa sổ. Backfill thủ công vẫn gửi message theo hợp đồng hiện có.
 - Mỗi 30 phút `drain-backlog` gửi lại message cho các item `queued` có lần đánh thức gần nhất quá 30 phút, trong phạm vi ngân sách còn lại của ngày. Khi còn bất kỳ bài trong cửa sổ đang `queued`, chỉ nhóm này được gửi và xử lý, kể cả khi chúng đang chờ retry; message bài cũ có sẵn trong queue được ack để chờ trong D1, không tốn lượt AI hay retry. Khi nhóm mới hết, bài cũ tự được xử lý tiếp. Trong mỗi nhóm ưu tiên, item trực tiếp trước item backfill, cũ nhất trước. Nếu bài mới đến liên tục vượt khả năng AI thì bài cũ có thể chờ lâu; dữ liệu không bị xoá hay đổi chế độ ingest.
 - Bộ đếm giới hạn 20 lần xử lý item chỉ tăng khi nhận được output hoặc request bị từ chối; chờ ngân sách, lỗi cấu hình, mạng, output trống/cắt và chờ bài mới không bị tính. Request/shape bị từ chối vẫn theo đường chia đôi lô để cô lập item lỗi.
-- Message của item không còn `queued` được ack mà không gọi DeepSeek. Nhờ đó message giao trùng hay một lô bị phát lại đều vô hại; khoá `(item_id, content_hash)` chặn claim trùng.
-- Một nguồn được "thuê" trong D1 (đẩy `next_poll_at` lên 15 phút) trước khi message poll được gửi, nên tick kế tiếp không gửi trùng và message mất thì nguồn tự đến hạn lại.
+- Message `extract` của item không còn `queued` được ack mà không gọi DeepSeek. Nhờ đó message giao trùng hay một lô bị phát lại đều vô hại; khoá `(item_id, content_hash)` chặn claim trùng.
+- Crawl ghi danh sách nguồn vào D1 trước khi gửi queue. Chỉ có một crawl đang chạy; mỗi nguồn có token và lease 15 phút. Cron gửi lại việc bị mất hoặc hết lease, tối đa sáu lần nhận việc trước khi ghi lỗi. Crawl chỉ kết thúc khi mọi nguồn đã thành công hoặc thất bại; lỗi một phần có trạng thái `partial`.
 
 Lưu ý khi sửa code ghi dữ liệu: dùng `ON CONFLICT (...) DO NOTHING` trên đúng khoá, không dùng `INSERT OR IGNORE`. `OR IGNORE` của SQLite nuốt cả vi phạm `CHECK`, tức một claim sai định dạng sẽ biến mất trong im lặng.
+
+## Crawl và các feed editorial
+
+Schema mở rộng ở [`0010_editorial_feeds.sql`](../apps/worker/migrations/0010_editorial_feeds.sql); điều phối ở [`jobs/`](../apps/worker/src/jobs/) và dựng nội dung ở [`feeds/`](../apps/worker/src/feeds/). Crawl không gọi AI hoặc dựng feed. Mỗi feed có lịch riêng trong D1; cron 30 phút kiểm tra các lịch đến hạn. Mặc định News mỗi 60 phút, Hands-on và Deep dives mỗi 1.440 phút. Nút Build/Rerun chọn một crawl `ok`/`partial` và không crawl lại nguồn.
+
+`crawl_items` đóng băng nội dung tối đa 6.000 ký tự, số liệu, nguồn và thời điểm quan sát. Khi dựng feed, lấy bản quan sát thành công gần nhất của mỗi item từ crawl được chọn trở về trước, trong cửa sổ 7/30/90 ngày tương ứng. Metadata editorial phải khớp hash nội dung; claim phải có quote khớp bản nguồn đã đóng băng. Build dùng kết quả phân tích và đồ thị Stories hiện có tại thời điểm dựng, nên chạy lại có thể bổ sung nội dung vừa phân tích xong. Build không gọi LLM. Bản đã công bố không thay đổi khi nguồn hoặc phân tích được cập nhật sau đó.
+
+Mỗi feed chỉ có một build đang chờ/chạy. `feed_entries` dàn dựng theo lô; con trỏ `feed_publications` và trạng thái `done` chuyển trong cùng transaction, có token/lease chống worker cũ công bố. Build lỗi giữ nguyên con trỏ trước đó. Intent vẫn ở D1 nếu gửi queue thất bại, và cron khôi phục. Dữ liệu crawl/build hiện được giữ làm lịch sử; cần theo dõi dung lượng D1 khi vận hành dài ngày.
+
+- **News:** dùng nhóm và điểm Stories hiện có; ngưỡng mặc định 55, không đổi công thức Stories. Recent là 24 giờ, Last 7d là 7 ngày tính lúc đọc. Đếm tác giả chuẩn, nền tảng, bài và tương tác một lần mỗi item trong câu chuyện; chỉ hiện findings thuộc câu chuyện đó. Tương tác cộng các số thực có từ nguồn, không coi star GitHub là tương tác xã hội. Vai trò lab leader chỉ đếm `labLeaderAuthorKeys` được khai báo; danh sách trống hiển thị chưa gắn vai trò.
+- **Hands-on:** Community toolbox lấy repository thật hoặc bài phân loại `tool`; Field tests đòi claim trải nghiệm/đo đạc trực tiếp có quote hợp lệ; Playbooks lấy quy trình được phân loại `playbook`. Phân trang sáu thẻ. GitHub Search chỉ là discovery; hạng và star/ngày lấy từ [GitHub Trending](https://github.com/trending?since=daily). Facts bổ sung dùng [Repository API](https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28); lỗi metadata không biến giá trị thiếu thành số đo. Repository trùng tên được gộp, ưu tiên quan sát Trending trong cùng ngày UTC.
+- **Deep dives:** bài `deep_dive` có pillar, tóm tắt tiếng Việt, câu hỏi và findings từ claim đã kiểm tra. Cửa sổ tháng lần lượt là 30/60/90 ngày; hỗ trợ unread/read, pillar, relevance/newest và tìm kiếm không dấu với ký tự LIKE được escape. Trạng thái đọc gắn `item:<id>` trong D1, giữ qua build mới. Nguồn [Hugging Face daily papers](https://huggingface.co/api/daily_papers) chỉ cung cấp abstract, tác giả và số thảo luận; hệ thống không tuyên bố đã tải toàn văn paper.
+
+Prompt extraction phiên bản 3 yêu cầu metadata editorial ngay trong lượt bóc claim hiện có. Metadata sai không làm mất claim hợp lệ. Bài cũ đã extracted nhưng thiếu metadata chỉ được bổ sung khi không còn bài `queued` đủ điều kiện; tối đa ba lần output/từ chối mỗi item, chung ngân sách hiện tại. Giao diện ghi số item còn chờ phân tích tại thời điểm build; không chèn thẻ mẫu để lấp khoảng trống.
+
+### Điểm repository
+
+Mặc định mới nằm trong `config/settings.json` → `editorial_scoring`, được kiểm tra tại [`editorial-scoring.ts`](../apps/worker/src/feeds/editorial-scoring.ts). Trọng số tổng 100: star hôm nay 35, hạng Trending 25, tổng star 20, độ mới repository 10, sức khoẻ 10. Đây là công thức mặc định của ứng dụng, không khẳng định là thuật toán của ảnh tham chiếu.
+
+- Star hôm nay: `35 × min(1, log1p(starsToday) / log1p(1000))`.
+- Hạng: `25 × clamp((26 − rank) / 25, 0, 1)`.
+- Tổng star: `20 × min(1, log1p(stars) / log1p(100000))`.
+- Độ mới: `10 × clamp(1 − số ngày từ push tới quan sát / 90, 0, 1)`.
+- Sức khoẻ: archived nhận 0; không archived có license nhận 10, không có license nhận 5. Đây là tín hiệu metadata, không phải chứng nhận chất lượng/bảo mật.
+
+Thiếu số liệu nhận 0 điểm ở thành phần đó và vẫn giữ giá trị `null`; không phân phối lại trọng số. Các trần, cửa sổ và trọng số đều chỉnh được. Mỗi build lưu cấu hình đã dùng để truy vết.
 
 ## Ngân sách DeepSeek
 
@@ -122,7 +153,7 @@ score = 100 × clip(0,30·S_sources + 0,20·S_velocity + 0,15·S_specificity
 
 | DeepSeek | Code tất định |
 |---|---|
-| Bóc claim, `text_vi`, `text_en`, `quote`, entity | Kiểm tra `quote` có trong văn bản gốc |
+| Bóc claim, `text_vi`, `text_en`, `quote`, entity; phân loại editorial, tóm tắt, câu hỏi | Kiểm tra `quote` có trong văn bản gốc |
 | Headline tiếng Việt, vai trò `evidence` / `context` / `counter`, câu hỏi kiểm chứng | Cạnh, cụm, lineage, quan hệ dẫn xuất, số nguồn độc lập, điểm |
 | Phân xử entity mơ hồ | Khớp alias, ngưỡng tự nhận và tự loại, chặn gộp khác phiên bản |
 
@@ -131,6 +162,8 @@ Thẻ không phụ thuộc LLM để hiện ra: mọi câu chuyện có headline
 Giới hạn của tính tất định: trên cùng tập claim, embedding và tham số đã lưu (`cluster_runs.params_json`), chạy lại với cùng seed cho cùng phân hoạch. Tập claim thì không tái lập được, vì việc bóc claim dùng LLM.
 
 ## Giao diện và thao tác
+
+Thanh điều hướng chọn Stories, News, Hands-on, Deep dives hoặc Jobs; bộ lọc từng trang nằm trên URL. Các feed có trạng thái đang tải/trống/lỗi, chi tiết nguồn và liên kết HTTP(S) an toàn. Jobs có bộ lọc ngày/lỗi, số nguồn/bài, thời gian, lỗi từng nguồn, chạy crawl, chọn crawl cho build và chỉnh lịch từng feed. Thiết kế các trang này ở [`editorial.css`](../apps/web/src/editorial.css), chuyển một cột trên màn hình nhỏ. Stories giữ các thao tác dưới đây.
 
 Giao diện bám theo [ảnh tham chiếu](https://www.facebook.com/photo/?fbid=29387863247481748): thanh lọc phía trên, thẻ trắng viền mảnh, hai thẻ mỗi hàng có cùng chiều cao. Trên màn hình từ 900px trở xuống, thẻ chuyển thành một cột. Thứ tự DOM luôn theo thứ tự API để đọc bằng bàn phím và trình đọc màn hình khớp thứ tự điểm/thời gian. Nội dung, số đếm và điểm lấy từ D1; không dùng các con số trong ảnh làm dữ liệu mẫu.
 

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { EDITORIAL_JSON_SCHEMA } from "./editorial-schema";
 
 export const CLAIM_KINDS = ["measurement", "experience", "announcement", "report", "opinion"] as const;
 export const ENTITY_TYPES = ["org", "person", "product", "model", "paper", "repo", "concept", "other"] as const;
@@ -22,6 +23,7 @@ const itemSchema = z.object({
   topics: z.array(z.string()).max(3).default([]),
   // One malformed claim must not cost the item its valid ones.
   claims: z.array(z.unknown()).max(12).default([]),
+  editorial: z.unknown().optional(),
 });
 
 export const extractResponseSchema = z.object({ items: z.array(itemSchema) });
@@ -47,6 +49,7 @@ export const EXTRACT_JSON_SCHEMA = {
           itemId: { type: "integer" },
           relevant: { type: "boolean" },
           topics: { type: "array", items: { type: "string" } },
+          editorial: EDITORIAL_JSON_SCHEMA,
           claims: {
             type: "array",
             items: {

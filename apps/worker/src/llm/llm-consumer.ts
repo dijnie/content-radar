@@ -1,7 +1,8 @@
 import { getItemsByIds, type ItemRow } from "../db/items-repo";
 import { adjudicateEntities } from "./adjudicate/adjudicate-entities";
 import { extractBatch, type LlmDeps, type LlmEnv } from "./extract/extract-batch";
-import { extractionWindowStart, hasRecentQueuedItems } from "./extraction-priority";
+import { CRAWL_FINISHED_SQL, extractionWindowStart, hasRecentQueuedItems } from "./extraction-priority";
+import { chunkForParams, placeholders } from "../db/batch";
 import type { LlmMessage } from "./messages";
 import { synthesizeStory } from "./synthesize/synthesize-story";
 
@@ -17,6 +18,18 @@ export async function consumeLlmBatch(batch: MessageBatch<LlmMessage>, env: LlmE
   const extract: ExtractMessage[] = [];
   for (const message of batch.messages) {
     const body = message.body;
+    if (body.kind === "editorial") {
+      if (await env.DB.prepare(`SELECT 1 FROM items WHERE status = 'queued' AND ${CRAWL_FINISHED_SQL} LIMIT 1`).first()) { message.ack(); continue; }
+      const eligible = await env.DB.prepare(`SELECT id FROM items WHERE id = ? AND status = 'extracted' AND editorial_attempts < 3
+        AND ${CRAWL_FINISHED_SQL} AND NOT EXISTS (SELECT 1 FROM item_editorial e WHERE e.item_id = items.id AND e.content_hash = items.content_hash)`)
+        .bind(body.itemId).first();
+      if (!eligible) { message.ack(); continue; }
+      const items = await getItemsByIds(env.DB, [body.itemId]);
+      const outcome = await extractBatch(env, items, items[0]?.ingest_mode === "backfill" ? "extract_backfill" : "extract", deps, Math.max(0, message.attempts - 1));
+      if (outcome.status === "retry") message.retry({ delaySeconds: outcome.delaySeconds });
+      else message.ack();
+      continue;
+    }
     if (body.kind === "extract") {
       extract.push(message as ExtractMessage);
       continue;
@@ -38,6 +51,11 @@ export async function consumeLlmBatch(batch: MessageBatch<LlmMessage>, env: LlmE
   const items = new Map((await getItemsByIds(env.DB, extract.map((message) => message.body.itemId))).map((item) => [item.id, item]));
   const since = await extractionWindowStart(env.DB, deps.now ?? Math.floor(Date.now() / 1000));
   const recentPending = await hasRecentQueuedItems(env.DB, since);
+  const heldItems = new Set<number>();
+  for (const ids of chunkForParams([...items.keys()])) {
+    const held = await env.DB.prepare(`SELECT id FROM items WHERE id IN (${placeholders(ids.length)}) AND NOT (${CRAWL_FINISHED_SQL})`).bind(...ids).all<{ id: number }>();
+    for (const row of held.results) heldItems.add(row.id);
+  }
   const groups: Record<"extract" | "extract_backfill", { messages: ExtractMessage[]; items: ItemRow[] }> = {
     extract: { messages: [], items: [] },
     extract_backfill: { messages: [], items: [] },
@@ -45,7 +63,7 @@ export async function consumeLlmBatch(batch: MessageBatch<LlmMessage>, env: LlmE
   const seen = new Set<number>();
   for (const message of extract) {
     const item = items.get(message.body.itemId);
-    if (!item || item.status !== "queued" || seen.has(item.id)) {
+    if (!item || item.status !== "queued" || seen.has(item.id) || heldItems.has(item.id)) {
       message.ack();
       continue;
     }

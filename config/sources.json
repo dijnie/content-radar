@@ -898,22 +898,38 @@
   {
     "type": "github",
     "key": "search:topic:llm stars:>200",
-    "label": "GitHub trending: LLM",
+    "label": "GitHub discovery: LLM",
     "topicHint": "ai",
     "pollIntervalMin": 720
   },
   {
     "type": "github",
     "key": "search:topic:ai-agents stars:>100",
-    "label": "GitHub trending: AI agents",
+    "label": "GitHub discovery: AI agents",
     "topicHint": "ai",
     "pollIntervalMin": 720
   },
   {
     "type": "github",
     "key": "search:topic:distributed-systems stars:>100",
-    "label": "GitHub trending: distributed systems",
+    "label": "GitHub discovery: distributed systems",
     "topicHint": "system-design",
     "pollIntervalMin": 720
+  },
+  {
+    "type": "github",
+    "key": "trending:daily",
+    "label": "GitHub Trending (daily)",
+    "topicHint": "ai",
+    "priority": 2,
+    "pollIntervalMin": 1440
+  },
+  {
+    "type": "rss",
+    "key": "https://huggingface.co/api/daily_papers",
+    "label": "Hugging Face Papers",
+    "topicHint": "ai",
+    "priority": 2,
+    "pollIntervalMin": 1440
   }
 ]

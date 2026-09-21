@@ -3,6 +3,7 @@ import { fetchArticleText } from "./article-text";
 import { canonicalizeUrl, canonicalLinks } from "./canonical-url";
 import { hrefsIn, htmlToText, parseFeed, type FeedEntry } from "./feed-parser";
 import { cleanText, type AdapterContext, type NormalizedItem, type PollResult, type SourceAdapter } from "./source-adapter";
+import { HUGGINGFACE_PAPERS_URL, pollHuggingfacePapers } from "./huggingface-papers";
 
 /** Some feeds carry their whole archive (OpenAI: 1,200 items); only the head is new. */
 export const FEED_ENTRIES_PER_POLL = 30;
@@ -55,6 +56,7 @@ export async function mapFeedEntry(
 export const rssAdapter: SourceAdapter = {
   type: "rss",
   async poll(source, ctx): Promise<PollResult> {
+    if (source.key === HUGGINGFACE_PAPERS_URL) return pollHuggingfacePapers(source.id, ctx);
     const { text: xml } = await ctx.fetchText(source.key, { maxBytes: FEED_MAX_BYTES });
     const items: NormalizedItem[] = [];
     for (const entry of parseFeed(xml, FEED_ENTRIES_PER_POLL).entries) {

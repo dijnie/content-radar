@@ -4,6 +4,8 @@ import { handleProbe } from "./admin-probe";
 import { jsonError } from "./api-errors";
 import { handleStatus } from "./status-route";
 import { handleStoryAction, handleStoryDetail, handleStoryList } from "./stories-routes";
+import { handleFeed, handleFeedDetail, handleFeedRead } from "./feeds-routes";
+import { handleFeedSchedule, handleJobDetail, handleJobs, handleStartCrawl, handleStartFeed } from "./jobs-routes";
 
 type Handler = (request: Request, env: Env, params: Record<string, string>) => Promise<Response>;
 
@@ -19,6 +21,14 @@ interface Route {
  * attach a route, so none can skip those two layers.
  */
 export const ROUTES: readonly Route[] = [
+  { method: "GET", pattern: /^\/api\/jobs$/, handler: (request, env) => handleJobs(request, env) },
+  { method: "GET", pattern: /^\/api\/jobs\/(?<kind>crawl|news|hands-on|deep-dives)\/(?<id>\d{1,15})$/, handler: (_request, env, params) => handleJobDetail(env, params.kind!, Number(params.id)) },
+  { method: "POST", pattern: /^\/api\/jobs\/crawls$/, handler: (_request, env) => handleStartCrawl(env) },
+  { method: "POST", pattern: /^\/api\/jobs\/feeds\/(?<feed>news|hands-on|deep-dives)$/, handler: (request, env, params) => handleStartFeed(request, env, params.feed!) },
+  { method: "POST", pattern: /^\/api\/jobs\/schedules\/(?<feed>news|hands-on|deep-dives)$/, handler: (request, env, params) => handleFeedSchedule(request, env, params.feed!) },
+  { method: "GET", pattern: /^\/api\/feeds\/(?<feed>news|hands-on|deep-dives)$/, handler: (request, env, params) => handleFeed(request, env, params.feed!) },
+  { method: "GET", pattern: /^\/api\/feeds\/(?<feed>news|hands-on|deep-dives)\/detail$/, handler: (request, env, params) => handleFeedDetail(request, env, params.feed!) },
+  { method: "POST", pattern: /^\/api\/feeds\/deep-dives\/read$/, handler: (request, env) => handleFeedRead(request, env) },
   { method: "GET", pattern: /^\/api\/stories$/, handler: (request, env) => handleStoryList(request, env) },
   { method: "GET", pattern: /^\/api\/stories\/(?<id>\d{1,15})$/, handler: (_request, env, params) => handleStoryDetail(env, Number(params.id)) },
   { method: "POST", pattern: /^\/api\/stories\/(?<id>\d{1,15})\/action$/, handler: (request, env, params) => handleStoryAction(request, env, Number(params.id)) },

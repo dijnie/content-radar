@@ -14,7 +14,7 @@ created: 2026-09-20
 
 ## Overview
 
-**Phạm vi hiện tại:** người dùng chốt hoàn tất local trước, chưa chọn hostname hay tạo Cloudflare Access. Ngày 2026-09-21 đã cho phép áp migration và đồng bộ cấu hình lên D1 remote, rồi chạy pipeline local bằng Gemini, Workers AI và nguồn crawl thật; xem [kết quả chạy thật](./reports/spike-results.md#lần-chạy-pipeline-thật-đầu-tiên-ở-local-2026-09-21). Sau đó đã quan sát bản deploy từ dashboard lúc 07:35 UTC: URL `workers.dev` trả 503 do thiếu Access. Triển khai có xác thực, kiểm chứng từ IP Workers và tuần chạy production vẫn chưa hoàn tất.
+**Phạm vi hiện tại:** ngày 2026-09-21 người dùng chọn giữ Cloudflare Access trên URL `workers.dev` hiện tại, thay cho yêu cầu custom domain ban đầu. Đã tạo ứng dụng Access, bổ sung bốn binding xác thực/origin, tắt preview URL; trang đăng nhập Access đã trả 200. Đăng nhập hoàn chỉnh của chủ sở hữu còn chờ kiểm chứng; xem [báo cáo cấu hình Access](../reports/cook-260921-0804-cloudflare-access.md). Migration và cấu hình D1 remote đã áp dụng trước đó, pipeline local đã chạy bằng nguồn thật: [kết quả](./reports/spike-results.md#lần-chạy-pipeline-thật-đầu-tiên-ở-local-2026-09-21). Kiểm chứng từ IP Workers và tuần chạy production vẫn chưa hoàn tất.
 
 **Cập nhật thực thi 2026-09-21:** `ak plan status` ghi nhận 101/122 việc (82%), phase 2 đến 7 hoàn tất theo checklist; các nhãn Pending/todo ở bảng kế hoạch gốc chưa phản ánh tiến độ này. [Báo cáo ngày 20](../reports/cook-260920-1837-session-continuation.md) ghi nhận sửa migration và mất lease; các commit sau đó đã sửa quota theo phút/ngày, tự học hạn mức từ 429 và cho model quá tải nghỉ. Tiếp tục kiểm chứng backlog sau khi quota mở lại tại [báo cáo ngày 21](../reports/cook-260921-0729-quota-reset-continuation.md). Toàn bộ plan vẫn `in-progress`: deploy, Access, analyst bằng token giới hạn và chạy thử 7 ngày chưa hoàn tất.
 
@@ -40,7 +40,7 @@ Xây một radar cá nhân trả lời câu hỏi "Giới nghiên cứu và ứn
 - Đơn vị: node của graph là claim; cụm cần tối thiểu 2 claim, bài lẻ chỉ thành lead khi engagement bất thường so với chính tác giả (robust z từ 3); `stories` là lineage ổn định và cũng là thẻ hiển thị. `LEAD` khi có 1 nguồn độc lập, `READY` khi có từ 2. Mọi thẻ luôn có headline: bản dự phòng tất định cho tới khi Gemini tổng hợp.
 - Tham số thuật toán có một chủ sở hữu là `packages/core/src/params.ts`; bảng `settings` chỉ ghi đè; bộ tham số đã hợp nhất được ghi vào `cluster_runs.params_json` ở mỗi lần chạy.
 - Gemini: chuỗi model `gemini-3.8-flash`, `gemini-3.7-flash`, `gemini-3.6-flash`; hạn mức là cấu hình trong D1 do người dùng đọc từ AI Studio; sổ ngân sách theo model, loại việc và ngày Pacific có đặt chỗ, xác nhận và hoàn chỗ; 20% dành riêng cho tổng hợp và phân xử, backfill tối đa 25%.
-- Xác thực: Cloudflare Access trên custom domain, `workers_dev` và preview URL tắt, Worker tự kiểm tra JWT của Access (gồm `iss`, `aud`, `exp`, email chủ sở hữu) và chống CSRF cho mọi request, kể cả static assets, ngay từ lần deploy đầu tiên.
+- Xác thực: Cloudflare Access che toàn bộ hostname `workers.dev` đã chọn; `workers_dev` bật và preview URL tắt. Worker tự kiểm tra JWT của Access (gồm `iss`, `aud`, `exp`, email chủ sở hữu) và chống CSRF cho mọi request, kể cả static assets. Custom domain là lựa chọn về sau, không còn là điều kiện triển khai.
 - Phiên analyst chạy bằng API token chỉ có quyền D1; văn bản crawl trong đầu ra truy vấn được bọc trong thẻ dữ liệu không tin cậy.
 - Tìm kiếm dùng `LIKE` trên cột `search_text` đã chuẩn hoá, không dùng FTS5 để `wrangler d1 export` không bị vướng bảng ảo.
 
@@ -71,7 +71,7 @@ Phase 3, 4 và 5 độc lập về file nên có thể làm song song sau phase 
 
 ## Dependencies
 
-- Tài khoản Cloudflare với Workers Paid và một custom domain trên Cloudflare, Wrangler mới nhất, Node 22 trở lên.
+- Tài khoản Cloudflare với Workers Paid và Cloudflare Access, Wrangler mới nhất, Node 22 trở lên.
 - API key Gemini free tier của người dùng và con số hạn mức đọc từ `aistudio.google.com/rate-limit`.
 - Một GitHub PAT fine-grained chỉ đọc dữ liệu public.
 - Các dịch vụ bên thứ ba không có SLA: FxTwitter, HN Algolia và Firebase, feed RSS công khai, GitHub.

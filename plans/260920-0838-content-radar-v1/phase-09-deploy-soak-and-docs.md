@@ -17,6 +17,8 @@ dependencies: [7, 8]
 
 Đưa hệ thống lên production với hạn mức Gemini thật, chạy không người trông 7 ngày, đo theo tiêu chí chấp nhận của contract, hiệu chỉnh tham số bằng dữ liệu thật, backfill nguồn X khi pipeline đã ổn, và viết tài liệu vận hành. Ba ngày effort là thời gian làm việc; bảy ngày chạy thử là thời gian chờ.
 
+Cập nhật 2026-09-21: đã cấu hình Access cho URL `workers.dev` theo lựa chọn người dùng, tắt preview URL và giữ kiểm tra JWT/CSRF hiện tại. Trang đăng nhập Access đã hoạt động; đăng nhập hoàn chỉnh của chủ sở hữu còn chờ kiểm chứng. Không đánh dấu hoàn tất checklist production chỉ từ bằng chứng này. Xem [báo cáo Access](../reports/cook-260921-0804-cloudflare-access.md).
+
 ## Key Insights
 
 - Tiêu chí chấp nhận số 1 của contract chỉ chứng minh được bằng thời gian chạy thật, và phải gồm ít nhất một lần hết quota Gemini cùng ít nhất một lần sang ngày Pacific mới để thấy backlog sống sót và sổ ngân sách mở lại.

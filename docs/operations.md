@@ -1,20 +1,22 @@
 # Vận hành
 
-Trạng thái (cập nhật 2026-09-21): đã quan sát một bản deploy từ dashboard lúc 07:35 UTC, nhưng URL `workers.dev` trả HTTP 503 `access_not_configured` ở cả `/` và `/api/status`. Bản đó có secret Gemini/GitHub nhưng thiếu binding `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`, `OWNER_EMAIL` và `APP_ORIGIN`; chưa phải bản production sử dụng được. Cấu hình trong repo vẫn đặt `workers_dev: false`, nên trạng thái route trên Cloudflare đang khác repo. Chưa chốt việc dùng URL này hay custom domain; không bỏ lớp xác thực để xử lý lỗi. Bằng chứng ở [báo cáo tiếp tục](../plans/reports/cook-260921-0729-quota-reset-continuation.md).
+Trạng thái (cập nhật 2026-09-21): người dùng chọn giữ Cloudflare Access trên URL `workers.dev` hiện tại. Đã tạo ứng dụng Access `Content Radar`, dùng policy một email chủ sở hữu và cách đăng nhập bằng mã email có sẵn; bổ sung `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`, `OWNER_EMAIL`, `APP_ORIGIN` cho Worker. Cấu hình repo và route thực tế bật `workers_dev`, tắt preview URL. Request trình duyệt chưa đăng nhập chuyển sang Access, trang đăng nhập trả 200; bước đăng nhập hoàn chỉnh vẫn cần kiểm chứng. Bằng chứng ở [báo cáo Access](../plans/reports/cook-260921-0804-cloudflare-access.md).
 
 Tài nguyên Cloudflare đã tạo (D1 `content-radar`, R2 `content-radar-raw`, queue `radar-poll`, `radar-llm`, `radar-dlq`). Ngày 2026-09-21 migration `0001` đến `0008` đã được áp lên D1 remote và cấu hình đã được đồng bộ (3 chủ đề, 119 nguồn, 13 tác giả); từ thời điểm đó **không sửa các file migration này nữa**, mọi thay đổi schema phải là một migration mới. Những quy trình dưới đây có đánh dấu **chưa thử trên production** là viết theo tài liệu của Cloudflare và theo hành vi đã kiểm chứng ở local; hãy cập nhật chúng khi chạy thật lần đầu.
 
 ## Deploy lần đầu
 
-Cần có trước: một custom domain trên Cloudflare, và một ứng dụng Access kiểu self-hosted cho hostname đó với policy cho đúng một email. Lấy **Application Audience (AUD) tag** của ứng dụng và miền team dạng `https://<team>.cloudflareaccess.com`.
+Cần có trước: một ứng dụng Access kiểu self-hosted cho hostname của Worker với policy cho đúng một email. Hostname hiện tại là `content-radar.<subdomain>.workers.dev`; không cần custom domain. Lấy **Application Audience (AUD) tag** của ứng dụng và miền team dạng `https://<team>.cloudflareaccess.com`. Xem [Access trên Workers](https://developers.cloudflare.com/workers/configuration/cloudflare-access/).
 
-1. Thêm route vào `apps/worker/wrangler.jsonc` (thay hostname thật):
+1. Giữ `workers_dev: true` và `preview_urls: false` trong `apps/worker/wrangler.jsonc`. Trong Zero Trust, ứng dụng `Content Radar` phải che toàn bộ hostname `workers.dev`, không giới hạn vào một path. Policy hiện tại dùng lại rule chỉ cho một email; thay đổi rule dùng chung cũng ảnh hưởng ứng dụng Access khác đang dùng nó. Worker vẫn kiểm tra email riêng bằng `OWNER_EMAIL`.
+
+   Nếu sau này chuyển sang custom domain, tạo Access cho hostname mới, cập nhật `ACCESS_AUD` và `APP_ORIGIN`, rồi thêm route (thay hostname thật):
 
    ```jsonc
    "routes": [{ "pattern": "radar.example.com", "custom_domain": true }]
    ```
 
-   Giữ nguyên `workers_dev: false` và `preview_urls: false`.
+   Khi chuyển hoàn toàn sang custom domain, đổi `workers_dev: false`; luôn giữ `preview_urls: false`.
 
 2. Ghi lại bookmark Time Travel, áp dụng migration, đồng bộ cấu hình:
 
@@ -34,19 +36,19 @@ Cần có trước: một custom domain trên Cloudflare, và một ứng dụng
    for name in GEMINI_API_KEY GITHUB_TOKEN OWNER_EMAIL ACCESS_TEAM_DOMAIN ACCESS_AUD APP_ORIGIN; do npx wrangler secret put "$name"; done
    ```
 
-   `ACCESS_TEAM_DOMAIN` không có dấu gạch chéo cuối. `APP_ORIGIN` là origin chính xác, ví dụ `https://radar.example.com`. Thiếu một trong ba biến Access thì mọi request nhận 503 `access_not_configured`: Worker từ chối thay vì mở.
+   `ACCESS_TEAM_DOMAIN` không có dấu gạch chéo cuối. `APP_ORIGIN` là origin chính xác đang dùng, hiện là `https://content-radar.<subdomain>.workers.dev`. `OWNER_EMAIL` phải trùng email trong policy. Thiếu một trong ba biến Access thì mọi request nhận 503 `access_not_configured`: Worker từ chối thay vì mở. Chỉ đặt secret còn thiếu; không cần ghi lại key Gemini/GitHub khi sửa Access.
 
 4. Điền hạn mức Gemini thật vào [`scripts/set-llm-limits.sql`](../scripts/set-llm-limits.sql) rồi chạy nó. Khi còn để `NULL`, hệ thống dùng mức an toàn 5 RPM và 20 RPD mỗi model. Con số 20 là hạn mức free tier thật đo được ngày 2026-09-21 (Google nêu nó trong thân lỗi 429). Worker cũng tự ghi `rpd` và `rpm` vào `llm_models` mỗi khi nhận một 429, nên file này chủ yếu để đặt trước hoặc sửa tay.
 
 5. `npm run deploy`, rồi kiểm tra không hostname nào hở:
 
    ```bash
-   curl -s -o /dev/null -w '%{http_code}\n' https://radar.example.com/                               # 302 về trang đăng nhập Access, hoặc 401
-   curl -s -o /dev/null -w '%{http_code}\n' https://radar.example.com/api/status                     # như trên, không bao giờ 200
-   curl -s -o /dev/null -w '%{http_code}\n' https://content-radar.<subdomain>.workers.dev/ || true   # không phân giải hoặc 404
+   # Thay <subdomain> bằng subdomain thực tế; không dùng -L ở bước kiểm tra chặn.
+   curl -s -A 'Mozilla/5.0' -H 'Accept: text/html' -o /dev/null -w '%{http_code}\n' 'https://content-radar.<subdomain>.workers.dev/'
+   curl -s -A 'Mozilla/5.0' -H 'Accept: text/html' -o /dev/null -w '%{http_code}\n' 'https://content-radar.<subdomain>.workers.dev/api/status'
    ```
 
-   Sau đó đăng nhập qua Access và mở trang, bấm "System status".
+   Mong đợi 302 sang miền team Access; client không phải trình duyệt có thể nhận 403. Không được trả nội dung ứng dụng khi chưa đăng nhập. Kiểm tra cả API, static assets và route quản trị; đối chiếu dashboard/API rằng preview URL đã tắt. Sau đó mở URL gốc trong trình duyệt, đăng nhập bằng mã gửi tới email được cho phép, mở trang và bấm "System status". Đăng nhập dashboard Cloudflare không thay thế phiên Access này. Chỉ có 302 chưa chứng minh đăng nhập hoàn chỉnh thành công.
 
 6. Chạy các probe để biết nguồn nào chặn IP của Workers và Gemini có lỗi vị trí không (việc còn nợ của phase 1). Đo `gemini` 10 lần; nếu có `locationBlocked: true` thì thêm `"placement": { "region": "aws:us-east-1" }` vào `wrangler.jsonc`, deploy lại và đo lại. Ghi kết quả vào [`spike-results.md`](../plans/260920-0838-content-radar-v1/reports/spike-results.md).
 

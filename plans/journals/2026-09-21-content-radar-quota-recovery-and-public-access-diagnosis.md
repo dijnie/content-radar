@@ -22,4 +22,10 @@ URL workers.dev do người dùng cung cấp trả 503 access_not_configured. B�
 
 Chi tiết và giới hạn nằm ở [báo cáo tiếp tục](../reports/cook-260921-0729-quota-reset-continuation.md). Backlog còn chờ dịch vụ; tuần chạy production chưa bắt đầu. Giữ plan in-progress. Cấu hình route online và quyền truy cập cần theo lựa chọn mới của người dùng.
 
+## Cập nhật sau lựa chọn lúc 08:04 UTC
+
+Người dùng chốt giữ Cloudflare Access. Dùng tổ chức Zero Trust, mã email và policy một chủ sở hữu có sẵn để bảo vệ hostname Content Radar; bổ sung bốn binding còn thiếu, giữ route workers.dev và tắt preview. Không đổi sang đăng nhập mật khẩu riêng. API secret tạo một version mới trên code đang chạy; không deploy source HEAD.
+
+Sau khi tạo ứng dụng, redirect đã hoạt động nhưng trang Access tạm trả 404; người dùng xác nhận cùng lỗi. Kiểm tra tiếp mà không sửa thêm ứng dụng/policy, trang đăng nhập trả 200 và hiện form gửi mã cho Content Radar. Không coi 302 là kiểm chứng đủ. 33 test Access/CSRF và dry-run deploy qua; đăng nhập hoàn chỉnh vẫn chờ chủ sở hữu. [Báo cáo Access](../reports/cook-260921-0804-cloudflare-access.md) và [vận hành](../../docs/operations.md) ghi lại cấu hình, bằng chứng và giới hạn.
+
 > Historical work record — not durable authority. Prefer docs/specs/ADRs for current decisions.

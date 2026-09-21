@@ -5,7 +5,8 @@
   "name": "content-radar",
   "main": "src/index.ts",
   "compatibility_date": "2026-09-01",
-  "workers_dev": false,
+  // The production workers.dev hostname is protected by Cloudflare Access.
+  "workers_dev": true,
   "preview_urls": false,
   "observability": { "enabled": true },
   "define": { "__DEV_AUTH_BYPASS__": "false" },

@@ -1,6 +1,9 @@
--- Daily soak report. Run once a day during the 7-day soak and paste the output into
+-- Daily soak report. Run once a day during the 7-day soak and paste what matters into
 -- plans/260920-0838-content-radar-v1/reports/soak-report.md:
---   cd apps/worker && npx wrangler d1 execute content-radar --remote --json --file ../../scripts/soak-report.sql
+--   npm run soak-report -- --remote
+-- Do not run this file with `wrangler d1 execute --file` on the remote database: that path is a
+-- bulk import and returns only a summary, no rows. scripts/soak-report.ts sends the statements
+-- with --command instead. Every query needs a `-- status:` or `-- soak:` title line above it.
 -- The first block is the very SQL behind GET /api/status (apps/worker/src/api/status-route.ts);
 -- a test keeps the two in step.
 

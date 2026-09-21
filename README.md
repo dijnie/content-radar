@@ -66,4 +66,5 @@ Lưu ý: `wrangler dev` sinh nhiều tiến trình `workerd` con. Dừng nó b�
 | `npm run config:sync -- --local` hoặc `--remote` | Kiểm tra `config/*.json` rồi upsert vào D1; không đụng trạng thái vận hành; mục bị gỡ khỏi file thì bị tắt chứ không bị xoá. |
 | `npm run deploy` | Build web rồi `wrangler deploy`. Đọc danh mục kiểm tra trong `docs/operations.md` trước lần đầu. |
 | `npm run sweep -- --remote` | Quét lại gamma của CPM trên dữ liệu thật. |
+| `npm run soak-report -- --remote` | In báo cáo chạy thử: mọi truy vấn của `scripts/soak-report.sql` kèm kết quả. |
 | `npm run test:coverage --workspace @radar/core` | Độ phủ của gói lõi. |

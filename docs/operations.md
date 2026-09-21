@@ -1,6 +1,6 @@
 # Vận hành
 
-Trạng thái tại thời điểm viết (2026-09-20): hệ thống **chưa được deploy**. Tài nguyên Cloudflare đã tạo (D1 `content-radar`, R2 `content-radar-raw`, queue `radar-poll`, `radar-llm`, `radar-dlq`), nhưng migration chưa áp dụng lên remote và chưa có route. Những quy trình dưới đây có đánh dấu **chưa thử trên production** là viết theo tài liệu của Cloudflare và theo hành vi đã kiểm chứng ở local; hãy cập nhật chúng khi chạy thật lần đầu.
+Trạng thái (cập nhật 2026-09-21): hệ thống **chưa được deploy** và chưa có route. Tài nguyên Cloudflare đã tạo (D1 `content-radar`, R2 `content-radar-raw`, queue `radar-poll`, `radar-llm`, `radar-dlq`). Ngày 2026-09-21 migration `0001` đến `0008` đã được áp lên D1 remote và cấu hình đã được đồng bộ (3 chủ đề, 119 nguồn, 13 tác giả); từ thời điểm đó **không sửa các file migration này nữa**, mọi thay đổi schema phải là một migration mới. Những quy trình dưới đây có đánh dấu **chưa thử trên production** là viết theo tài liệu của Cloudflare và theo hành vi đã kiểm chứng ở local; hãy cập nhật chúng khi chạy thật lần đầu.
 
 ## Deploy lần đầu
 
@@ -22,6 +22,8 @@ Cần có trước: một custom domain trên Cloudflare, và một ứng dụng
    npx wrangler d1 migrations apply content-radar --remote
    cd ../.. && npm run config:sync -- --remote
    ```
+
+   Bước này đã được thực hiện ngày 2026-09-21; chạy lại là an toàn vì migration đã áp dụng thì bị bỏ qua và `config:sync` là idempotent. Lưu ý: trên remote, `wrangler d1 execute --file` đi qua đường import hàng loạt và chỉ trả bản tóm tắt, không trả dòng kết quả. Dùng `--file` cho việc ghi, và `--command` (hoặc `npm run soak-report -- --remote`) khi cần đọc kết quả.
 
 3. Đặt secret (mỗi lệnh hỏi giá trị, không ghi vào file hay lịch sử shell):
 

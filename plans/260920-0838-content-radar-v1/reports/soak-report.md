@@ -7,8 +7,10 @@ Trạng thái: **chưa bắt đầu.** Tuần chạy thử chỉ bắt đầu đ
 Mỗi ngày chạy một lần rồi dán phần đáng chú ý vào mục "Nhật ký theo ngày":
 
 ```bash
-cd apps/worker && npx wrangler d1 execute content-radar --remote --json --file ../../scripts/soak-report.sql
+npm run soak-report -- --remote
 ```
+
+Không chạy file SQL bằng `wrangler d1 execute --file` trên remote: đường đó là import hàng loạt và chỉ trả bản tóm tắt, không trả dòng nào (phát hiện ngày 2026-09-21 khi áp migration lên remote).
 
 Hai việc phải chủ động làm trong tuần: hạ `rpd` của mọi model xuống thấp trong một ngày để tạo tình huống hết quota rồi khôi phục (`scripts/set-llm-limits.sql`), và từ ngày thứ 3 chạy `scripts/backfill-kols.sh`.
 

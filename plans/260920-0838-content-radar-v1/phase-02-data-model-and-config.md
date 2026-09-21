@@ -74,7 +74,7 @@ Kiểm chứng local bổ sung ngày 2026-09-20: `npm run config:sync -- --local
 - [x] Năm file migration áp dụng sạch trên D1 local
 - [x] Lớp repo và `chunkedBatch`
 - [x] Năm file cấu hình và schema kiểm tra
-- [ ] `npm run config:sync` cho local và remote
+- [x] `npm run config:sync` cho local và remote
 - [x] Seed `llm_models`
 - [x] Test tích hợp D1 gồm các ca chống trùng và chống ghi đè
 

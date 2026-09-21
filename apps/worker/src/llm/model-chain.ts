@@ -6,11 +6,13 @@ export async function loadBudgetSettings(db: D1Database): Promise<BudgetSettings
   const settings = await getAllSettings(db);
   return {
     safeDefaultRpm: (settings.llm_safe_default_rpm as number | undefined) ?? 5,
-    safeDefaultRpd: (settings.llm_safe_default_rpd as number | undefined) ?? 100,
+    safeDefaultRpd: (settings.llm_safe_default_rpd as number | undefined) ?? 20,
     synthesisReservedShare: (settings.synthesis_reserved_share as number | undefined) ?? 0.2,
     backfillMaxShare: (settings.backfill_max_share as number | undefined) ?? 0.25,
   };
 }
+
+const SHORT_PARK_SECONDS = 5 * 60;
 
 export type ChainResult = { ok: true; model: LlmModelRow; reservation: Reservation } | { ok: false; reason: ReserveFailure };
 
@@ -22,8 +24,13 @@ const SEVERITY: Record<ReserveFailure, number> = { rpm_exhausted: 0, kind_cap_re
 export async function reserveOnChain(db: D1Database, kind: LlmKind, now: number, settings: BudgetSettings, skip: ReadonlySet<string> = new Set()): Promise<ChainResult> {
   let mildest: ReserveFailure = "rpd_exhausted";
   for (const model of await listEnabledModels(db)) {
+    // Checked before `skip`: a model tried a moment ago in this very call may have just been parked for seconds.
+    if (model.exhausted_until !== null && model.exhausted_until > now) {
+      // Parked for minutes, not for the day: worth a short wait rather than giving the batch up until the next drain.
+      if (model.exhausted_until - now <= SHORT_PARK_SECONDS) mildest = "rpm_exhausted";
+      continue;
+    }
     if (skip.has(model.model)) continue;
-    if (model.exhausted_until !== null && model.exhausted_until > now) continue;
     const result = await reserve(db, model, kind, now, settings);
     if (result.ok) return { ok: true, model, reservation: result.reservation };
     if (SEVERITY[result.reason] < SEVERITY[mildest]) mildest = result.reason;

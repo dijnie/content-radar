@@ -34,7 +34,7 @@ Cần có trước: một custom domain trên Cloudflare, và một ứng dụng
 
    `ACCESS_TEAM_DOMAIN` không có dấu gạch chéo cuối. `APP_ORIGIN` là origin chính xác, ví dụ `https://radar.example.com`. Thiếu một trong ba biến Access thì mọi request nhận 503 `access_not_configured`: Worker từ chối thay vì mở.
 
-4. Điền hạn mức Gemini thật vào [`scripts/set-llm-limits.sql`](../scripts/set-llm-limits.sql) rồi chạy nó. Khi còn để `NULL`, hệ thống dùng mức an toàn 5 RPM và 100 RPD mỗi model.
+4. Điền hạn mức Gemini thật vào [`scripts/set-llm-limits.sql`](../scripts/set-llm-limits.sql) rồi chạy nó. Khi còn để `NULL`, hệ thống dùng mức an toàn 5 RPM và 20 RPD mỗi model. Con số 20 là hạn mức free tier thật đo được ngày 2026-09-21 (Google nêu nó trong thân lỗi 429). Worker cũng tự ghi `rpd` và `rpm` vào `llm_models` mỗi khi nhận một 429, nên file này chủ yếu để đặt trước hoặc sửa tay.
 
 5. `npm run deploy`, rồi kiểm tra không hostname nào hở:
 

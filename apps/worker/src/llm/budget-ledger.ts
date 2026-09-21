@@ -1,4 +1,5 @@
 import type { LlmKind, LlmModelRow } from "../db/llm-repo";
+import type { QuotaInfo } from "./gemini-client";
 import { nextPacificMidnight, pacificDay } from "./pacific-day";
 
 export interface BudgetSettings {
@@ -107,15 +108,28 @@ export async function release(db: D1Database, reservation: Reservation): Promise
     .run();
 }
 
+/** A per-minute park never lasts less than this, even if Google suggests a shorter wait. */
+const MIN_MINUTE_PARK_SECONDS = 15;
+const DEFAULT_MINUTE_PARK_SECONDS = 60;
+
 /**
- * Parks a model after a 429 until the next Pacific midnight. If the 429 comes
- * right after a reset we believed in, the real reset is later than assumed, so
- * the model is parked for one more hour instead of a whole day.
+ * Parks a model after a 429 for as long as the exhausted quota calls for, and keeps the
+ * limit Google reported so the ledger works from the real number instead of a guess.
+ *
+ * - per-minute quota: parked for the suggested retry delay, a matter of seconds;
+ * - per-day quota, or a 429 that does not say: parked until the next Pacific midnight. If
+ *   that 429 comes right after a reset we believed in, the real reset is later than
+ *   assumed, so the model is parked for one more hour instead of a whole day.
  */
-export async function markExhausted(db: D1Database, model: LlmModelRow, now: number): Promise<number> {
+export async function markExhausted(db: D1Database, model: LlmModelRow, now: number, quota?: QuotaInfo): Promise<number> {
+  if (quota?.scope === "minute") {
+    const until = now + Math.max(MIN_MINUTE_PARK_SECONDS, quota.retryDelaySeconds ?? DEFAULT_MINUTE_PARK_SECONDS);
+    await db.prepare("UPDATE llm_models SET exhausted_until = ?, rpm = COALESCE(?, rpm) WHERE model = ?").bind(until, quota.limit, model.model).run();
+    return until;
+  }
   const previous = model.exhausted_until;
   const resetWasWrong = previous !== null && previous <= now && now - previous < RESET_DOUBT_WINDOW_SECONDS;
   const until = resetWasWrong ? now + 3600 : nextPacificMidnight(now);
-  await db.prepare("UPDATE llm_models SET exhausted_until = ? WHERE model = ?").bind(until, model.model).run();
+  await db.prepare("UPDATE llm_models SET exhausted_until = ?, rpd = COALESCE(?, rpd) WHERE model = ?").bind(until, quota?.scope === "day" ? quota.limit : null, model.model).run();
   return until;
 }

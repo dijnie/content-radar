@@ -13,6 +13,14 @@ export interface GeminiRequest {
   timeoutMs?: number;
 }
 
+/** What a 429 says about itself. Google names the exhausted quota and how long to wait. */
+export interface QuotaInfo {
+  scope: "minute" | "day" | "unknown";
+  /** The limit Google enforces for that quota, when it states one. */
+  limit: number | null;
+  retryDelaySeconds: number | null;
+}
+
 export type GeminiResult =
   | { ok: true; data: unknown; httpStatus: number; latencyMs: number; tokensIn: number; tokensOut: number }
   | {
@@ -23,9 +31,34 @@ export type GeminiResult =
       httpStatus: number | null;
       latencyMs: number;
       message: string;
+      /** Present on `rate_limited` results. */
+      quota?: QuotaInfo;
     };
 
 export const DEFAULT_GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
+
+interface ErrorDetail {
+  "@type"?: string;
+  violations?: { quotaId?: string; quotaValue?: string | number }[];
+  retryDelay?: string;
+}
+
+/**
+ * Reads the quota a 429 refers to. The free tier has both per-minute and per-day request
+ * quotas, and they call for opposite reactions: seconds of patience versus parking the
+ * model until the daily reset. The quota id says which one it was, e.g.
+ * `GenerateRequestsPerDayPerProjectPerModel-FreeTier`.
+ */
+export function parseQuota(body: unknown): QuotaInfo {
+  const details = ((body as { error?: { details?: ErrorDetail[] } })?.error?.details ?? []) as ErrorDetail[];
+  const violations = details.flatMap((detail) => detail.violations ?? []);
+  // A per-day violation outranks a per-minute one reported alongside it.
+  const violation = violations.find((entry) => /PerDay/i.test(entry.quotaId ?? "")) ?? violations.find((entry) => /PerMinute/i.test(entry.quotaId ?? "")) ?? null;
+  const scope = !violation ? "unknown" : /PerDay/i.test(violation.quotaId ?? "") ? "day" : "minute";
+  const limit = violation?.quotaValue === undefined ? NaN : Number(violation.quotaValue);
+  const delay = /^(\d+(?:\.\d+)?)s$/.exec(details.find((detail) => detail.retryDelay)?.retryDelay ?? "");
+  return { scope, limit: Number.isFinite(limit) && limit > 0 ? limit : null, retryDelaySeconds: delay ? Math.ceil(Number(delay[1])) : null };
+}
 
 interface GenerateContentResponse {
   candidates?: { content?: { parts?: { text?: string }[] }; finishReason?: string }[];
@@ -70,7 +103,7 @@ export async function generateJson(request: GeminiRequest): Promise<GeminiResult
   });
   const upstreamMessage = body.error?.message ?? `http_${response.status}`;
 
-  if (response.status === 429) return fail("rate_limited", true, upstreamMessage);
+  if (response.status === 429) return { ...fail("rate_limited", true, upstreamMessage), quota: parseQuota(body) } as GeminiResult;
   // Refused for the egress location before any quota is charged.
   if (upstreamMessage.includes("User location is not supported")) return fail("location_blocked", false, upstreamMessage);
   if (response.status >= 500) return fail("transient", false, upstreamMessage);

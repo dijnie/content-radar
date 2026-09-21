@@ -74,7 +74,7 @@ export async function budgetedCall(env: LlmEnv, request: BudgetedRequest, deps: 
     await (result.reached ? commit(env.DB, reservation) : release(env.DB, reservation));
     await insertLlmCall(env.DB, { ...log, status: result.kind, error: result.message });
     if (result.kind === "rate_limited") {
-      await markExhausted(env.DB, model, now);
+      await markExhausted(env.DB, model, now, result.quota);
       tried.add(model.model);
       continue;
     }

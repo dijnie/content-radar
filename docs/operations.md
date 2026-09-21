@@ -2,11 +2,13 @@
 
 Trạng thái (cập nhật 2026-09-21): người dùng chọn giữ Cloudflare Access trên URL `workers.dev` hiện tại và đăng nhập bằng tài khoản Cloudflare, không dùng mã email của Access. Ứng dụng `Content Radar` chỉ chọn identity provider `Cloudflare`, bật `Restrict to account members` và tự chuyển sang đăng nhập Cloudflare; policy vẫn giới hạn đúng chủ sở hữu. Worker đã có `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`, `OWNER_EMAIL`, `APP_ORIGIN`. Cấu hình repo và route thực tế bật `workers_dev`, tắt preview URL. Đã kiểm chứng trang Access không có form mã email, tự chuyển tới `dash.cloudflare.com/oauth2/auth`; phiên đăng nhập hoàn chỉnh vẫn cần kiểm chứng bằng trình duyệt của chủ sở hữu. Bằng chứng ở [báo cáo Access](../plans/reports/cook-260921-0804-cloudflare-access.md).
 
-Tài nguyên Cloudflare đã tạo (D1 `content-radar`, R2 `content-radar-raw`, queue `radar-poll`, `radar-llm`, `radar-dlq`). Ngày 2026-09-21 migration `0001` đến `0009` đã được áp lên D1 remote và cấu hình đã được đồng bộ (3 chủ đề, 119 nguồn, 13 tác giả); từ thời điểm đó **không sửa các file migration này nữa**, mọi thay đổi schema phải là một migration mới. Những quy trình dưới đây có đánh dấu **chưa thử trên production** là viết theo tài liệu của Cloudflare và theo hành vi đã kiểm chứng ở local; hãy cập nhật chúng khi chạy thật lần đầu.
+Tài nguyên Cloudflare đã tạo (D1 `content-radar`, R2 `content-radar-raw`, queue `radar-poll`, `radar-llm`, `radar-dlq`). Ngày 2026-09-21 migration `0001` đến `0010` đã được áp lên D1 remote; cấu hình remote đang có 3 chủ đề, 119 nguồn, 13 tác giả. **Không sửa các file migration đã áp**, mọi thay đổi schema phải là một migration mới. Những quy trình dưới đây có đánh dấu **chưa thử trên production** là viết theo tài liệu của Cloudflare và theo hành vi đã kiểm chứng ở local; hãy cập nhật chúng khi chạy thật lần đầu.
 
 ## Jobs và feed editorial
 
-Bản bổ sung ngày 2026-09-21 đã áp migration `0010` và đồng bộ 121 nguồn ở **local**; chưa triển khai phần này lên production. Khi phát hành, ghi bookmark D1, áp migration mới và sync cấu hình rồi deploy theo quy trình bên dưới. Không sửa lại migration đã áp. Không cần queue, secret hay dịch vụ trả phí mới.
+Bản bổ sung ngày 2026-09-21 đã có trên Worker production nhưng thiếu migration D1, khiến Jobs trả 500 `no such table: crawl_runs`. Đã ghi bookmark và áp `0010_editorial_feeds.sql` lúc 12:41 UTC; log xác nhận Jobs trả 200 trên cùng version Worker. Lịch sử Jobs bắt đầu từ các crawl mới, không nhập lịch sử local. Local có 121 nguồn; remote vẫn có 119 nguồn và chưa sync cấu hình editorial mới trong lần khắc phục này. Kiểm chứng crawl/build theo lịch và các feed có dữ liệu thật trên production vẫn còn riêng. [Bằng chứng khắc phục](../plans/reports/debug-260921-1239-jobs-missing-migration.md).
+
+Mỗi lần phát hành có thay đổi schema: ghi bookmark D1, áp migration mới và sync cấu hình rồi deploy theo quy trình bên dưới. `npm run deploy` chỉ build và upload Worker, **không tự áp migration**. Không sửa lại migration đã áp. Không cần queue, secret hay dịch vụ trả phí mới.
 
 - **Jobs → Run** crawl mọi nguồn đang bật; bấm lần nữa trong khi chạy trả lại cùng crawl. Mở một dòng để xem lỗi nguồn. `partial` nghĩa là một số nguồn lỗi, các nguồn thành công vẫn dùng được.
 - **From crawl → Build News/Hands-on/Deep dives** tạo bản riêng từ crawl hoàn tất. Build thất bại giữ bản công bố trước; Rerun thử lại từ cùng crawl. Lịch bật/tắt và khoảng phút được lưu riêng từng feed (30 đến 10.080 phút); cron 30 phút là độ phân giải thực tế của lịch.
@@ -43,7 +45,7 @@ Cần có trước: một ứng dụng Access kiểu self-hosted cho hostname c�
    cd ../.. && npm run config:sync -- --remote
    ```
 
-   Bước này đã được thực hiện tới migration `0009` ngày 2026-09-21; migration mới cần áp khi phát hành tương ứng. Chạy lại là an toàn vì migration đã áp dụng thì bị bỏ qua và `config:sync` là idempotent. Lưu ý: trên remote, `wrangler d1 execute --file` đi qua đường import hàng loạt và chỉ trả bản tóm tắt, không trả dòng kết quả. Dùng `--file` cho việc ghi, và `--command` (hoặc `npm run soak-report -- --remote`) khi cần đọc kết quả.
+   Migration remote đã tới `0010` ngày 2026-09-21; lần sync cấu hình remote gần nhất vẫn ở bộ 119 nguồn. Migration mới cần áp **trước** khi deploy mã phụ thuộc vào schema đó. Chạy `npx wrangler d1 migrations list content-radar --remote` từ `apps/worker` để xác nhận không còn migration chờ. Migration đã áp dụng sẽ bị bỏ qua và `config:sync` là idempotent. Lưu ý: trên remote, `wrangler d1 execute --file` đi qua đường import hàng loạt và chỉ trả bản tóm tắt, không trả dòng kết quả. Dùng `--file` cho việc ghi, và `--command` (hoặc `npm run soak-report -- --remote`) khi cần đọc kết quả.
 
 3. Đặt secret (mỗi lệnh hỏi giá trị, không ghi vào file hay lịch sử shell):
 

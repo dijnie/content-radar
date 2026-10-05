@@ -2,6 +2,8 @@
 
 Cloudflare Builds deploy từ Git không cần terminal, file `.env.setup` hoặc biến `D1_DATABASE_ID`. Database được chọn trực tiếp trên Worker qua binding **`DB`**. Code truy cập database bằng `env.DB`.
 
+Ứng dụng mở công khai: mọi người đều xem nội dung và tương tác, không cần đăng nhập. Các thao tác lưu/ẩn/đã đọc và lịch chạy được dùng chung.
+
 ## 1. Gắn D1 database
 
 1. Vào **Workers & Pages → content-radar → Bindings → Add binding**.
@@ -46,18 +48,15 @@ Tại **Worker → Settings → Variables and Secrets**, điền:
 | `LLM_MODEL` | Text | Tên model provider hỗ trợ. |
 | `LLM_API_KEY` | Secret | API key của provider. |
 | `GITHUB_TOKEN` | Secret | GitHub PAT đọc dữ liệu public. |
-| `OWNER_EMAIL` | Secret | Email chủ sở hữu. |
-| `ACCESS_TEAM_DOMAIN` | Secret | `https://<team>.cloudflareaccess.com`, không có `/` cuối. |
-| `ACCESS_AUD` | Secret | Application Audience của ứng dụng Access. |
-| `APP_ORIGIN` | Secret | Origin ứng dụng, ví dụ `https://content-radar.<subdomain>.workers.dev`. |
+| `APP_ORIGIN` | Text, tùy chọn | Origin ứng dụng để loại hostname của chính ứng dụng khỏi nội dung crawl nền. Không cần cho việc xem hay tương tác. |
 
 Deploy giữ các runtime vars đã đặt trên dashboard (`keep_vars: true`). Khi không truyền endpoint/model vào build, setup không sinh giá trị rỗng để ghi đè chúng. Có thể truyền cả `LLM_ENDPOINT` và `LLM_MODEL` vào build để chủ động thay giá trị; đặt cả hai rỗng để tạm dừng LLM. Secrets được giữ lại và không ghi vào file Wrangler. [Wrangler configuration](https://developers.cloudflare.com/workers/wrangler/configuration/#top-level-only-keys), [Worker secrets](https://developers.cloudflare.com/workers/configuration/secrets/).
 
-Bảo vệ hostname bằng Cloudflare Access theo [hướng dẫn vận hành](operations.md#deploy-lần-đầu). Thiếu cấu hình Access, Worker trả 503.
+`OWNER_EMAIL`, `ACCESS_TEAM_DOMAIN` và `ACCESS_AUD` không còn được code sử dụng. Nếu trước đây đã bật Access cho hostname này, vào **Worker → Settings → Domains & Routes** (hoặc tab **Domains**) và chọn **Disable Cloudflare Access** cho URL ứng dụng; giữ route `workers.dev` bật. Nếu dùng ứng dụng Access self-hosted riêng, gỡ hostname của Content Radar khỏi ứng dụng Access đó; giữ các hostname và policy dùng cho ứng dụng khác. [Access trên workers.dev](https://developers.cloudflare.com/workers/configuration/routing/workers-dev/#manage-access-to-workersdev).
 
 ## 4. Retry deployment
 
-Trong **Settings → Build**, giữ root directory ở gốc repo và deploy command là **`npm run deploy`**. Build command có thể để trống vì deploy command đã build web. Sau khi lưu binding và các biến, vào **Deployments** và **Retry build**. Không cần tạo `.env.setup` trên máy build. [Cấu hình Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/).
+Trong **Settings → Build**, giữ root directory ở gốc repo, production branch là `main` và deploy command là **`npm run deploy`**. Build command có thể để trống vì deploy command đã build web. Sau khi lưu binding và các biến, chọn build của **commit mới nhất** trong **Deployments**; chỉ retry build mang đúng commit cần triển khai. Không cần tạo `.env.setup` trên máy build. [Cấu hình Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/).
 
 ## CLI và bảo trì database (tùy chọn)
 

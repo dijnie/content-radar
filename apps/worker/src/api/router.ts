@@ -16,9 +16,8 @@ interface Route {
 }
 
 /**
- * Every API route lives in this table, and the table is only ever reached from
- * `fetch` after the Access check and the CSRF guard. There is no other way to
- * attach a route, so none can skip those two layers.
+ * Public API routes, reached from `fetch` after the same-origin request guard.
+ * Route handlers validate input and enforce the existing job and usage limits.
  */
 export const ROUTES: readonly Route[] = [
   { method: "GET", pattern: /^\/api\/jobs$/, handler: (request, env) => handleJobs(request, env) },

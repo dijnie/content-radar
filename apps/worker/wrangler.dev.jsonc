@@ -1,5 +1,4 @@
-// Local development only (`npm run dev`). The auth bypass constant is true
-// here and nowhere else; this file declares no route, so it is never deployed.
+// Local development only (`npm run dev`); this file declares no deployed route.
 // Keep bindings in step with wrangler.template.json.
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
@@ -8,7 +7,6 @@
   "compatibility_date": "2026-09-01",
   "workers_dev": false,
   "preview_urls": false,
-  "define": { "__DEV_AUTH_BYPASS__": "true" },
   "assets": {
     "directory": "../web/dist",
     "binding": "ASSETS",

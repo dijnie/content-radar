@@ -34,7 +34,7 @@ export interface IngestDeps {
 
 function ownHosts(env: Pick<Env, "APP_ORIGIN">): string[] {
   try {
-    return [new URL(env.APP_ORIGIN).hostname];
+    return [new URL(env.APP_ORIGIN ?? "").hostname];
   } catch {
     return [];
   }

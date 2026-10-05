@@ -93,7 +93,7 @@ test("custom resources keep producers, consumers and dead-letter queues connecte
   assert.equal(config.vars.DLQ_QUEUE_NAME, "custom-dlq");
   assert.equal(config.vars.LLM_MODEL, 'vendor/model-"quoted"');
   assert.equal(config.vars.LLM_ENDPOINT, "https://provider.example/v1?api-version=1");
-  assert.equal(config.define.__DEV_AUTH_BYPASS__, "false");
+  assert.equal(config.define, undefined);
   assert.equal(config.assets.run_worker_first, true);
   assert.equal(llmEnabled, true);
 });

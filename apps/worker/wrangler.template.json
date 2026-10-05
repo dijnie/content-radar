@@ -14,9 +14,6 @@
     "LLM_QUEUE_NAME": "radar-llm",
     "DLQ_QUEUE_NAME": "radar-dlq"
   },
-  "define": {
-    "__DEV_AUTH_BYPASS__": "false"
-  },
   "assets": {
     "directory": "../web/dist",
     "binding": "ASSETS",

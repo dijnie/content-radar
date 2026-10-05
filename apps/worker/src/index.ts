@@ -1,4 +1,3 @@
-import { verifyAccess } from "./api/access-auth";
 import { guardRequest } from "./api/request-guard";
 import { routeApi } from "./api/router";
 import { runClusterJob } from "./cluster/run-cluster-job";
@@ -22,12 +21,9 @@ const QUEUE_DEAD_LETTER = "radar-dlq";
 
 export default {
   async fetch(request, env): Promise<Response> {
-    // Every request, static assets included, passes authentication and the
-    // CSRF guard before any route or asset is served.
-    const access = await verifyAccess(request, env);
-    if (!access.ok) return Response.json({ error: access.reason }, { status: access.status });
-
-    const rejection = guardRequest(request, env.APP_ORIGIN);
+    // Public access: visitors can read and interact without signing in.
+    // Browser writes must still originate from the site serving this request.
+    const rejection = guardRequest(request);
     if (rejection) return rejection;
 
     if (new URL(request.url).pathname.startsWith("/api/")) return routeApi(request, env);

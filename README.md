@@ -14,7 +14,7 @@ Giao diện gồm **Stories**, **News**, **Hands-on**, **Deep dives** và **Jobs
 ## Yêu cầu
 
 - Node 22 trở lên và npm.
-- Để deploy: tài khoản Cloudflare có Workers Paid, một ứng dụng Cloudflare Access cho hostname Worker (`workers.dev` hiện tại), endpoint tương thích OpenAI Chat Completions, API key và tên model, và một GitHub PAT fine-grained chỉ đọc dữ liệu public.
+- Để deploy: tài khoản Cloudflare có Workers Paid, endpoint tương thích OpenAI Chat Completions, API key và tên model, và một GitHub PAT fine-grained chỉ đọc dữ liệu public.
 
 Không cần gì trong số đó để chạy test.
 
@@ -31,9 +31,11 @@ Test của Worker không chạm mạng và không chạm tài nguyên Cloudflare
 
 ## Setup để deploy
 
+Ứng dụng mở công khai để mọi người xem và tương tác, không cần đăng nhập. Trạng thái lưu/ẩn/đã đọc và lịch chạy được dùng chung. Nếu hostname đang có Cloudflare Access, tắt Access cho hostname đó theo [hướng dẫn setup](docs/setup.md).
+
 Trên Cloudflare: **Workers & Pages → content-radar → Bindings → Add binding → D1 database**, đặt variable name là **`DB`**, rồi chọn database của ứng dụng.
 
-Với **Cloudflare Builds**, đặt root directory ở gốc repo và deploy command là `npm run deploy`, rồi retry build. **Không cần terminal, file `.env.setup` hay biến `D1_DATABASE_ID`**. Wrangler dùng lại binding `DB` đã chọn; gắn database trước khi retry để dùng đúng dữ liệu hiện có. Xem [hướng dẫn setup](docs/setup.md).
+Với **Cloudflare Builds**, đặt root directory ở gốc repo và deploy command là `npm run deploy`, rồi chọn build của commit mới nhất. **Không cần terminal, file `.env.setup` hay biến `D1_DATABASE_ID`**. Wrangler dùng lại binding `DB` đã chọn; gắn database trước khi deploy để dùng đúng dữ liệu hiện có. Xem [hướng dẫn setup](docs/setup.md).
 
 Đặt endpoint/model và các secrets của ứng dụng ở **Worker → Settings → Variables and Secrets**. Các tên R2/Queue mặc định có trong hướng dẫn; chỉ dùng **Build variables and secrets** nếu muốn ghi đè tên tài nguyên. Với CLI, `.env.setup.example` là file tùy chọn; `npm run setup` sinh cấu hình deploy từ template.
 
@@ -67,14 +69,14 @@ Model mới tự có trần 5 request/phút, 100 request/ngày Pacific; model đ
 ## Phát triển local
 
 ```bash
-cp .dev.vars.example apps/worker/.dev.vars     # đặt APP_ORIGIN=http://127.0.0.1:8787
+cp .dev.vars.example apps/worker/.dev.vars
 cd apps/worker && npx wrangler d1 migrations apply content-radar --local --config wrangler.dev.jsonc && cd ../..
 npm run config:sync -- --local
 npm run build --workspace @radar/web
 npm run dev                                    # http://127.0.0.1:8787
 ```
 
-`npm run dev` dùng `wrangler.dev.jsonc`, file duy nhất đặt hằng số build `__DEV_AUTH_BYPASS__` thành `true`. Bundle production không chứa đường bỏ qua này. Lớp chống CSRF vẫn hoạt động ở local, nên `APP_ORIGIN` phải đúng bằng origin đang mở trên trình duyệt.
+`npm run dev` dùng `wrangler.dev.jsonc`. Local và production cùng cho phép truy cập công khai. Các thao tác ghi kiểm tra `Origin` theo URL request thực tế, nên không phải điền `APP_ORIGIN` để bấm nút trên giao diện.
 
 Kích cron bằng tay khi đang chạy dev server:
 

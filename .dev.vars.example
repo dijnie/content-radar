@@ -5,9 +5,6 @@ LLM_ENDPOINT=
 LLM_API_KEY=
 LLM_MODEL=
 GITHUB_TOKEN=
-OWNER_EMAIL=
-ACCESS_TEAM_DOMAIN=
-ACCESS_AUD=
-# Must equal the origin you open in the browser, e.g. http://127.0.0.1:8787 for `npm run dev`;
-# the CSRF guard compares it with the Origin header even when the dev auth bypass is on.
+# Optional: exclude the app's own hostname from background ingest.
+# Browsing and interactions work without this value; no sign-in is required.
 APP_ORIGIN=

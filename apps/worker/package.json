@@ -11,7 +11,6 @@
   },
   "dependencies": {
     "@radar/core": "0.1.0",
-    "jose": "6.2.12",
     "leiden-ts": "0.1.0",
     "ngraph.graph": "20.1.2",
     "ngraph.leiden": "0.3.0",

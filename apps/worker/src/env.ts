@@ -17,16 +17,6 @@ export interface Env {
   LLM_QUEUE_NAME?: string;
   DLQ_QUEUE_NAME?: string;
   GITHUB_TOKEN: string;
-  OWNER_EMAIL: string;
-  /** Team origin, e.g. https://<team>.cloudflareaccess.com (no trailing slash). */
-  ACCESS_TEAM_DOMAIN: string;
-  /** Application Audience (AUD) tag of the Access application. */
-  ACCESS_AUD: string;
-  /** Exact deployed origin, e.g. https://radar.example.com. */
-  APP_ORIGIN: string;
-}
-
-declare global {
-  /** Build-time constant. Only wrangler.dev.jsonc sets it to true. */
-  const __DEV_AUTH_BYPASS__: boolean;
+  /** Optional origin for excluding the app's own hostname during background ingest. */
+  APP_ORIGIN?: string;
 }

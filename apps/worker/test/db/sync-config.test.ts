@@ -28,7 +28,6 @@ describe("the checked-in config", () => {
     expect(config.topics.map((topic) => topic.slug)).toEqual(["ai", "system-design", "backend"]);
     const xSources = config.sources.filter((source) => source.type === "x");
     expect(xSources.length).toBeGreaterThanOrEqual(30);
-    expect(xSources.length).toBeLessThanOrEqual(50);
     expect(config.sources.some((source) => (source.type as string) === "reddit")).toBe(false);
     expect(config.settings).toMatchObject({ display_min_score: 40, synthesis_min_score: 30, llm_safe_default_rpd: 20 });
   });

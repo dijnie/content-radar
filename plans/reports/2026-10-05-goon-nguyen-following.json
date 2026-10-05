@@ -1,0 +1,274 @@
+{
+  "status": "applied",
+  "requestedSource": "https://x.com/goon_nguyen/following",
+  "observedSource": "https://twstalker.com/goon_nguyen",
+  "observedOn": "2026-10-05",
+  "reportedFollowingCount": 626,
+  "visibleFollowingReviewed": 50,
+  "selectionBasis": "Topic relevance inferred from visible profile biographies. This is not a recent-post quality audit.",
+  "limitations": [
+    "Direct X Following page redirects to login; current membership has not been verified on X.",
+    "The public mirror exposes 50 following profiles, not the complete list.",
+    "Not selected means insufficient evidence or lower relevance in this initial pass; it does not mean the account never posts about these topics."
+  ],
+  "additionalTopicEvidence": [
+    {
+      "handle": "chipro",
+      "url": "https://huyenchip.com/"
+    },
+    {
+      "handle": "badlogicgames",
+      "url": "https://mariozechner.at/"
+    },
+    {
+      "handle": "dhh",
+      "url": "https://dhh.dk/"
+    }
+  ],
+  "selected": [
+    {
+      "handle": "chipro",
+      "topicHint": "ai",
+      "focus": "AI engineering / ML systems",
+      "profileUrl": "https://x.com/chipro"
+    },
+    {
+      "handle": "rakyll",
+      "topicHint": "ai",
+      "focus": "AI engineering / ML systems",
+      "profileUrl": "https://x.com/rakyll"
+    },
+    {
+      "handle": "omarsar0",
+      "topicHint": "ai",
+      "focus": "AI engineering / ML systems",
+      "profileUrl": "https://x.com/omarsar0"
+    },
+    {
+      "handle": "badlogicgames",
+      "topicHint": "ai",
+      "focus": "Coding agents / developer tools",
+      "profileUrl": "https://x.com/badlogicgames"
+    },
+    {
+      "handle": "BenjaminPasero",
+      "topicHint": "ai",
+      "focus": "Coding agents / developer tools",
+      "profileUrl": "https://x.com/BenjaminPasero"
+    },
+    {
+      "handle": "adocomplete",
+      "topicHint": "ai",
+      "focus": "Coding agents / developer tools",
+      "profileUrl": "https://x.com/adocomplete"
+    },
+    {
+      "handle": "thsottiaux",
+      "topicHint": "ai",
+      "focus": "Coding agents / developer tools",
+      "profileUrl": "https://x.com/thsottiaux"
+    },
+    {
+      "handle": "Dimillian",
+      "topicHint": "ai",
+      "focus": "Coding agents / developer tools",
+      "profileUrl": "https://x.com/Dimillian"
+    },
+    {
+      "handle": "_mohansolo",
+      "topicHint": "ai",
+      "focus": "Coding agents / developer tools",
+      "profileUrl": "https://x.com/_mohansolo"
+    },
+    {
+      "handle": "_can1357",
+      "topicHint": "ai",
+      "focus": "Coding agents / developer tools",
+      "profileUrl": "https://x.com/_can1357"
+    },
+    {
+      "handle": "Steve_Yegge",
+      "topicHint": "ai",
+      "focus": "Coding agents / developer tools",
+      "profileUrl": "https://x.com/Steve_Yegge"
+    },
+    {
+      "handle": "cloudxdev",
+      "topicHint": "ai",
+      "focus": "Agent workflows / local models",
+      "profileUrl": "https://x.com/cloudxdev"
+    },
+    {
+      "handle": "luongnv89",
+      "topicHint": "ai",
+      "focus": "Agent workflows / local models",
+      "profileUrl": "https://x.com/luongnv89"
+    },
+    {
+      "handle": "melvindvivas",
+      "topicHint": "ai",
+      "focus": "Agent workflows / local models",
+      "profileUrl": "https://x.com/melvindvivas"
+    },
+    {
+      "handle": "justtomey",
+      "topicHint": "ai",
+      "focus": "Agent workflows / local models",
+      "profileUrl": "https://x.com/justtomey"
+    },
+    {
+      "handle": "jasonzhou1993",
+      "topicHint": "ai",
+      "focus": "Agent workflows / local models",
+      "profileUrl": "https://x.com/jasonzhou1993"
+    },
+    {
+      "handle": "johnennis",
+      "topicHint": "ai",
+      "focus": "Agent workflows / local models",
+      "profileUrl": "https://x.com/johnennis"
+    },
+    {
+      "handle": "willtran33",
+      "topicHint": "ai",
+      "focus": "Agent workflows / local models",
+      "profileUrl": "https://x.com/willtran33"
+    },
+    {
+      "handle": "tom_doerr",
+      "topicHint": "ai",
+      "focus": "Agent products / open source discovery",
+      "profileUrl": "https://x.com/tom_doerr"
+    },
+    {
+      "handle": "BestAgentKits",
+      "topicHint": "ai",
+      "focus": "Agent products / open source discovery",
+      "profileUrl": "https://x.com/BestAgentKits"
+    },
+    {
+      "handle": "MiniMax_AI",
+      "topicHint": "ai",
+      "focus": "Agent products / open source discovery",
+      "profileUrl": "https://x.com/MiniMax_AI"
+    },
+    {
+      "handle": "orca_build",
+      "topicHint": "ai",
+      "focus": "Agent products / open source discovery",
+      "profileUrl": "https://x.com/orca_build"
+    },
+    {
+      "handle": "khoa_solo",
+      "topicHint": "ai",
+      "focus": "Agent products / open source discovery",
+      "profileUrl": "https://x.com/khoa_solo"
+    },
+    {
+      "handle": "TeeDevh",
+      "topicHint": "ai",
+      "focus": "Agent products / open source discovery",
+      "profileUrl": "https://x.com/TeeDevh"
+    },
+    {
+      "handle": "dhh",
+      "topicHint": "backend",
+      "focus": "Backend / infrastructure products",
+      "profileUrl": "https://x.com/dhh"
+    },
+    {
+      "handle": "pontusab",
+      "topicHint": "backend",
+      "focus": "Backend / infrastructure products",
+      "profileUrl": "https://x.com/pontusab"
+    },
+    {
+      "handle": "burcs",
+      "topicHint": "backend",
+      "focus": "Backend / infrastructure products",
+      "profileUrl": "https://x.com/burcs"
+    },
+    {
+      "handle": "petergyang",
+      "topicHint": "ai",
+      "focus": "Applied AI tutorials",
+      "profileUrl": "https://x.com/petergyang"
+    },
+    {
+      "handle": "melvynx",
+      "topicHint": "ai",
+      "focus": "Applied AI tutorials",
+      "profileUrl": "https://x.com/melvynx"
+    },
+    {
+      "handle": "weswinder",
+      "topicHint": "ai",
+      "focus": "Applied AI tutorials",
+      "profileUrl": "https://x.com/weswinder"
+    }
+  ],
+  "remainingForReview": [
+    "nikhilgohil11",
+    "Trevornoah",
+    "theanimeshs",
+    "chongwei89",
+    "techopsasia",
+    "jackvi810",
+    "AroraBhavyam",
+    "taicv",
+    "cellinlab",
+    "Cris_KB2A",
+    "joeschmidtiv",
+    "blackanger",
+    "a16z",
+    "RichardNG_ai",
+    "DavidOndrej1",
+    "nlb_io",
+    "thieunguyen_it",
+    "iuditg",
+    "mq_p",
+    "novalauliady"
+  ],
+  "merge": {
+    "target": "config/sources.json",
+    "selectedCount": 30,
+    "addedHandles": [
+      "chipro",
+      "badlogicgames",
+      "BenjaminPasero",
+      "adocomplete",
+      "thsottiaux",
+      "Dimillian",
+      "_mohansolo",
+      "_can1357",
+      "Steve_Yegge",
+      "cloudxdev",
+      "luongnv89",
+      "melvindvivas",
+      "justtomey",
+      "jasonzhou1993",
+      "johnennis",
+      "willtran33",
+      "tom_doerr",
+      "BestAgentKits",
+      "MiniMax_AI",
+      "orca_build",
+      "khoa_solo",
+      "TeeDevh",
+      "dhh",
+      "pontusab",
+      "burcs",
+      "petergyang",
+      "melvynx",
+      "weswinder"
+    ],
+    "alreadyPresentHandles": [
+      "rakyll",
+      "omarsar0"
+    ],
+    "totalSources": 149,
+    "totalXSources": 77,
+    "productionAppliedAt": "2026-10-05T23:11:46+00:00",
+    "productionWorker": "content-radar"
+  }
+}

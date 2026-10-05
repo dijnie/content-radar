@@ -356,6 +356,202 @@
     "authorKey": "werner-vogels"
   },
   {
+    "type": "x",
+    "key": "chipro",
+    "label": "@chipro",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "badlogicgames",
+    "label": "@badlogicgames",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "BenjaminPasero",
+    "label": "@BenjaminPasero",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "adocomplete",
+    "label": "@adocomplete",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "thsottiaux",
+    "label": "@thsottiaux",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "Dimillian",
+    "label": "@Dimillian",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "_mohansolo",
+    "label": "@_mohansolo",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "_can1357",
+    "label": "@_can1357",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "Steve_Yegge",
+    "label": "@Steve_Yegge",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "cloudxdev",
+    "label": "@cloudxdev",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "luongnv89",
+    "label": "@luongnv89",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "melvindvivas",
+    "label": "@melvindvivas",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "justtomey",
+    "label": "@justtomey",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "jasonzhou1993",
+    "label": "@jasonzhou1993",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "johnennis",
+    "label": "@johnennis",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "willtran33",
+    "label": "@willtran33",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "tom_doerr",
+    "label": "@tom_doerr",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "BestAgentKits",
+    "label": "@BestAgentKits",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "MiniMax_AI",
+    "label": "@MiniMax_AI",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "orca_build",
+    "label": "@orca_build",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "khoa_solo",
+    "label": "@khoa_solo",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "TeeDevh",
+    "label": "@TeeDevh",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "dhh",
+    "label": "@dhh",
+    "topicHint": "backend",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "pontusab",
+    "label": "@pontusab",
+    "topicHint": "backend",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "burcs",
+    "label": "@burcs",
+    "topicHint": "backend",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "petergyang",
+    "label": "@petergyang",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "melvynx",
+    "label": "@melvynx",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
+    "type": "x",
+    "key": "weswinder",
+    "label": "@weswinder",
+    "topicHint": "ai",
+    "pollIntervalMin": 30
+  },
+  {
     "type": "rss",
     "key": "https://openai.com/news/rss.xml",
     "label": "OpenAI News",

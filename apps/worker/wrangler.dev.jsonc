@@ -1,6 +1,6 @@
 // Local development only (`npm run dev`). The auth bypass constant is true
 // here and nowhere else; this file declares no route, so it is never deployed.
-// Keep bindings in step with wrangler.jsonc.
+// Keep bindings in step with wrangler.template.json.
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "content-radar-dev",
@@ -19,7 +19,7 @@
     {
       "binding": "DB",
       "database_name": "content-radar",
-      "database_id": "05658112-1927-432e-b475-4aa0cca291e6",
+      "database_id": "00000000-0000-0000-0000-000000000000",
       "migrations_dir": "migrations"
     }
   ],

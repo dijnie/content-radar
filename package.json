@@ -11,9 +11,10 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present",
+    "test": "node --test scripts/setup.test.ts && npm run test --workspaces --if-present",
     "typecheck": "tsc -p scripts/tsconfig.json && npm run typecheck --workspaces --if-present",
     "dev": "npm run dev --workspace @radar/worker",
+    "setup": "node scripts/setup.ts",
     "deploy": "npm run build --workspace @radar/web && npm run deploy --workspace @radar/worker",
     "config:sync": "node scripts/sync-config.ts",
     "sweep": "node scripts/resolution-sweep.ts",

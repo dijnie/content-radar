@@ -6,6 +6,7 @@
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { writeDeployConfig } from "./deploy-config.ts";
 import { leidenClusterer, resolutionSweep, resolveParams, weightedEdges } from "../packages/core/src/index.ts";
 
 const target = process.argv.slice(2).find((arg) => arg === "--local" || arg === "--remote");
@@ -14,10 +15,11 @@ if (!target) {
   process.exit(2);
 }
 const workerDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "apps", "worker");
+if (target === "--remote") writeDeployConfig();
 
 function query<T>(sql: string): T[] {
   const config = target === "--local" ? "wrangler.dev.jsonc" : "wrangler.jsonc";
-  const out = execFileSync("npx", ["wrangler", "d1", "execute", "content-radar", target!, "--config", config, "--json", "--command", sql], { cwd: workerDir, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });
+  const out = execFileSync("npx", ["wrangler", "d1", "execute", "DB", target!, "--config", config, "--json", "--command", sql], { cwd: workerDir, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });
   return (JSON.parse(out) as { results: T[] }[])[0]!.results;
 }
 

@@ -58,7 +58,7 @@ export default {
   },
 
   async queue(batch, env): Promise<void> {
-    if (batch.queue === QUEUE_POLL) {
+    if (batch.queue === (env.POLL_QUEUE_NAME ?? QUEUE_POLL)) {
       for (const message of (batch as MessageBatch<PollQueueMessage>).messages) {
         if ("kind" in message.body && message.body.kind === "build-feed") {
           try { await runFeedBuild(env, message.body.runId); message.ack(); }
@@ -73,8 +73,8 @@ export default {
       }
       return;
     }
-    if (batch.queue === QUEUE_LLM) return consumeLlmBatch(batch as MessageBatch<LlmMessage>, env);
-    if (batch.queue === QUEUE_DEAD_LETTER) return consumeDeadLetters(batch as MessageBatch<LlmMessage | PollQueueMessage>, env);
+    if (batch.queue === (env.LLM_QUEUE_NAME ?? QUEUE_LLM)) return consumeLlmBatch(batch as MessageBatch<LlmMessage>, env);
+    if (batch.queue === (env.DLQ_QUEUE_NAME ?? QUEUE_DEAD_LETTER)) return consumeDeadLetters(batch as MessageBatch<LlmMessage | PollQueueMessage>, env);
     // An unknown queue means the config and the code disagree; keep the messages.
     console.error(JSON.stringify({ event: "unknown_queue", queue: batch.queue }));
     batch.retryAll({ delaySeconds: 300 });

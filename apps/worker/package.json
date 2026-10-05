@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev --config wrangler.dev.jsonc --test-scheduled",
-    "deploy": "wrangler deploy",
+    "deploy": "node ../../scripts/setup.ts && wrangler deploy --config wrangler.jsonc",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json"
   },

@@ -6,6 +6,8 @@ dist/
 !.dev.vars.example
 .env
 .env.*
+!.env.setup.example
+apps/worker/wrangler.jsonc
 *.log
 *.tsbuildinfo
 coverage/

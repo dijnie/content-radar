@@ -1,5 +1,7 @@
 # Vận hành
 
+Setup tài khoản mới hoặc chuyển sang Cloudflare Builds: làm theo [template setup](setup.md) trước. Các ghi chép production bên dưới là lịch sử triển khai, không phải tài nguyên có sẵn cho mọi tài khoản. `apps/worker/wrangler.jsonc` nay được sinh từ `.env.setup`/build variables và `wrangler.template.json`; không sửa trực tiếp file sinh ra.
+
 Trạng thái (cập nhật 2026-09-21): người dùng chọn giữ Cloudflare Access trên URL `workers.dev` hiện tại và đăng nhập bằng tài khoản Cloudflare, không dùng mã email của Access. Ứng dụng `Content Radar` chỉ chọn identity provider `Cloudflare`, bật `Restrict to account members` và tự chuyển sang đăng nhập Cloudflare; policy vẫn giới hạn đúng chủ sở hữu. Worker đã có `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`, `OWNER_EMAIL`, `APP_ORIGIN`. Cấu hình repo và route thực tế bật `workers_dev`, tắt preview URL. Đã kiểm chứng trang Access không có form mã email, tự chuyển tới `dash.cloudflare.com/oauth2/auth`; phiên đăng nhập hoàn chỉnh vẫn cần kiểm chứng bằng trình duyệt của chủ sở hữu. Bằng chứng ở [báo cáo Access](../plans/reports/cook-260921-0804-cloudflare-access.md).
 
 Tài nguyên Cloudflare đã tạo (D1 `content-radar`, R2 `content-radar-raw`, queue `radar-poll`, `radar-llm`, `radar-dlq`). Ngày 2026-09-21 migration `0001` đến `0010` đã được áp lên D1 remote; cấu hình remote đang có 3 chủ đề, 119 nguồn, 13 tác giả. **Không sửa các file migration đã áp**, mọi thay đổi schema phải là một migration mới. Những quy trình dưới đây có đánh dấu **chưa thử trên production** là viết theo tài liệu của Cloudflare và theo hành vi đã kiểm chứng ở local; hãy cập nhật chúng khi chạy thật lần đầu.
@@ -24,7 +26,7 @@ Cron khôi phục intent crawl/build bị mất queue và lease quá hạn. Khi 
 
 Cần có trước: một ứng dụng Access kiểu self-hosted cho hostname của Worker với policy cho đúng một email. Hostname hiện tại là `content-radar.<subdomain>.workers.dev`; không cần custom domain. Lấy **Application Audience (AUD) tag** của ứng dụng và miền team dạng `https://<team>.cloudflareaccess.com`. Xem [Access trên Workers](https://developers.cloudflare.com/workers/configuration/cloudflare-access/).
 
-1. Giữ `workers_dev: true` và `preview_urls: false` trong `apps/worker/wrangler.jsonc`. Trong Zero Trust, ứng dụng `Content Radar` phải che toàn bộ hostname `workers.dev`, không giới hạn vào một path. Policy hiện tại dùng lại rule chỉ cho một email; thay đổi rule dùng chung cũng ảnh hưởng ứng dụng Access khác đang dùng nó. Worker vẫn kiểm tra email riêng bằng `OWNER_EMAIL`.
+1. Điền `.env.setup` theo [hướng dẫn setup](setup.md), chạy `npm run setup`. Giữ `workers_dev: true` và `preview_urls: false` trong `apps/worker/wrangler.template.json`. Trong Zero Trust, ứng dụng `Content Radar` phải che toàn bộ hostname `workers.dev`, không giới hạn vào một path. Policy hiện tại dùng lại rule chỉ cho một email; thay đổi rule dùng chung cũng ảnh hưởng ứng dụng Access khác đang dùng nó. Worker vẫn kiểm tra email riêng bằng `OWNER_EMAIL`.
 
    Trong Zero Trust → Integrations → Identity providers, dùng provider loại `cloudflare` với `restrict_to_account_members: true`. Ở ứng dụng `Content Radar`, `allowed_idps` chỉ gồm provider này và `auto_redirect_to_identity: true`. Email trong policy dùng để kiểm tra danh tính do Cloudflare trả về, không yêu cầu người dùng nhập lại email ở Access. Không chọn `onetimepin` cho ứng dụng này. Xem [Cloudflare làm identity provider](https://developers.cloudflare.com/cloudflare-one/integrations/identity-providers/cloudflare/).
 
@@ -39,13 +41,14 @@ Cần có trước: một ứng dụng Access kiểu self-hosted cho hostname c�
 2. Ghi lại bookmark Time Travel, áp dụng migration, đồng bộ cấu hình:
 
    ```bash
+   npm run setup
    cd apps/worker
-   npx wrangler d1 time-travel info content-radar
-   npx wrangler d1 migrations apply content-radar --remote
+   npx wrangler d1 time-travel info DB
+   npx wrangler d1 migrations apply DB --remote
    cd ../.. && npm run config:sync -- --remote
    ```
 
-   Migration remote đã tới `0010` ngày 2026-09-21; lần sync cấu hình remote gần nhất vẫn ở bộ 119 nguồn. Migration mới cần áp **trước** khi deploy mã phụ thuộc vào schema đó. Chạy `npx wrangler d1 migrations list content-radar --remote` từ `apps/worker` để xác nhận không còn migration chờ. Migration đã áp dụng sẽ bị bỏ qua và `config:sync` là idempotent. Lưu ý: trên remote, `wrangler d1 execute --file` đi qua đường import hàng loạt và chỉ trả bản tóm tắt, không trả dòng kết quả. Dùng `--file` cho việc ghi, và `--command` (hoặc `npm run soak-report -- --remote`) khi cần đọc kết quả.
+   Migration remote đã tới `0010` ngày 2026-09-21; lần sync cấu hình remote gần nhất vẫn ở bộ 119 nguồn. Migration mới cần áp **trước** khi deploy mã phụ thuộc vào schema đó. Chạy `npx wrangler d1 migrations list DB --remote` từ `apps/worker` để xác nhận không còn migration chờ. Migration đã áp dụng sẽ bị bỏ qua và `config:sync` là idempotent. Lưu ý: trên remote, `wrangler d1 execute --file` đi qua đường import hàng loạt và chỉ trả bản tóm tắt, không trả dòng kết quả. Dùng `--file` cho việc ghi, và `--command` (hoặc `npm run soak-report -- --remote`) khi cần đọc kết quả.
 
 3. Đặt secret (mỗi lệnh hỏi giá trị, không ghi vào file hay lịch sử shell):
 
@@ -56,7 +59,7 @@ Cần có trước: một ứng dụng Access kiểu self-hosted cho hostname c�
 
    `ACCESS_TEAM_DOMAIN` không có dấu gạch chéo cuối. `APP_ORIGIN` là origin chính xác đang dùng, hiện là `https://content-radar.<subdomain>.workers.dev`. `OWNER_EMAIL` phải trùng email trong policy. Thiếu một trong ba biến Access thì mọi request nhận 503 `access_not_configured`: Worker từ chối thay vì mở. Chỉ đặt secret còn thiếu; không cần ghi lại key AI/GitHub khi sửa Access.
 
-4. Điền `LLM_ENDPOINT` và `LLM_MODEL` trong `wrangler.jsonc` theo mục bên dưới. Model mới có trần 100 request/ngày Pacific, tối đa 5 request/phút; model đã có giữ nguyên giới hạn. Không phải quota của nhà cung cấp; 429 không tự sửa các trần. Với model có giới hạn `NULL`, giá trị dự phòng lấy từ `settings` (repo mặc định 5/20).
+4. Điền `LLM_ENDPOINT` và `LLM_MODEL` trong `.env.setup` hoặc build variables theo mục bên dưới, rồi chạy lại `npm run setup`. Để tạm dừng LLM, để cả hai trống. Model mới có trần 100 request/ngày Pacific, tối đa 5 request/phút; model đã có giữ nguyên giới hạn. Không phải quota của nhà cung cấp; 429 không tự sửa các trần. Với model có giới hạn `NULL`, giá trị dự phòng lấy từ `settings` (repo mặc định 5/20).
 5. `npm run deploy`, rồi kiểm tra không hostname nào hở:
 
    ```bash
@@ -81,17 +84,17 @@ Cấu hình ba giá trị:
 | `LLM_API_KEY` | API key gửi trong header `Authorization: Bearer …`; lưu bằng Worker secret. |
 | `LLM_MODEL` | Tên model chính xác mà endpoint hỗ trợ, kể cả tên dạng `vendor/model`. |
 
-Local: chép `.dev.vars.example` thành `apps/worker/.dev.vars` và điền ba giá trị. Production: đặt endpoint/model trong `apps/worker/wrangler.jsonc`, dùng `npx wrangler secret put LLM_API_KEY` từ `apps/worker` để lưu key. File local không tự trở thành secret production. Xem [Cloudflare Worker secrets](https://developers.cloudflare.com/workers/configuration/secrets/).
+Local: chép `.dev.vars.example` thành `apps/worker/.dev.vars` và điền ba giá trị. Production: đặt endpoint/model trong `.env.setup` hoặc build variables rồi chạy `npm run setup`, dùng `npx wrangler secret put LLM_API_KEY` từ `apps/worker` để lưu key. File local không tự trở thành secret production. Xem [Cloudflare Worker secrets](https://developers.cloudflare.com/workers/configuration/secrets/).
 
 Provider cần nhận OpenAI Chat Completions với `messages`, `response_format: { "type": "json_object" }`, `temperature: 0`, `max_tokens: 8192`, `stream: false`; trả JSON trong `choices[0].message.content` và `finish_reason: "stop"`. `usage.prompt_tokens` và `usage.completion_tokens` được lưu nếu có. Client không gửi `thinking` hoặc tùy chọn riêng của một hãng. Binding `AI` tiếp tục dùng cho embedding.
 
-Model mới tự được thêm vào D1 với trần 5/phút và 100/ngày. Model đã có giữ nguyên giới hạn, trạng thái tắt và cooldown. `LLM_MODEL` có giá trị chỉ chọn model đó, không fallback sang các tên cũ. Chuỗi rỗng tạm dừng LLM; bỏ hẳn biến thì dùng chuỗi model bật trong D1. Có thể chỉnh trần model trong bảng `llm_models`; không reset usage để lấy thêm lượt.
+Model mới tự được thêm vào D1 với trần 5/phút và 100/ngày. Model đã có giữ nguyên giới hạn, trạng thái tắt và cooldown. `LLM_MODEL` có giá trị chỉ chọn model đó, không fallback sang các tên cũ. Trong setup mới, để cả endpoint và model trống sẽ tạm dừng LLM. Khả năng dùng chuỗi model D1 khi bỏ hẳn `LLM_MODEL` chỉ còn ở lời gọi nội bộ/legacy; setup luôn sinh biến này. Có thể chỉnh trần model trong bảng `llm_models`; không reset usage để lấy thêm lượt.
 
 Thiếu key/endpoint, URL sai hoặc HTTP 401/403/404 sẽ giữ việc trong D1 và mở ngắt mạch 15 phút. Sau khi sửa, đợi ngắt mạch hết hạn rồi cron rút backlog tiếp. Endpoint không được chứa user/password hoặc fragment; query string được giữ. Không tự theo redirect khi gửi key.
 
 ## Chuyển từ cấu hình DeepSeek cũ
 
-1. Đặt `LLM_ENDPOINT`, `LLM_MODEL` và secret `LLM_API_KEY`. Key BYOK từng lưu trên AI Gateway không tự trở thành Worker secret.
+1. Điền Account ID, D1 ID và tên tài nguyên hiện có vào `.env.setup`; đặt `LLM_ENDPOINT`, `LLM_MODEL`, chạy `npm run setup` và lưu secret `LLM_API_KEY`. Key BYOK từng lưu trên AI Gateway không tự trở thành Worker secret.
 2. Build/test rồi deploy. `AI_GATEWAY_ID`, `DEEPSEEK_API_KEY` và `DEEPSEEK_BASE_URL` không còn được đọc bởi code mới.
 3. Không cần migration mới cho việc đổi provider. Giữ nguyên migration đã áp, model cũ và lịch sử usage/call/claim. Sau khi đổi cấu hình, ngắt mạch đang mở vẫn chờ hết hạn.
 4. Kiểm tra `/api/admin/probe?target=llm`, trang System status và một lượt pipeline trong `llm_calls`: endpoint trả thành công, model đúng và claim có quote hợp lệ. Deploy thành công chưa chứng minh inference chạy được.
@@ -121,7 +124,7 @@ Với database local, cập nhật code rồi chạy migration trước khi kh�
 
 ```bash
 cd apps/worker
-npx wrangler d1 migrations apply content-radar --local --config wrangler.dev.jsonc
+npx wrangler d1 migrations apply DB --local --config wrangler.dev.jsonc
 ```
 
 Migration `0008_cluster_publication.sql` bổ sung hai bảng dàn dựng để công bố cluster nguyên khối cho database đã chạy migration graph cũ. Nó cũng chạy được khi hai bảng đã tồn tại, không xoá dữ liệu. Với remote, áp dụng migration theo quy trình deploy ở trên.
@@ -149,7 +152,7 @@ Lỗi của một nguồn không ảnh hưởng nguồn khác. Từ lần lỗi 
 Thứ tự an toàn cho mọi thay đổi schema: migration chỉ **mở rộng** (thêm cột, thêm bảng), deploy code, và chỉ thu hẹp schema ở lần phát hành kế tiếp. Nhờ vậy phiên bản Worker trước luôn chạy được trên schema hiện tại.
 
 - **Deploy lỗi:** `cd apps/worker && npx wrangler rollback`. Lệnh đưa Worker về phiên bản trước và không đụng dữ liệu. Đây là đường khôi phục chính.
-- **Dữ liệu hỏng:** Time Travel khôi phục D1 về một thời điểm trong 30 ngày: `npx wrangler d1 time-travel restore content-radar --timestamp=<unix>`. Đây là phương án cuối, vì nó quay ngược **mọi thứ**: sổ ngân sách LLM (hệ thống sẽ tưởng còn lượt đã dùng), trạng thái Saved, Dismissed, Written và `user_actions`. Ghi bookmark trước mỗi lần áp dụng migration để có điểm quay về chính xác.
+- **Dữ liệu hỏng:** Time Travel khôi phục D1 về một thời điểm trong 30 ngày: `npx wrangler d1 time-travel restore DB --timestamp=<unix>`. Đây là phương án cuối, vì nó quay ngược **mọi thứ**: sổ ngân sách LLM (hệ thống sẽ tưởng còn lượt đã dùng), trạng thái Saved, Dismissed, Written và `user_actions`. Ghi bookmark trước mỗi lần áp dụng migration để có điểm quay về chính xác.
 - **Sao lưu:** `scripts/backup-d1.sh [thư-mục]` xuất toàn bộ database ra một file SQL có ngày, mặc định ở `~/backups/content-radar`, quyền 600. Script từ chối ghi vào trong repo. File chứa toàn bộ dữ liệu: giữ ngoài git, ngoài thư mục mà phiên analyst đọc được, và không tải lên dịch vụ bên ngoài.
 
 ## Dead-letter queue

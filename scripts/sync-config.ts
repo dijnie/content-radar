@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildSyncStatements, parseConfig } from "./sync-config-sql.ts";
+import { writeDeployConfig } from "./deploy-config.ts";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const target = process.argv.slice(2).find((arg) => arg === "--local" || arg === "--remote");
@@ -29,7 +30,8 @@ try {
   writeFileSync(file, `${statements.join(";\n")};\n`);
   // The production config is used for --remote; the dev config owns the local database.
   const wranglerConfig = target === "--local" ? "wrangler.dev.jsonc" : "wrangler.jsonc";
-  execFileSync("npx", ["wrangler", "d1", "execute", "content-radar", target, "--config", wranglerConfig, "--file", file, "--yes"], {
+  if (target === "--remote") writeDeployConfig();
+  execFileSync("npx", ["wrangler", "d1", "execute", "DB", target, "--config", wranglerConfig, "--file", file, "--yes"], {
     cwd: path.join(root, "apps", "worker"),
     stdio: "inherit",
   });

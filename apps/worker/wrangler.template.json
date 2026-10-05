@@ -1,0 +1,85 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "content-radar",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "LLM_ENDPOINT": "",
+    "LLM_MODEL": "",
+    "POLL_QUEUE_NAME": "radar-poll",
+    "LLM_QUEUE_NAME": "radar-llm",
+    "DLQ_QUEUE_NAME": "radar-dlq"
+  },
+  "define": {
+    "__DEV_AUTH_BYPASS__": "false"
+  },
+  "assets": {
+    "directory": "../web/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": true
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "content-radar",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "RAW",
+      "bucket_name": "content-radar-raw"
+    }
+  ],
+  "ai": {
+    "binding": "AI"
+  },
+  "queues": {
+    "producers": [
+      {
+        "binding": "POLL_QUEUE",
+        "queue": "radar-poll"
+      },
+      {
+        "binding": "LLM_QUEUE",
+        "queue": "radar-llm"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "radar-poll",
+        "max_batch_size": 10,
+        "max_concurrency": 1,
+        "max_retries": 5,
+        "dead_letter_queue": "radar-dlq"
+      },
+      {
+        "queue": "radar-llm",
+        "max_batch_size": 10,
+        "max_batch_timeout": 60,
+        "max_concurrency": 1,
+        "max_retries": 5,
+        "dead_letter_queue": "radar-dlq"
+      },
+      {
+        "queue": "radar-dlq",
+        "max_batch_size": 10,
+        "max_concurrency": 1
+      }
+    ]
+  },
+  "triggers": {
+    "crons": [
+      "*/30 * * * *",
+      "5 * * * *",
+      "20 8 * * *"
+    ]
+  }
+}

@@ -8,6 +8,7 @@ Giao diện gồm **Stories**, **News**, **Hands-on**, **Deep dives** và **Jobs
 
 - Kiến trúc và các quyết định thiết kế: [`docs/architecture.md`](docs/architecture.md)
 - Vận hành, deploy, sự cố: [`docs/operations.md`](docs/operations.md)
+- Setup tài khoản và Cloudflare Builds từ template: [`docs/setup.md`](docs/setup.md)
 - Phiên phân tích bằng agent: [`docs/analyst-runbook.md`](docs/analyst-runbook.md)
 
 ## Yêu cầu
@@ -28,6 +29,19 @@ bash analyst/test/run-query.test.sh
 
 Test của Worker không chạm mạng và không chạm tài nguyên Cloudflare thật.
 
+## Setup để deploy
+
+```bash
+cp .env.setup.example .env.setup
+# Điền CLOUDFLARE_ACCOUNT_ID, D1_DATABASE_ID và tên tài nguyên của bạn.
+# Điền cả LLM_ENDPOINT và LLM_MODEL nếu muốn bật AI.
+npm run setup
+```
+
+Setup sinh `apps/worker/wrangler.jsonc` từ template; `.env.setup` và file sinh ra không đưa lên Git. Chọn/tạo tài nguyên, điền runtime secrets và áp migration theo [hướng dẫn setup](docs/setup.md) trước khi chạy `npm run deploy`. Lệnh deploy tự chạy lại setup và báo rõ biến thiếu/sai.
+
+Với **Cloudflare Builds**, đặt root directory ở gốc repo, deploy command là `npm run deploy`, rồi điền các biến trong `.env.setup.example` vào **Build variables and secrets**. Secrets của ứng dụng như `LLM_API_KEY` đặt riêng tại **Worker → Settings → Variables and Secrets**.
+
 ## Cấu hình AI
 
 Điền ba biến trong `apps/worker/.dev.vars` khi chạy local:
@@ -40,9 +54,9 @@ LLM_MODEL=your-model-id
 
 `LLM_ENDPOINT` nhận URL gốc API hoặc URL đầy đủ kết thúc bằng `/chat/completions`. Provider cần hỗ trợ Chat Completions và JSON mode (`response_format: { "type": "json_object" }`). Model được gửi nguyên tên, không giới hạn hãng.
 
-Khi deploy, đặt `LLM_ENDPOINT` và `LLM_MODEL` trong `apps/worker/wrangler.jsonc`, rồi lưu `LLM_API_KEY` bằng `npx wrangler secret put LLM_API_KEY` từ `apps/worker`. Không đưa key vào git hoặc frontend. Binding `AI` vẫn phục vụ embedding; các lượt LLM gọi endpoint trực tiếp. Xem [hướng dẫn vận hành](docs/operations.md#ai-qua-endpoint-tùy-chỉnh).
+Khi deploy, đặt `LLM_ENDPOINT` và `LLM_MODEL` trong `.env.setup` hoặc build variables, chạy `npm run setup`, rồi lưu `LLM_API_KEY` bằng `npx wrangler secret put LLM_API_KEY` từ `apps/worker` hoặc qua dashboard. Không sửa file Wrangler sinh ra. Binding `AI` vẫn phục vụ embedding; các lượt LLM gọi endpoint trực tiếp. Xem [hướng dẫn vận hành](docs/operations.md#ai-qua-endpoint-tùy-chỉnh).
 
-Model mới tự có trần 5 request/phút, 100 request/ngày Pacific; model đã tồn tại giữ nguyên giới hạn, cooldown và lịch sử. Để trống `LLM_MODEL` sẽ tạm dừng LLM. Nếu bỏ hẳn biến này, hệ thống dùng danh sách model đang bật trong D1 như trước.
+Model mới tự có trần 5 request/phút, 100 request/ngày Pacific; model đã tồn tại giữ nguyên giới hạn, cooldown và lịch sử. Setup cho phép để trống cả endpoint và model để tạm dừng LLM; không nhận cấu hình chỉ điền một trong hai.
 
 ## Cấu trúc
 
@@ -83,8 +97,9 @@ Lưu ý: `wrangler dev` sinh nhiều tiến trình `workerd` con. Dừng nó b�
 
 | Lệnh | Việc |
 |---|---|
+| `npm run setup` | Kiểm tra `.env.setup`/build variables và sinh cấu hình deploy từ template. |
 | `npm run config:sync -- --local` hoặc `--remote` | Kiểm tra `config/*.json` rồi upsert vào D1; không đụng trạng thái vận hành; mục bị gỡ khỏi file thì bị tắt chứ không bị xoá. |
-| `npm run deploy` | Build web rồi `wrangler deploy`. Đọc danh mục kiểm tra trong `docs/operations.md` trước lần đầu. |
+| `npm run deploy` | Build web, chạy setup rồi `wrangler deploy`. Hoàn tất `docs/setup.md` trước lần đầu. |
 | `npm run sweep -- --remote` | Quét lại gamma của CPM trên dữ liệu thật. |
 | `npm run soak-report -- --remote` | In báo cáo chạy thử: mọi truy vấn của `scripts/soak-report.sql` kèm kết quả. |
 | `npm run test:coverage --workspace @radar/core` | Độ phủ của gói lõi. |

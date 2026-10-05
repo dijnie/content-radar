@@ -12,6 +12,10 @@ export interface Env {
   LLM_API_KEY?: string;
   /** Select one model; unset retains the enabled D1 model chain. Blank pauses LLM work. */
   LLM_MODEL?: string;
+  /** Queue names supplied by deployment setup; defaults support local development. */
+  POLL_QUEUE_NAME?: string;
+  LLM_QUEUE_NAME?: string;
+  DLQ_QUEUE_NAME?: string;
   GITHUB_TOKEN: string;
   OWNER_EMAIL: string;
   /** Team origin, e.g. https://<team>.cloudflareaccess.com (no trailing slash). */

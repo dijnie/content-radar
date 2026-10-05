@@ -63,9 +63,15 @@ export async function generateJson(request: LlmRequest): Promise<LlmResult> {
     const signal = AbortSignal.timeout(request.timeoutMs ?? 60_000);
     response = await (request.fetcher ?? fetch)(endpoint.toString(), {
       method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${request.apiKey.trim()}` },
-      body: JSON.stringify({ model: request.model.trim(), ...input }), signal, redirect: "error",
+      // Workers supports manual/follow redirects. Never follow a provider
+      // redirect, which could forward the API key to another destination.
+      body: JSON.stringify({ model: request.model.trim(), ...input }), signal, redirect: "manual",
     });
     status = response.status;
+    if (status >= 300 && status < 400) {
+      await response.body?.cancel();
+      return fail("configuration_error", true, "llm_redirect_disallowed");
+    }
     // Providers may send keep-alive newlines before the JSON body. The timeout
     // covers body consumption as well as waiting for the response headers.
     raw = await response.text();

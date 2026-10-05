@@ -17,7 +17,30 @@ describe("custom OpenAI-compatible JSON transport", () => {
   ])("resolves endpoint %s", async (endpoint, expected) => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(Response.json(answer()));
     expect(await generateJson({ ...request, endpoint, fetcher })).toMatchObject({ ok: true });
-    expect(fetcher).toHaveBeenCalledWith(expected, expect.objectContaining({ method: "POST", redirect: "error" }));
+    expect(fetcher).toHaveBeenCalledWith(expected, expect.objectContaining({ method: "POST", redirect: "manual" }));
+  });
+
+  it("constructs a request accepted by the Workers runtime", async () => {
+    const fetcher: typeof fetch = async (input, init) => {
+      // Use the real Workers Request constructor: a stub alone misses
+      // unsupported fetch options, including redirect: "error".
+      const outgoing = new Request(input, init);
+      expect(outgoing.redirect).toBe("manual");
+      return Response.json(answer());
+    };
+    expect(await generateJson({ ...request, fetcher })).toMatchObject({ ok: true, data: { ok: true } });
+  });
+
+  it.each([301, 302, 303, 307, 308])("rejects HTTP %i without following or exposing the redirect", async (status) => {
+    const fetcher = vi.fn<typeof fetch>().mockImplementation(async (input, init) => {
+      const outgoing = new Request(input, init);
+      expect(outgoing.redirect).toBe("manual");
+      return new Response("private provider detail", { status, headers: { Location: "https://other.example/private" } });
+    });
+    const result = await generateJson({ ...request, fetcher });
+    expect(result).toMatchObject({ ok: false, kind: "configuration_error", reached: true, httpStatus: status, message: "llm_redirect_disallowed" });
+    expect(fetcher).toHaveBeenCalledOnce();
+    expect(JSON.stringify(result)).not.toMatch(/other\.example|private provider detail/);
   });
 
   it.each(["", "  ", "not-a-url", "ftp://llm.example", "https://user:secret@llm.example/v1", "https://llm.example/v1#fragment"])("rejects invalid endpoint before sending credentials: %s", async (endpoint) => {

@@ -6,10 +6,12 @@ export interface Env {
   AI: Ai;
   ASSETS: Fetcher;
 
-  /** Only required for direct calls; AI Gateway uses its stored provider key. */
-  DEEPSEEK_API_KEY?: string;
-  /** Select the AI binding and its stored default DeepSeek key. */
-  AI_GATEWAY_ID?: string;
+  /** OpenAI-compatible API base URL or full chat/completions URL. */
+  LLM_ENDPOINT?: string;
+  /** Server-side secret; never sent to the browser. */
+  LLM_API_KEY?: string;
+  /** Select one model; unset retains the enabled D1 model chain. Blank pauses LLM work. */
+  LLM_MODEL?: string;
   GITHUB_TOKEN: string;
   OWNER_EMAIL: string;
   /** Team origin, e.g. https://<team>.cloudflareaccess.com (no trailing slash). */
@@ -18,8 +20,6 @@ export interface Env {
   ACCESS_AUD: string;
   /** Exact deployed origin, e.g. https://radar.example.com. */
   APP_ORIGIN: string;
-  /** Direct local API only; unset means https://api.deepseek.com. */
-  DEEPSEEK_BASE_URL?: string;
 }
 
 declare global {

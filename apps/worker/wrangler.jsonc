@@ -1,4 +1,4 @@
-// Production configuration. Secrets (GITHUB_TOKEN, OWNER_EMAIL,
+// Production configuration. Secrets (LLM_API_KEY, GITHUB_TOKEN, OWNER_EMAIL,
 // ACCESS_TEAM_DOMAIN, ACCESS_AUD, APP_ORIGIN) are set with `wrangler secret put`.
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
@@ -10,7 +10,9 @@
   "preview_urls": false,
   "observability": { "enabled": true },
   "vars": {
-    "AI_GATEWAY_ID": "gateway"
+    // Set these to your OpenAI-compatible provider before deploying.
+    "LLM_ENDPOINT": "",
+    "LLM_MODEL": ""
   },
   "define": { "__DEV_AUTH_BYPASS__": "false" },
   "assets": {

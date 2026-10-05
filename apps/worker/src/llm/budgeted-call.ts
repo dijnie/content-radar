@@ -2,10 +2,10 @@ import { insertLlmCall, type LlmCallInput, type LlmKind } from "../db/llm-repo";
 import type { Env } from "../env";
 import { commit, markRateLimited, release, restOverloaded } from "./budget-ledger";
 import { circuitOpenUntil, pauseCircuit, recordFailure, recordSuccess } from "./circuit-breaker";
-import { generateJson, type DeepSeekAiBinding } from "./deepseek-client";
+import { generateJson } from "./custom-client";
 import { loadBudgetSettings, reserveOnChain } from "./model-chain";
 
-export type LlmEnv = Pick<Env, "DB" | "RAW" | "LLM_QUEUE" | "DEEPSEEK_API_KEY" | "DEEPSEEK_BASE_URL" | "AI_GATEWAY_ID"> & { AI?: DeepSeekAiBinding };
+export type LlmEnv = Pick<Env, "DB" | "RAW" | "LLM_QUEUE" | "LLM_API_KEY" | "LLM_ENDPOINT" | "LLM_MODEL">;
 
 export interface LlmDeps {
   now?: number;
@@ -28,7 +28,7 @@ export type BudgetedResult =
   | { status: "retry"; delaySeconds: number }
   /** Leave work in D1 for the next scheduler run: no budget, open circuit or prolonged unavailability. */
   | { status: "park" }
-  /** DeepSeek rejected the request itself; retrying it unchanged is pointless. */
+  /** The provider rejected the request itself; retrying it unchanged is pointless. */
   | { status: "rejected" };
 
 // Both queue configs allow five retries. Stop availability waits before that
@@ -38,7 +38,7 @@ const MAX_AVAILABILITY_RETRIES = 4;
 /**
  * Reserves an application request slot before each provider attempt. HTTP responses
  * count toward this local cap; network failures before headers release the slot.
- * Actual paid usage is recorded separately in token counts returned by DeepSeek.
+ * Actual paid usage is recorded separately in token counts returned by the provider.
  */
 export async function budgetedCall(env: LlmEnv, request: BudgetedRequest, deps: LlmDeps = {}, attempt = 0): Promise<BudgetedResult> {
   const now = deps.now ?? Math.floor(Date.now() / 1000);
@@ -52,7 +52,7 @@ export async function budgetedCall(env: LlmEnv, request: BudgetedRequest, deps: 
   const parkForAvailability = attempt >= MAX_AVAILABILITY_RETRIES;
 
   for (;;) {
-    const chain = await reserveOnChain(env.DB, request.kind, now, settings, tried);
+    const chain = await reserveOnChain(env.DB, request.kind, now, settings, tried, env.LLM_MODEL);
     if (!chain.ok) {
       // Only on the call that saw the errors itself. A later call that merely finds the models resting waits quietly.
       if (serverError !== null) {
@@ -65,9 +65,8 @@ export async function budgetedCall(env: LlmEnv, request: BudgetedRequest, deps: 
     const { model, reservation } = chain;
 
     const result = await generateJson({
-      apiKey: env.DEEPSEEK_API_KEY ?? "", model: model.model, system: request.system, user: request.user, schema: request.schema,
-      ...(env.AI_GATEWAY_ID !== undefined ? { gatewayId: env.AI_GATEWAY_ID, ...(env.AI ? { ai: env.AI } : {}) } : {}),
-      ...(env.DEEPSEEK_BASE_URL ? { baseUrl: env.DEEPSEEK_BASE_URL } : {}), ...(deps.fetcher ? { fetcher: deps.fetcher } : {}),
+      apiKey: env.LLM_API_KEY ?? "", endpoint: env.LLM_ENDPOINT ?? "", model: model.model, system: request.system, user: request.user, schema: request.schema,
+      ...(deps.fetcher ? { fetcher: deps.fetcher } : {}),
     });
     const log: LlmCallInput = { at: now, model: model.model, kind: request.kind, promptVersion: request.promptVersion, status: "ok", httpStatus: result.httpStatus, latencyMs: result.latencyMs, itemIds: request.subjectIds };
 

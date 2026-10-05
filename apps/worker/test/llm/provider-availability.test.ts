@@ -5,6 +5,8 @@ import { budgetedCall, type LlmEnv } from "../../src/llm/budgeted-call";
 import { consumeLlmBatch } from "../../src/llm/llm-consumer";
 import type { LlmMessage } from "../../src/llm/messages";
 import { itemInput, seedSource } from "../db/seed";
+import { drainBacklog } from "../../src/llm/drain-backlog";
+import { listEnabledModels } from "../../src/db/llm-repo";
 
 const NOW = Date.UTC(2026, 8, 21, 8) / 1000;
 let sequence = 0;
@@ -22,26 +24,55 @@ async function run(status: number, apiKey = "test-key", attempts = 1) {
   const fetcher = (async () => { calls++; return new Response(status === 200 ? '{}' : "", { status, headers: { "Retry-After": "23" } }); }) as typeof fetch;
   const outcomes: string[] = [];
   const batch = { queue: "radar-llm", messages: [{ body: { kind: "extract", itemId: id }, attempts, ack: () => outcomes.push("ack"), retry: (o?: { delaySeconds?: number }) => outcomes.push(`retry:${o?.delaySeconds}`) }] } as unknown as MessageBatch<LlmMessage>;
-  const testEnv: LlmEnv = { DB: env.DB, RAW: env.RAW, DEEPSEEK_API_KEY: apiKey, LLM_QUEUE: {} as Queue<LlmMessage> };
+  const testEnv: LlmEnv = { DB: env.DB, RAW: env.RAW, LLM_ENDPOINT: "https://llm.example/v1", LLM_API_KEY: apiKey, LLM_QUEUE: {} as Queue<LlmMessage> };
   await consumeLlmBatch(batch, testEnv, { now: NOW, fetcher });
   return { calls, outcomes, item: await env.DB.prepare("SELECT status, enqueue_attempts FROM items WHERE id = ?").bind(id).first() };
 }
 
 describe("provider availability does not poison queued articles", () => {
-  it("routes budgeted work through Gateway BYOK with no direct provider key", async () => {
-    const run = vi.fn().mockResolvedValue(Response.json({ choices: [{ finish_reason: "stop", message: { content: '{"items":[]}' } }], usage: { prompt_tokens: 15, completion_tokens: 4 } }));
-    const gatewayEnv: LlmEnv = { DB: env.DB, RAW: env.RAW, LLM_QUEUE: {} as Queue<LlmMessage>, AI_GATEWAY_ID: "gateway", AI: { gateway: () => ({ run }) } };
-    expect(await budgetedCall(gatewayEnv, { kind: "extract", promptVersion: 2, system: "Return JSON", user: "check", schema: {}, subjectIds: [] }, { now: NOW })).toMatchObject({ status: "ok", model: "deepseek-flash" });
-    expect(run).toHaveBeenCalledOnce();
-    expect(await env.DB.prepare("SELECT requests,tokens_in,tokens_out FROM llm_usage WHERE model='deepseek-flash'").first()).toEqual({ requests: 1, tokens_in: 15, tokens_out: 4 });
+  it("routes and accounts custom models without sending legacy model names", async () => {
+    const fetcher = vi.fn<typeof fetch>().mockImplementation(async () => Response.json({ choices: [{ finish_reason: "stop", message: { content: '{"items":[]}' } }], usage: { prompt_tokens: 15, completion_tokens: 4 } }));
+    const customEnv: LlmEnv = { DB: env.DB, RAW: env.RAW, LLM_QUEUE: {} as Queue<LlmMessage>, LLM_ENDPOINT: "https://custom.example/v1", LLM_API_KEY: "custom-key", LLM_MODEL: "vendor/custom-model" };
+    const request = { kind: "extract" as const, promptVersion: 2, system: "Return JSON", user: "check", schema: {}, subjectIds: [] };
+    expect(await budgetedCall(customEnv, request, { now: NOW, fetcher })).toMatchObject({ status: "ok", model: "vendor/custom-model" });
+    expect(fetcher).toHaveBeenCalledWith("https://custom.example/v1/chat/completions", expect.objectContaining({ headers: expect.objectContaining({ Authorization: "Bearer custom-key" }) }));
+    expect(JSON.parse(String(fetcher.mock.calls[0]![1]!.body))).toMatchObject({ model: "vendor/custom-model" });
+    expect(await env.DB.prepare("SELECT model,requests,tokens_in,tokens_out FROM llm_usage").first()).toEqual({ model: "vendor/custom-model", requests: 1, tokens_in: 15, tokens_out: 4 });
+    await env.DB.prepare("UPDATE llm_models SET rpm = 3, rpd = 50, exhausted_until = ? WHERE model = ?").bind(NOW + 23, customEnv.LLM_MODEL).run();
+    expect(await budgetedCall(customEnv, request, { now: NOW, fetcher })).toEqual({ status: "retry", delaySeconds: 60 });
+    expect(fetcher).toHaveBeenCalledOnce();
+    expect(await env.DB.prepare("SELECT rpm,rpd,exhausted_until FROM llm_models WHERE model = ?").bind(customEnv.LLM_MODEL).first()).toEqual({ rpm: 3, rpd: 50, exhausted_until: NOW + 23 });
   });
 
-  it("parks a missing AI binding without consuming budget or using a direct key", async () => {
+  it.each([{ LLM_ENDPOINT: "" }, { LLM_MODEL: "" }])("parks incomplete custom configuration without consuming budget: %j", async (override) => {
     const fetcher = vi.fn<typeof fetch>();
-    const gatewayEnv: LlmEnv = { DB: env.DB, RAW: env.RAW, LLM_QUEUE: {} as Queue<LlmMessage>, AI_GATEWAY_ID: "gateway", DEEPSEEK_API_KEY: "unused-direct-key" };
-    expect(await budgetedCall(gatewayEnv, { kind: "extract", promptVersion: 2, system: "Return JSON", user: "check", schema: {}, subjectIds: [] }, { now: NOW, fetcher })).toEqual({ status: "park" });
+    const customEnv: LlmEnv = { DB: env.DB, RAW: env.RAW, LLM_QUEUE: {} as Queue<LlmMessage>, LLM_ENDPOINT: "https://custom.example/v1", LLM_API_KEY: "test-key", LLM_MODEL: "deepseek-flash", ...override };
+    expect(await budgetedCall(customEnv, { kind: "extract", promptVersion: 2, system: "Return JSON", user: "check", schema: {}, subjectIds: [] }, { now: NOW, fetcher })).toEqual({ status: "park" });
     expect(fetcher).not.toHaveBeenCalled();
     expect(await env.DB.prepare("SELECT COALESCE(SUM(requests),0) AS n FROM llm_usage").first()).toEqual({ n: 0 });
+  });
+
+  it.each([429, 503])("does not fall back to legacy models when the configured model returns %i", async (status) => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response("", { status }));
+    const customEnv: LlmEnv = { DB: env.DB, RAW: env.RAW, LLM_QUEUE: {} as Queue<LlmMessage>, LLM_ENDPOINT: "https://custom.example/v1", LLM_API_KEY: "test-key", LLM_MODEL: `vendor/unavailable-${status}` };
+    expect(await budgetedCall(customEnv, { kind: "extract", promptVersion: 2, system: "Return JSON", user: "check", schema: {}, subjectIds: [] }, { now: NOW, fetcher })).toMatchObject({ status: "retry" });
+    expect(fetcher).toHaveBeenCalledOnce();
+    expect((await env.DB.prepare("SELECT model, requests FROM llm_usage").all()).results).toEqual([{ model: customEnv.LLM_MODEL, requests: 1 }]);
+  });
+
+  it("plans backlog against the configured model's budget, preserving disabled models and usage", async () => {
+    const model = "vendor/backlog-model";
+    await listEnabledModels(env.DB, model);
+    await env.DB.prepare("INSERT INTO llm_usage (day_pt, model, kind, requests) VALUES ('2026-09-21', ?, 'extract', 80)").bind(model).run();
+    const sourceId = await seedSource(env.DB, "x", `custom-backlog-${++sequence}`);
+    await upsertItem(env.DB, itemInput({ sourceId, externalId: `backlog-${sequence}`, fetchedAt: NOW - 3600, publishedAt: NOW - 3600 }));
+    const sendBatch = vi.fn().mockResolvedValue(undefined);
+    const queue = { sendBatch } as unknown as Queue<LlmMessage>;
+    expect(await drainBacklog({ DB: env.DB, LLM_QUEUE: queue, LLM_MODEL: model }, NOW)).toMatchObject({ sent: 0 });
+    expect(sendBatch).not.toHaveBeenCalled();
+    await env.DB.prepare("UPDATE llm_models SET enabled = 0 WHERE model = ?").bind(model).run();
+    expect(await listEnabledModels(env.DB, model)).toEqual([]);
+    expect(await env.DB.prepare("SELECT requests FROM llm_usage WHERE model = ?").bind(model).first()).toEqual({ requests: 80 });
   });
 
   it("429 parks only for Retry-After and preserves the owner-approved application caps", async () => {

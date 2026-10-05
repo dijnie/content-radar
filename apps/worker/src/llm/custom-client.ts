@@ -1,0 +1,96 @@
+export type LlmErrorKind = "rate_limited" | "configuration_error" | "insufficient_balance" | "invalid_request" | "invalid_output" | "transient";
+
+export interface LlmRequest {
+  apiKey?: string;
+  model: string;
+  system: string;
+  user: string;
+  schema: Record<string, unknown>;
+  /** OpenAI-compatible API base URL or full chat/completions URL. */
+  endpoint: string;
+  fetcher?: typeof fetch;
+  timeoutMs?: number;
+}
+
+interface Usage { tokensIn: number; tokensOut: number }
+export type LlmResult =
+  | ({ ok: true; data: unknown; httpStatus: number; latencyMs: number } & Usage)
+  | ({ ok: false; kind: LlmErrorKind; reached: boolean; httpStatus: number | null; latencyMs: number; message: string; retryDelaySeconds?: number } & Usage);
+
+export const MAX_OUTPUT_TOKENS = 8192;
+
+export function retryAfterSeconds(value: string | null, nowMs = Date.now()): number {
+  if (!value?.trim()) return 60;
+  const numeric = Number(value);
+  const seconds = Number.isFinite(numeric) ? numeric : (Date.parse(value) - nowMs) / 1000;
+  return Number.isFinite(seconds) ? Math.max(1, Math.min(300, Math.ceil(seconds))) : 60;
+}
+
+/** JSON mode guarantees JSON syntax only; callers still validate schemas and evidence quotes. */
+export async function generateJson(request: LlmRequest): Promise<LlmResult> {
+  const started = Date.now();
+  let status: number | null = null;
+  let usage: Usage = { tokensIn: 0, tokensOut: 0 };
+  const fail = (kind: LlmErrorKind, reached: boolean, message: string): Extract<LlmResult, { ok: false }> => ({
+    ok: false, kind, reached, httpStatus: status, latencyMs: Date.now() - started, message, ...usage,
+  });
+  let endpoint: URL;
+  if (!request.endpoint.trim()) return fail("configuration_error", false, "llm_endpoint_missing");
+  try {
+    endpoint = new URL(request.endpoint.trim());
+    if (!["https:", "http:"].includes(endpoint.protocol) || endpoint.username || endpoint.password || endpoint.hash) {
+      return fail("configuration_error", false, "llm_endpoint_invalid");
+    }
+    const path = endpoint.pathname.replace(/\/+$/, "");
+    endpoint.pathname = path.endsWith("/chat/completions") ? path : `${path}/chat/completions`;
+  } catch {
+    return fail("configuration_error", false, "llm_endpoint_invalid");
+  }
+  if (!request.apiKey?.trim()) return fail("configuration_error", false, "llm_api_key_missing");
+  if (!request.model.trim()) return fail("configuration_error", false, "llm_model_missing");
+
+  let response: Response;
+  let raw: string;
+  try {
+    const input = {
+      messages: [
+        { role: "system", content: `${request.system}\n\nReturn only a JSON object conforming to this JSON Schema:\n${JSON.stringify(request.schema)}` },
+        { role: "user", content: request.user },
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0, max_tokens: MAX_OUTPUT_TOKENS, stream: false,
+    };
+    const signal = AbortSignal.timeout(request.timeoutMs ?? 60_000);
+    response = await (request.fetcher ?? fetch)(endpoint.toString(), {
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${request.apiKey.trim()}` },
+      body: JSON.stringify({ model: request.model.trim(), ...input }), signal, redirect: "error",
+    });
+    status = response.status;
+    // Providers may send keep-alive newlines before the JSON body. The timeout
+    // covers body consumption as well as waiting for the response headers.
+    raw = await response.text();
+  } catch (err) {
+    return fail("transient", status !== null, err instanceof Error ? err.name : "network_error");
+  }
+  if (status === 401 || status === 403 || status === 404) return fail("configuration_error", true, `llm_http_${status}`);
+  if (status === 402) return fail("insufficient_balance", true, "llm_insufficient_balance");
+  if (status === 429) return { ...fail("rate_limited", true, "llm_rate_limited"), retryDelaySeconds: retryAfterSeconds(response.headers.get("Retry-After")) };
+  if (status >= 500 || status === 408) return fail("transient", true, `llm_http_${status}`);
+  if (!response.ok) return fail("invalid_request", true, `llm_http_${status}`);
+
+  try {
+    const body = JSON.parse(raw) as {
+      choices?: { message?: { content?: string | null }; finish_reason?: string }[];
+      usage?: { prompt_tokens?: number; completion_tokens?: number };
+    };
+    usage = { tokensIn: body.usage?.prompt_tokens ?? 0, tokensOut: body.usage?.completion_tokens ?? 0 };
+    const choice = body.choices?.[0];
+    if (choice?.finish_reason !== "stop") return fail("invalid_output", true, "llm_incomplete_response");
+    if (!choice.message?.content?.trim()) return fail("invalid_output", true, "llm_empty_response");
+    const data: unknown = JSON.parse(choice.message.content);
+    if (data === null || typeof data !== "object" || Array.isArray(data)) return fail("invalid_output", true, "llm_expected_object");
+    return { ok: true, data, httpStatus: status, latencyMs: Date.now() - started, ...usage };
+  } catch {
+    return fail("invalid_output", true, "llm_invalid_json");
+  }
+}

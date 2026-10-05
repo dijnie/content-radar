@@ -11,6 +11,8 @@ export default defineConfig(async () => {
         remoteBindings: false,
         miniflare: {
           bindings: {
+            LLM_ENDPOINT: "https://llm.example/v1",
+            LLM_MODEL: "deepseek-flash",
             OWNER_EMAIL: "owner@example.com",
             ACCESS_TEAM_DOMAIN: "https://radar-test.cloudflareaccess.com",
             ACCESS_AUD: "test-audience",

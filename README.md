@@ -2,7 +2,7 @@
 
 Radar cá nhân trả lời một câu hỏi: **giới nghiên cứu và ứng dụng AI/Agent (cùng System Design, Backend) đang có gì thú vị, và đang dịch chuyển về hướng nào?**
 
-Hệ thống crawl nguồn công khai (X qua FxTwitter, Hacker News, RSS, GitHub), dùng DeepSeek bóc từng bài thành các claim có trích dẫn nguyên văn, gom claim thành câu chuyện bằng graph và phân cụm, chấm điểm 0–100, rồi hiển thị thành các thẻ lead. D1 đồng thời là kho dữ liệu để Claude hoặc Codex phân tích sâu hơn. Toàn bộ chạy trên một Cloudflare Worker; DeepSeek tính phí theo token, với trần tự động 100 request/ngày và 5 request/phút.
+Hệ thống crawl nguồn công khai (X qua FxTwitter, Hacker News, RSS, GitHub), dùng LLM qua endpoint tùy chỉnh bóc từng bài thành các claim có trích dẫn nguyên văn, gom claim thành câu chuyện bằng graph và phân cụm, chấm điểm 0–100, rồi hiển thị thành các thẻ lead. D1 đồng thời là kho dữ liệu để Claude hoặc Codex phân tích sâu hơn. Toàn bộ chạy trên một Cloudflare Worker; chi phí AI phụ thuộc nhà cung cấp, với trần mặc định 100 request/ngày và 5 request/phút.
 
 Giao diện gồm **Stories**, **News**, **Hands-on**, **Deep dives** và **Jobs**. Jobs ghi lịch sử crawl, lỗi từng nguồn và lịch dựng riêng từng feed. Hands-on có Community toolbox, Field tests, Playbooks; Deep dives có bộ lọc thời gian/chủ đề, tìm kiếm và trạng thái đã đọc lưu trong D1. Mọi thẻ lấy từ nguồn thật và bản công bố đã hoàn tất.
 
@@ -13,7 +13,7 @@ Giao diện gồm **Stories**, **News**, **Hands-on**, **Deep dives** và **Jobs
 ## Yêu cầu
 
 - Node 22 trở lên và npm.
-- Để deploy: tài khoản Cloudflare có Workers Paid, một ứng dụng Cloudflare Access cho hostname Worker (`workers.dev` hiện tại), key DeepSeek có số dư lưu trên AI Gateway (alias `default`, Worker dùng binding `AI`), và một GitHub PAT fine-grained chỉ đọc dữ liệu public.
+- Để deploy: tài khoản Cloudflare có Workers Paid, một ứng dụng Cloudflare Access cho hostname Worker (`workers.dev` hiện tại), endpoint tương thích OpenAI Chat Completions, API key và tên model, và một GitHub PAT fine-grained chỉ đọc dữ liệu public.
 
 Không cần gì trong số đó để chạy test.
 
@@ -27,6 +27,22 @@ bash analyst/test/run-query.test.sh
 ```
 
 Test của Worker không chạm mạng và không chạm tài nguyên Cloudflare thật.
+
+## Cấu hình AI
+
+Điền ba biến trong `apps/worker/.dev.vars` khi chạy local:
+
+```dotenv
+LLM_ENDPOINT=https://your-provider.example/v1
+LLM_API_KEY=your-api-key
+LLM_MODEL=your-model-id
+```
+
+`LLM_ENDPOINT` nhận URL gốc API hoặc URL đầy đủ kết thúc bằng `/chat/completions`. Provider cần hỗ trợ Chat Completions và JSON mode (`response_format: { "type": "json_object" }`). Model được gửi nguyên tên, không giới hạn hãng.
+
+Khi deploy, đặt `LLM_ENDPOINT` và `LLM_MODEL` trong `apps/worker/wrangler.jsonc`, rồi lưu `LLM_API_KEY` bằng `npx wrangler secret put LLM_API_KEY` từ `apps/worker`. Không đưa key vào git hoặc frontend. Binding `AI` vẫn phục vụ embedding; các lượt LLM gọi endpoint trực tiếp. Xem [hướng dẫn vận hành](docs/operations.md#ai-qua-endpoint-tùy-chỉnh).
+
+Model mới tự có trần 5 request/phút, 100 request/ngày Pacific; model đã tồn tại giữ nguyên giới hạn, cooldown và lịch sử. Để trống `LLM_MODEL` sẽ tạm dừng LLM. Nếu bỏ hẳn biến này, hệ thống dùng danh sách model đang bật trong D1 như trước.
 
 ## Cấu trúc
 

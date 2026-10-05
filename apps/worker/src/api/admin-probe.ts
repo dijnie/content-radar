@@ -1,10 +1,11 @@
 import type { Env } from "../env";
-import { DEFAULT_DEEPSEEK_MODEL, generateJson } from "../llm/deepseek-client";
+import { generateJson } from "../llm/custom-client";
+import { listEnabledModels } from "../db/llm-repo";
 
 // Fixed allow-list: the probe never accepts a caller-supplied URL, so the
 // Worker cannot be used as an open proxy.
 export const PROBE_TARGETS = [
-  "deepseek",
+  "llm",
   "fxtwitter-timeline",
   "fxtwitter-status",
   "syndication",
@@ -40,7 +41,7 @@ function syndicationToken(id: string): string {
 function httpRequestFor(target: ProbeTarget, env: Env): Request | null {
   const headers: Record<string, string> = { "User-Agent": USER_AGENT };
   switch (target) {
-    case "deepseek":
+    case "llm":
       return null;
     case "fxtwitter-timeline":
       return new Request("https://api.fxtwitter.com/2/profile/jack/statuses", { headers });
@@ -82,13 +83,13 @@ export async function runProbe(target: ProbeTarget, env: Env, colo: string | nul
   const started = Date.now();
   const base = { target, colo };
   try {
-    if (target === "deepseek") {
+    if (target === "llm") {
       const result = await generateJson({
-        apiKey: env.DEEPSEEK_API_KEY ?? "", model: DEFAULT_DEEPSEEK_MODEL,
-        ...(env.AI_GATEWAY_ID !== undefined ? { gatewayId: env.AI_GATEWAY_ID, ai: env.AI } : {}),
+        apiKey: env.LLM_API_KEY ?? "", endpoint: env.LLM_ENDPOINT ?? "",
+        model: (await listEnabledModels(env.DB, env.LLM_MODEL))[0]?.model ?? "",
         system: 'Return JSON only. Example: {"ok":true}', user: 'Reply with {"ok":true}.',
         schema: { type: "object", properties: { ok: { type: "boolean" } }, required: ["ok"] },
-        ...(env.DEEPSEEK_BASE_URL ? { baseUrl: env.DEEPSEEK_BASE_URL } : {}), timeoutMs: PROBE_TIMEOUT_MS,
+        timeoutMs: PROBE_TIMEOUT_MS,
       });
       return { ...base, status: result.httpStatus ?? 0, ms: result.latencyMs, length: result.ok ? JSON.stringify(result.data).length : 0, ...(!result.ok ? { error: result.message } : {}) };
     }

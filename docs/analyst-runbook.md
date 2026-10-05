@@ -112,7 +112,7 @@ Mỗi phiên tự đặt một `session_label` dạng `YYYY-MM-DD-<tên ngắn>`
 
 - Hai view momentum so 7 ngày gần nhất với trung bình tuần của 21 ngày trước đó, và bỏ qua entity có dưới 5 claim (câu chuyện dưới 3 claim) trong 28 ngày. Cần khoảng 3 tuần dữ liệu thì tỉ số mới có nghĩa. Backfill rút ngắn thời gian chờ cho `v_entity_momentum` vì nó tính theo ngày xuất bản; nó không rút ngắn được `v_story_momentum` và `v_lineage_recent`, vì câu chuyện và lineage chỉ bắt đầu từ lần chạy cluster đầu tiên.
 - `v_anomaly_candidates` trả về ứng viên theo ba quy tắc tất định: engagement vượt 3 lần độ lệch chuẩn bền vững so với chính tác giả; entity xuất hiện dưới 72 giờ đã có từ 3 tác giả; câu chuyện `READY` vừa có claim phản bác. Ứng viên là đầu mối để kiểm chứng, chưa phải kết luận.
-- Vai trò `evidence`, `context`, `counter` và headline có `headline_source = 'llm'` là phán đoán của LLM (DeepSeek cho các call mới; model lịch sử lưu trên từng claim). Số nguồn độc lập, điểm, cụm và lineage là kết quả của code tất định. Khi hai thứ mâu thuẫn, tin đoạn `quote` nguyên văn và URL.
+- Vai trò `evidence`, `context`, `counter` và headline có `headline_source = 'llm'` là phán đoán của LLM (model do `LLM_MODEL` chọn cho các call mới; model lịch sử lưu trên từng claim). Số nguồn độc lập, điểm, cụm và lineage là kết quả của code tất định. Khi hai thứ mâu thuẫn, tin đoạn `quote` nguyên văn và URL.
 - Việc bóc claim không tất định; mỗi claim ghi `model` và `prompt_version` để truy vết.
 
 ## Test

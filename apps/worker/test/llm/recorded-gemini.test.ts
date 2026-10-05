@@ -40,7 +40,7 @@ describe("historical extraction content recorded from Gemini", () => {
 
     const outcomes: string[] = [];
     const batch = { queue: "radar-llm", messages: [...idOf.values()].map((itemId) => ({ body: { kind: "extract", itemId }, attempts: 1, ack: () => outcomes.push("ack"), retry: () => outcomes.push("retry") })) } as unknown as MessageBatch<LlmMessage>;
-    const testEnv: LlmEnv = { DB: env.DB, RAW: env.RAW, DEEPSEEK_API_KEY: "test-key", LLM_QUEUE: { sendBatch: async () => {} } as unknown as Queue<LlmMessage> };
+    const testEnv: LlmEnv = { DB: env.DB, RAW: env.RAW, LLM_ENDPOINT: "https://llm.example/v1", LLM_API_KEY: "test-key", LLM_QUEUE: { sendBatch: async () => {} } as unknown as Queue<LlmMessage> };
     await consumeLlmBatch(batch, testEnv, { now: NOW, fetcher });
 
     expect(models).toEqual(["deepseek-flash"]);

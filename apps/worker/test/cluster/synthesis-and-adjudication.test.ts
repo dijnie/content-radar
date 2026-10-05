@@ -25,7 +25,7 @@ beforeEach(async () => {
   ]);
   llm = fakeLlmQueue();
   clusterEnv = { DB: env.DB, AI: env.AI, LLM_QUEUE: llm.queue };
-  llmEnv = { DB: env.DB, RAW: env.RAW, LLM_QUEUE: llm.queue, DEEPSEEK_API_KEY: "test-key" };
+  llmEnv = { DB: env.DB, RAW: env.RAW, LLM_QUEUE: llm.queue, LLM_ENDPOINT: "https://llm.example/v1", LLM_API_KEY: "test-key" };
 });
 
 function deepseekReplying(payload: (prompt: string) => unknown) {

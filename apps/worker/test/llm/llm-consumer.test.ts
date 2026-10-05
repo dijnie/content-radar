@@ -74,7 +74,7 @@ let testEnv: LlmEnv;
 beforeEach(async () => {
   sent = [];
   testEnv = {
-    DB: env.DB, RAW: env.RAW, DEEPSEEK_API_KEY: "test-key",
+    DB: env.DB, RAW: env.RAW, LLM_ENDPOINT: "https://llm.example/v1", LLM_API_KEY: "test-key",
     LLM_QUEUE: { sendBatch: async (messages: Iterable<{ body: LlmMessage }>) => void sent.push(...[...messages].map((message) => message.body)) } as unknown as Queue<LlmMessage>,
   };
   await env.DB.batch([

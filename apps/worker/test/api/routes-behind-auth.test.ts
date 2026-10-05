@@ -69,10 +69,19 @@ describe("every route sits behind Access and the CSRF guard", () => {
     expect(response.headers.get("Access-Control-Allow-Origin")).toBeNull();
   });
 
-  it("uses the configured AI binding for an authenticated DeepSeek probe", async () => {
-    const run = vi.fn().mockResolvedValue(Response.json({ choices: [{ finish_reason: "stop", message: { content: '{"ok":true}' } }], usage: { prompt_tokens: 5, completion_tokens: 4 } }));
-    const response = await worker.fetch(new Request(`${ORIGIN}/api/admin/probe?target=deepseek`, { headers: authed() }), { ...env, AI_GATEWAY_ID: "gateway", AI: { gateway: () => ({ run }) } as unknown as Ai });
-    expect(await response.json()).toMatchObject({ target: "deepseek", status: 200, length: 11 });
-    expect(run).toHaveBeenCalledWith(expect.objectContaining({ provider: "deepseek", query: expect.objectContaining({ model: "deepseek-flash" }) }), expect.objectContaining({ gateway: expect.objectContaining({ skipCache: true }) }));
+  it("uses the configured endpoint, key and model for an authenticated LLM probe", async () => {
+    const realFetch = globalThis.fetch;
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ choices: [{ finish_reason: "stop", message: { content: '{"ok":true}' } }], usage: { prompt_tokens: 5, completion_tokens: 4 } }));
+    vi.stubGlobal("fetch", fetcher);
+    try {
+      const response = await worker.fetch(new Request(`${ORIGIN}/api/admin/probe?target=llm`, { headers: authed() }), { ...env, LLM_ENDPOINT: "https://custom.example/v1", LLM_API_KEY: "probe-key", LLM_MODEL: "vendor/probe-model" });
+      const body = await response.json();
+      expect(body).toMatchObject({ target: "llm", status: 200, length: 11 });
+      expect(JSON.stringify(body)).not.toContain("probe-key");
+      expect(fetcher).toHaveBeenCalledWith("https://custom.example/v1/chat/completions", expect.objectContaining({ headers: expect.objectContaining({ Authorization: "Bearer probe-key" }) }));
+      expect(JSON.parse(String(fetcher.mock.calls[0]![1]!.body))).toMatchObject({ model: "vendor/probe-model" });
+    } finally {
+      vi.stubGlobal("fetch", realFetch);
+    }
   });
 });

@@ -21,7 +21,7 @@ const SEND_BATCH_SIZE = 100;
  * that priority, live items come before backfill, oldest first. An item is given up only after
  * 20 extraction calls really made for it, never for wake-ups that went nowhere.
  */
-export async function drainBacklog(env: Pick<Env, "DB" | "LLM_QUEUE">, now: number): Promise<{ sent: number; failed: number }> {
+export async function drainBacklog(env: Pick<Env, "DB" | "LLM_QUEUE" | "LLM_MODEL">, now: number): Promise<{ sent: number; failed: number }> {
   const gaveUp = await env.DB
     .prepare("UPDATE items SET status = 'failed', filter_reason = 'enqueue_attempts_exceeded' WHERE status = 'queued' AND enqueue_attempts >= ?")
     .bind(MAX_ENQUEUE_ATTEMPTS)
@@ -33,7 +33,7 @@ export async function drainBacklog(env: Pick<Env, "DB" | "LLM_QUEUE">, now: numb
   const since = await extractionWindowStart(env.DB, now);
   const recentPending = await hasRecentQueuedItems(env.DB, since);
   const budget = { extract: 0, extract_backfill: 0 };
-  for (const model of await listEnabledModels(env.DB)) {
+  for (const model of await listEnabledModels(env.DB, env.LLM_MODEL)) {
     budget.extract += await remainingToday(env.DB, model, "extract", now, settings);
     budget.extract_backfill += await remainingToday(env.DB, model, "extract_backfill", now, settings);
   }

@@ -31,7 +31,7 @@ export async function enqueueSynthesisStep(ctx: JobContext): Promise<number> {
   const settings = await loadBudgetSettings(db);
   let budget = 0;
   // Only the reserved share is planned for, and adjudication draws on the same share.
-  for (const model of await listEnabledModels(db)) budget += await reservedRemainingToday(db, model, now, settings);
+  for (const model of await listEnabledModels(db, ctx.env.LLM_MODEL)) budget += await reservedRemainingToday(db, model, now, settings);
   // Adjudications already queued will spend from the same share before these run.
   const queued = await db.prepare("SELECT COUNT(*) AS n FROM entity_adjudications WHERE status = 'queued'").first<{ n: number }>();
   budget -= Math.ceil((queued?.n ?? 0) / ADJUDICATIONS_PER_MESSAGE);

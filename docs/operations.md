@@ -12,7 +12,7 @@ Mỗi lần phát hành có thay đổi schema: ghi bookmark D1, áp migration m
 
 - **Jobs → Run** crawl mọi nguồn đang bật; bấm lần nữa trong khi chạy trả lại cùng crawl. Mở một dòng để xem lỗi nguồn. `partial` nghĩa là một số nguồn lỗi, các nguồn thành công vẫn dùng được.
 - **From crawl → Build News/Hands-on/Deep dives** tạo bản riêng từ crawl hoàn tất. Build thất bại giữ bản công bố trước; Rerun thử lại từ cùng crawl. Lịch bật/tắt và khoảng phút được lưu riêng từng feed (30 đến 10.080 phút); cron 30 phút là độ phân giải thực tế của lịch.
-- News cần claim và Stories từ job cluster; Deep dives, Field tests và Playbooks cần extraction đã trả phân loại hợp lệ. Chỉ toolbox repository có thể xuất hiện ngay sau crawl mà chưa cần LLM. Phần chờ phân tích hiển thị ngay trên feed. Giữ trần DeepSeek hiện tại, chờ backlog xử lý; không nhập thẻ giả hoặc reset quota để làm đầy giao diện.
+- News cần claim và Stories từ job cluster; Deep dives, Field tests và Playbooks cần extraction đã trả phân loại hợp lệ. Chỉ toolbox repository có thể xuất hiện ngay sau crawl mà chưa cần LLM. Phần chờ phân tích hiển thị ngay trên feed. Giữ trần AI hiện tại, chờ backlog xử lý; không nhập thẻ giả hoặc reset quota để làm đầy giao diện.
 - Cấu hình `editorial_scoring` đặt ngưỡng News và trọng số/trần repository; công thức ở [kiến trúc](architecture.md#điểm-repository). Sync cấu hình rồi dựng feed mới để áp dụng, bản đã công bố giữ điểm cũ. Mặc định lab leader chưa gắn; điền các `authorKey` thật vào `labLeaderAuthorKeys` khi có danh sách xác nhận.
 - GitHub `trending:daily` lấy hạng/ngày thật; `search:` không có hạng Trending. Hugging Face Papers lấy abstract từ API công khai. Website đổi cấu trúc hoặc chặn truy cập sẽ hiện lỗi trong Jobs; metadata thiếu giữ trạng thái không có số liệu.
 
@@ -51,12 +51,12 @@ Cần có trước: một ứng dụng Access kiểu self-hosted cho hostname c�
 
    ```bash
    cd apps/worker
-   for name in GITHUB_TOKEN OWNER_EMAIL ACCESS_TEAM_DOMAIN ACCESS_AUD APP_ORIGIN; do npx wrangler secret put "$name"; done
+   for name in LLM_API_KEY GITHUB_TOKEN OWNER_EMAIL ACCESS_TEAM_DOMAIN ACCESS_AUD APP_ORIGIN; do npx wrangler secret put "$name"; done
    ```
 
-   `ACCESS_TEAM_DOMAIN` không có dấu gạch chéo cuối. `APP_ORIGIN` là origin chính xác đang dùng, hiện là `https://content-radar.<subdomain>.workers.dev`. `OWNER_EMAIL` phải trùng email trong policy. Thiếu một trong ba biến Access thì mọi request nhận 503 `access_not_configured`: Worker từ chối thay vì mở. Chỉ đặt secret còn thiếu; không cần ghi lại key Gateway/GitHub khi sửa Access.
+   `ACCESS_TEAM_DOMAIN` không có dấu gạch chéo cuối. `APP_ORIGIN` là origin chính xác đang dùng, hiện là `https://content-radar.<subdomain>.workers.dev`. `OWNER_EMAIL` phải trùng email trong policy. Thiếu một trong ba biến Access thì mọi request nhận 503 `access_not_configured`: Worker từ chối thay vì mở. Chỉ đặt secret còn thiếu; không cần ghi lại key AI/GitHub khi sửa Access.
 
-4. Migration `0009_deepseek_models.sql` bật `deepseek-flash` với trần ứng dụng đã chọn: 100 request/ngày Pacific, tối đa 5 request/phút. [`scripts/set-llm-limits.sql`](../scripts/set-llm-limits.sql) áp lại đúng các mức này khi cần. Không phải quota của DeepSeek; 429 không tự sửa các trần. Với model có giới hạn `NULL`, giá trị dự phòng lấy từ `settings` (repo mặc định 5/20).
+4. Điền `LLM_ENDPOINT` và `LLM_MODEL` trong `wrangler.jsonc` theo mục bên dưới. Model mới có trần 100 request/ngày Pacific, tối đa 5 request/phút; model đã có giữ nguyên giới hạn. Không phải quota của nhà cung cấp; 429 không tự sửa các trần. Với model có giới hạn `NULL`, giá trị dự phòng lấy từ `settings` (repo mặc định 5/20).
 5. `npm run deploy`, rồi kiểm tra không hostname nào hở:
 
    ```bash
@@ -67,39 +67,34 @@ Cần có trước: một ứng dụng Access kiểu self-hosted cho hostname c�
 
    Mong đợi 302 sang miền team Access; client không phải trình duyệt có thể nhận 403. Trang Access dùng JavaScript tự chuyển sang `dash.cloudflare.com/oauth2/auth`, không hiện form nhập email/gửi mã riêng. Không được trả nội dung ứng dụng khi chưa đăng nhập. Kiểm tra cả API, static assets và route quản trị; đối chiếu dashboard/API rằng preview URL đã tắt. Sau đó mở URL gốc trong cùng trình duyệt đã đăng nhập tài khoản Cloudflare của chủ sở hữu, mở radar và bấm "System status". Nếu phiên Cloudflare hết hạn, Cloudflare có thể yêu cầu đăng nhập hoặc xác thực lại theo bảo mật tài khoản. Chỉ có redirect chưa chứng minh phiên truy cập Worker hoàn chỉnh thành công.
 
-6. Sau đăng nhập, có thể chạy probe `GET /api/admin/probe?target=deepseek` để kiểm tra key và kết nối. Các target nguồn vẫn là `fxtwitter-timeline`, `fxtwitter-status`, `syndication`, `hn-algolia`, `hn-firebase`, `github-api`, `github-atom`, `rss-uber`, `rss-medium`, `workers-ai-embed`.
+6. Sau đăng nhập, có thể chạy probe `GET /api/admin/probe?target=llm` để kiểm tra key và kết nối. Các target nguồn vẫn là `fxtwitter-timeline`, `fxtwitter-status`, `syndication`, `hn-algolia`, `hn-firebase`, `github-api`, `github-atom`, `rss-uber`, `rss-medium`, `workers-ai-embed`.
 
-   Probe DeepSeek gọi API thật **ngoài sổ ngân sách tự động**, vẫn tính phí; không chạy lặp để đo quota. 401/403/404 cần kiểm tra key/model/endpoint, 402 cần kiểm tra số dư. Probe dùng cùng binding/Gateway hoặc endpoint direct với pipeline; xem cấu hình Gateway bên dưới.
+   Probe AI gọi API thật **ngoài sổ ngân sách tự động**, vẫn tính phí; không chạy lặp để đo quota. 401/403/404 cần kiểm tra key/model/endpoint, 402 cần kiểm tra số dư.
 
-## DeepSeek qua AI Gateway
+## AI qua endpoint tùy chỉnh
 
-Cấu hình production trong `wrangler.jsonc` có binding `AI` và `AI_GATEWAY_ID=gateway`. Client gọi `env.AI.gateway("gateway").run({ provider: "deepseek", endpoint: "chat/completions", ... })`; binding tự xác thực trong tài khoản Cloudflare, không cần `CF_AIG_TOKEN` hoặc key DeepSeek trong Worker.
+Cấu hình ba giá trị:
 
-Ngày 2026-09-21 đã xoá secret runtime `GEMINI_API_KEY` sau khi kiểm tra bundle production không còn tham chiếu. `DEEPSEEK_API_KEY` cũng không có trên Worker khi kiểm tra. Runtime chỉ cần biến `AI_GATEWAY_ID` và năm secret `GITHUB_TOKEN`, `OWNER_EMAIL`, `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`, `APP_ORIGIN`; giữ các binding tài nguyên và key BYOK trong Gateway. Việc dọn secret giữ nguyên mã đang chạy, không upload code local. [Bằng chứng kiểm tra](../plans/reports/ops-260921-1158-unused-runtime-secrets.md).
+| Biến | Giá trị |
+|---|---|
+| `LLM_ENDPOINT` | URL gốc API, ví dụ `https://your-provider.example/v1`, hoặc URL đầy đủ `/chat/completions`. |
+| `LLM_API_KEY` | API key gửi trong header `Authorization: Bearer …`; lưu bằng Worker secret. |
+| `LLM_MODEL` | Tên model chính xác mà endpoint hỗ trợ, kể cả tên dạng `vendor/model`. |
 
-`AI.run("deepseek/deepseek-flash")` đã thử trên production và trả 404; Gateway log ghi `Model not found`. Vì vậy dùng phương thức provider của binding, không đổi sang model Cloudflare-hosted. Phương thức này đi qua Universal Endpoint đã được Cloudflare đánh dấu deprecated (vẫn hoạt động); cần kiểm tra lại hỗ trợ model trước khi chuyển sang API mới. Xem [runtime binding](https://github.com/cloudflare/workerd/blob/main/src/cloudflare/internal/aig-api.ts) và [trạng thái Universal Endpoint](https://developers.cloudflare.com/ai-gateway/usage/universal/).
+Local: chép `.dev.vars.example` thành `apps/worker/.dev.vars` và điền ba giá trị. Production: đặt endpoint/model trong `apps/worker/wrangler.jsonc`, dùng `npx wrangler secret put LLM_API_KEY` từ `apps/worker` để lưu key. File local không tự trở thành secret production. Xem [Cloudflare Worker secrets](https://developers.cloudflare.com/workers/configuration/secrets/).
 
-- Trong Provider Keys của gateway `gateway`, lưu key DeepSeek dưới alias **`default`**. Client dùng key mặc định cho provider này. Có thể giữ alias `deepseek` cho ứng dụng đang dùng đường provider-native.
-- Bật **Require provider credentials** (`byok_only: true`) trong Gateway Settings. Request cũng gửi `cf-aig-no-wholesale: true`; thiếu key thì dừng, không tự chuyển sang thanh toán qua Cloudflare. Khi luân chuyển key phải cập nhật từng alias còn dùng; bản sao trong Secrets Store không tự đồng bộ với key gốc.
-- Có thể tạo bản sao bằng Secrets Store API `/secrets/{id}/duplicate`, tên `gateway_deepseek_default`, scope `ai_gateway`, không cần đọc giá trị key. Khi tạo provider config qua API, runtime tra secret theo tên; `secret_id` không phải khoá tra runtime. Đối chiếu [quy ước BYOK](https://developers.cloudflare.com/ai-gateway/configuration/bring-your-own-keys/) và kiểm chứng bằng lượt gọi thật.
-- Giữ trần 100/ngày và 5/phút của ứng dụng. Binding trả Response thô, timeout 60 giây, một upstream attempt, bỏ cache và metadata `application=content-radar`. Mã HTTP, `Retry-After` và token usage vẫn đi qua sổ hiện có.
-- Thiếu binding, tên Gateway sai, Gateway 400 hoặc lỗi 401/403/404 thì tạm dừng và giữ việc trong D1. Binding 400 được coi là cấu hình cần sửa, vì Gateway dùng mã này khi thiếu BYOK; xem Gateway log để phân biệt lỗi tham số. Không tự quay lại key trực tiếp hay model khác.
-- Local đã kiểm chứng Gateway ngày 2026-09-21: key direct hiện có trả 401; đặt `AI_GATEWAY_ID=gateway` trong file ignored `apps/worker/.dev.vars`, nạp lại cấu hình dev và extraction thực tế thành công qua binding. Khi đổi đường gọi sau lỗi cấu hình, chỉ có thể gỡ `llm_circuit` loại `configuration_error`; giữ nguyên `llm_usage`, trần và `exhausted_until`. Không cần chép key BYOK từ Gateway về máy.
-- Local gọi trực tiếp bằng `DEEPSEEK_API_KEY` khi không đặt `AI_GATEWAY_ID`. Muốn kiểm tra Gateway thật ở local thì dùng AI binding remote và đặt `AI_GATEWAY_ID=gateway`; lượt gọi vẫn tính phí. Không xoá usage/cooldown để làm lại lượt.
-- `.dev.vars` gốc repo không tự trở thành secret production. Wrangler local đọc `apps/worker/.dev.vars`; cả hai file đều nằm ngoài git. Đường binding không cần đưa key hoặc token từ các file này lên Worker.
+Provider cần nhận OpenAI Chat Completions với `messages`, `response_format: { "type": "json_object" }`, `temperature: 0`, `max_tokens: 8192`, `stream: false`; trả JSON trong `choices[0].message.content` và `finish_reason: "stop"`. `usage.prompt_tokens` và `usage.completion_tokens` được lưu nếu có. Client không gửi `thinking` hoặc tùy chọn riêng của một hãng. Binding `AI` tiếp tục dùng cho embedding.
 
-Xác minh sau deploy bằng version/tag, một lượt pipeline thật trong `llm_calls` và log cùng thời điểm trong AI Gateway (provider/model/status, `wholesale=false`). Upload thành công hoặc key xuất hiện trong dashboard chưa chứng minh inference chạy được. [Binding](https://developers.cloudflare.com/ai-gateway/usage/worker-binding-methods/), [quy tắc key và chặn Unified Billing](https://developers.cloudflare.com/ai-gateway/features/unified-billing/).
+Model mới tự được thêm vào D1 với trần 5/phút và 100/ngày. Model đã có giữ nguyên giới hạn, trạng thái tắt và cooldown. `LLM_MODEL` có giá trị chỉ chọn model đó, không fallback sang các tên cũ. Chuỗi rỗng tạm dừng LLM; bỏ hẳn biến thì dùng chuỗi model bật trong D1. Có thể chỉnh trần model trong bảng `llm_models`; không reset usage để lấy thêm lượt.
 
-## Chuyển Worker đang chạy Gemini sang DeepSeek
+Thiếu key/endpoint, URL sai hoặc HTTP 401/403/404 sẽ giữ việc trong D1 và mở ngắt mạch 15 phút. Sau khi sửa, đợi ngắt mạch hết hạn rồi cron rút backlog tiếp. Endpoint không được chứa user/password hoặc fragment; query string được giữ. Không tự theo redirect khi gửi key.
 
-Khác deploy lần đầu, migration `0009` thay model đang hoạt động nên phải theo thứ tự:
+## Chuyển từ cấu hình DeepSeek cũ
 
-1. Cấu hình binding `AI`, `AI_GATEWAY_ID` và key BYOK theo mục Gateway ở trên. Chỉ thêm secret `DEEPSEEK_API_KEY` nếu chủ động chọn gọi trực tiếp và không đặt `AI_GATEWAY_ID`; không xuất giá trị key. Ghi lại version Worker, danh sách model bật và bookmark D1.
-2. Build/test và deploy code DeepSeek trước. Nếu còn model Gemini trong DB, client mới sẽ mở ngắt mạch, giữ bài chờ và không gửi tên model sai sang DeepSeek.
-3. Áp migration `0009` bằng `npx wrangler d1 migrations apply content-radar --remote`. Migration tắt Gemini, bật Flash với 5/100 và xoá ngắt mạch cũ. Không reset usage hoặc xoá dữ liệu.
-4. Đọc lại model, trần và version deploy; kiểm tra `llm_calls` có model mới, claim gần đây có quote hợp lệ và job cluster tạo thẻ. Key tồn tại hoặc deploy xanh chưa chứng minh API hoạt động.
-
-Cron rút backlog mỗi 30 phút, cluster phút 05 mỗi giờ; có claim chưa đồng nghĩa có thẻ ngay. Phiên bản trước chuyển đổi là `d26e9daf-c9ee-48e3-aba8-628f65f0ca18`. Khi rollback: tắt DeepSeek trước, rollback Worker về version này, rồi khôi phục đúng các model Gemini đã bật và xoá `llm_circuit`. Giữ cooldown/usage Gemini để không giả vờ còn quota. Không rollback D1. `GEMINI_API_KEY` đã được gỡ khỏi runtime hiện tại; trước khi quay lại Gemini phải bảo đảm phiên bản khôi phục có key hợp lệ và kiểm chứng kết nối, không coi rollback code là đủ.
+1. Đặt `LLM_ENDPOINT`, `LLM_MODEL` và secret `LLM_API_KEY`. Key BYOK từng lưu trên AI Gateway không tự trở thành Worker secret.
+2. Build/test rồi deploy. `AI_GATEWAY_ID`, `DEEPSEEK_API_KEY` và `DEEPSEEK_BASE_URL` không còn được đọc bởi code mới.
+3. Không cần migration mới cho việc đổi provider. Giữ nguyên migration đã áp, model cũ và lịch sử usage/call/claim. Sau khi đổi cấu hình, ngắt mạch đang mở vẫn chờ hết hạn.
+4. Kiểm tra `/api/admin/probe?target=llm`, trang System status và một lượt pipeline trong `llm_calls`: endpoint trả thành công, model đúng và claim có quote hợp lệ. Deploy thành công chưa chứng minh inference chạy được.
 
 ## Đọc trang trạng thái
 
@@ -107,7 +102,7 @@ Cron rút backlog mỗi 30 phút, cluster phút 05 mỗi giờ; có claim chưa 
 |---|---|---|
 | Backlog | Trống, hoặc item cũ nhất dưới vài giờ | Tuổi item cũ nhất tăng đều qua các ngày: quota không đủ cho lượng item |
 | LLM circuit | `closed` | `open`: năm lỗi liên tiếp cùng loại, hoặc lỗi key/số dư mở ngay; xem `llm_calls` |
-| DeepSeek app budget | Dưới trần 100/ngày và 5/phút; usage theo ngày Pacific | `parked`: 429/5xx nghỉ vài phút; hết trần ngày chờ ngày Pacific mới |
+| AI app budget | Dưới trần 100/ngày và 5/phút; usage theo ngày Pacific | `parked`: 429/5xx nghỉ vài phút; hết trần ngày chờ ngày Pacific mới |
 | Cards | Số thẻ "on fallback headline" nhỏ | Tăng đều: nhu cầu tổng hợp vượt 20% dành riêng; nâng `synthesis_min_score` |
 | Cluster runs | `done` mỗi giờ | `failed` quá hai lần liên tiếp: đọc cột Note |
 | Sources | 0 failing | Xem mục "Khi một nguồn bị chặn" |
@@ -179,4 +174,4 @@ Cập nhật baseline tác giả; dựng lại `story_daily` và `entity_daily` 
 
 ## Chi phí dự kiến
 
-Ước tính từ bảng giá của Cloudflare, **chưa được đo**; tuần chạy thử là lúc kiểm chứng. Workers Paid là 5 USD mỗi tháng và gồm 10 triệu request cùng 30 triệu CPU-ms. D1 (5 GB, 25 tỉ dòng đọc, 50 triệu dòng ghi), R2 (10 GB, 1 triệu thao tác Class A), Queues (1 triệu thao tác), Workers AI (10.000 neuron mỗi ngày) và Access (50 người dùng) đều có mức miễn phí mà quy mô một người dùng nằm gọn bên trong. Điểm dễ vượt nhất là thao tác Class A của R2; vì vậy consumer chỉ ghi R2 cho item mới hoặc có nội dung đổi, thay vì ghi lại mọi item ở mỗi lần poll. DeepSeek là API trả phí theo token. Trần 100 request/ngày và tối đa 8.192 token đầu ra/request giúp giới hạn mức dùng nhưng không phải trần tiền. Đối chiếu usage với dashboard nhà cung cấp; xem [giá hiện hành](https://api-docs.deepseek.com/quick_start/pricing). Hệ thống chỉ gửi nội dung công khai.
+Ước tính từ bảng giá của Cloudflare, **chưa được đo**; tuần chạy thử là lúc kiểm chứng. Workers Paid là 5 USD mỗi tháng và gồm 10 triệu request cùng 30 triệu CPU-ms. D1 (5 GB, 25 tỉ dòng đọc, 50 triệu dòng ghi), R2 (10 GB, 1 triệu thao tác Class A), Queues (1 triệu thao tác), Workers AI (10.000 neuron mỗi ngày) và Access (50 người dùng) đều có mức miễn phí mà quy mô một người dùng nằm gọn bên trong. Điểm dễ vượt nhất là thao tác Class A của R2; vì vậy consumer chỉ ghi R2 cho item mới hoặc có nội dung đổi, thay vì ghi lại mọi item ở mỗi lần poll. Chi phí AI phụ thuộc endpoint và model đã cấu hình. Trần 100 request/ngày và tối đa 8.192 token đầu ra/request giúp giới hạn mức dùng nhưng không phải trần tiền. Đối chiếu usage với dashboard nhà cung cấp. Hệ thống chỉ gửi nội dung công khai.

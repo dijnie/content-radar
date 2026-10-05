@@ -27,7 +27,18 @@ export interface LlmCallInput {
   error?: string | null;
 }
 
-export async function listEnabledModels(db: D1Database): Promise<LlmModelRow[]> {
+/** Resolve the configured model consistently for consumers, planners and status.
+ * New custom models keep the existing 5/minute, 100/day application caps.
+ * Existing limits, disabled state, cooldowns and historical usage are preserved.
+ */
+export async function listEnabledModels(db: D1Database, configuredModel?: string): Promise<LlmModelRow[]> {
+  if (configuredModel !== undefined) {
+    const model = configuredModel.trim();
+    if (!model) return [];
+    await db.prepare("INSERT INTO llm_models (model, priority, rpm, rpd) VALUES (?, 1, 5, 100) ON CONFLICT(model) DO NOTHING").bind(model).run();
+    const row = await db.prepare("SELECT * FROM llm_models WHERE enabled = 1 AND model = ?").bind(model).first<LlmModelRow>();
+    return row ? [row] : [];
+  }
   const { results } = await db.prepare("SELECT * FROM llm_models WHERE enabled = 1 ORDER BY priority").all<LlmModelRow>();
   return results;
 }

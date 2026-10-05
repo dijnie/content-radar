@@ -137,4 +137,13 @@ describe("GET /api/status", () => {
     expect(body.cards).toMatchObject({ alive: 13, fallbackHeadlines: 13 });
     expect(Array.isArray(body.sources) && Array.isArray(body.backlog)).toBe(true);
   });
+
+  it("reports the configured model and its budget without exposing the endpoint or key", async () => {
+    const customEnv = { ...env, LLM_MODEL: "vendor/status-model", LLM_API_KEY: "private-status-key", LLM_ENDPOINT: "https://private.example/v1" };
+    const response = await handleStatus(customEnv, NOW);
+    const body = await response.json() as { llm: { models: { model: string; rpm: number; rpd: number }[] } };
+    expect(body.llm.models).toEqual([expect.objectContaining({ model: "vendor/status-model", rpm: 5, rpd: 100 })]);
+    expect(JSON.stringify(body)).not.toContain("private-status-key");
+    expect(JSON.stringify(body)).not.toContain("private.example");
+  });
 });

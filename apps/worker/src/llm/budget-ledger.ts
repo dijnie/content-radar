@@ -105,7 +105,7 @@ export async function release(db: D1Database, reservation: Reservation): Promise
     .run();
 }
 
-/** DeepSeek 429 is temporary concurrency pressure, never a next-day quota reset. */
+/** LLM 429 is temporary concurrency pressure, never a next-day quota reset. */
 export async function markRateLimited(db: D1Database, model: LlmModelRow, now: number, retryDelaySeconds = 60): Promise<number> {
   const until = now + Math.max(1, Math.min(300, retryDelaySeconds));
   await db.prepare("UPDATE llm_models SET exhausted_until = MAX(COALESCE(exhausted_until, 0), ?) WHERE model = ?").bind(until, model.model).run();

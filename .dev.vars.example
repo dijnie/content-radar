@@ -1,8 +1,9 @@
 # Copy to apps/worker/.dev.vars for local development. Never commit real values.
-DEEPSEEK_API_KEY=
-# To use the remote AI binding locally instead of the direct key, uncomment:
-# AI_GATEWAY_ID=gateway
-# Gateway needs a DeepSeek key named default and Require provider credentials enabled.
+# OpenAI-compatible API base URL (e.g. https://your-provider.example/v1)
+# or full chat/completions URL. Fill all three fields to enable AI calls.
+LLM_ENDPOINT=
+LLM_API_KEY=
+LLM_MODEL=
 GITHUB_TOKEN=
 OWNER_EMAIL=
 ACCESS_TEAM_DOMAIN=

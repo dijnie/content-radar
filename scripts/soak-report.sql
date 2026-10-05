@@ -32,7 +32,7 @@ FROM items WHERE fetched_at >= CAST(strftime('%s', 'now') AS INTEGER) - 8 * 8640
 -- soak: live items queued for more than 48 hours (must be empty while quota remains)
 SELECT id, platform, queued_at, enqueue_attempts FROM items
 WHERE status = 'queued' AND ingest_mode = 'live' AND queued_at < CAST(strftime('%s', 'now') AS INTEGER) - 48 * 3600 ORDER BY queued_at LIMIT 50;
--- soak: DeepSeek requests per Pacific day, model and kind, against the limit
+-- soak: AI requests per Pacific day, model and kind, against the limit
 SELECT u.day_pt, u.model, u.kind, u.requests, m.rpd FROM llm_usage u JOIN llm_models m ON m.model = u.model
 WHERE u.day_pt >= DATE('now', '-8 days') ORDER BY u.day_pt, u.model, u.kind;
 -- soak: call outcomes per day (provider throttling shows as rate_limited; dead letters as dead_letter)

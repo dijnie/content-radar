@@ -90,6 +90,33 @@ beforeEach(async () => {
 });
 
 describe("consumeLlmBatch", () => {
+  it("splits an output-limited batch and stores complete claims within the request budget", async () => {
+    const ids = await seedItems(6);
+    const deepseek = fakeDeepSeek((_call, _model, itemIds) => itemIds.length > 3 ? {
+      status: 200,
+      body: { choices: [{ finish_reason: "length", message: { content: '{"items":[' } }], usage: { prompt_tokens: 200, completion_tokens: 8192 } },
+    } : null);
+    const delivery = fakeBatch(ids.map((itemId) => ({ kind: "extract", itemId })));
+    await consumeLlmBatch(delivery.batch, testEnv, { now: NOW, fetcher: deepseek.fetcher });
+    expect(deepseek.calls.map((call) => call.itemIds)).toEqual([ids, ids.slice(0, 3), ids.slice(3)]);
+    expect(delivery.outcomes()).toEqual(ids.map(() => "ack"));
+    expect(await statuses(ids)).toEqual({ extracted: 6 });
+    expect(await claimCount(ids)).toBe(6);
+    expect(await env.DB.prepare("SELECT SUM(requests) AS requests, SUM(tokens_out) AS tokens FROM llm_usage").first()).toEqual({ requests: 3, tokens: 8192 + 412 * 2 });
+    expect(await env.DB.prepare("SELECT 1 FROM settings WHERE key = 'llm_circuit'").first()).toBeNull();
+  });
+
+  it("keeps a single output-limited item queued instead of failing it or splitting forever", async () => {
+    const ids = await seedItems(1);
+    const deepseek = fakeDeepSeek(() => ({ status: 200, body: { choices: [{ finish_reason: "length", message: { content: '{"items":[' } }] } }));
+    const delivery = fakeBatch(ids.map((itemId) => ({ kind: "extract", itemId })), 6);
+    await consumeLlmBatch(delivery.batch, testEnv, { now: NOW, fetcher: deepseek.fetcher });
+    expect(deepseek.calls).toHaveLength(1);
+    expect(delivery.outcomes()).toEqual(["ack"]);
+    expect(await statuses(ids)).toEqual({ queued: 1 });
+    expect(await claimCount(ids)).toBe(0);
+  });
+
   it("stores validated editorial metadata in the same budgeted extraction call", async () => {
     const [id] = await seedItems(1);
     const editorial = { category: "field_test", pillar: "inference", summary_vi: "Nhóm tác giả đo độ trễ trên bộ thử nội bộ.", question_vi: "Độ trễ thay đổi ra sao?" };

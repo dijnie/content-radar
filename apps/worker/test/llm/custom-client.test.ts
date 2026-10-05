@@ -83,6 +83,11 @@ describe("custom OpenAI-compatible JSON transport", () => {
     expect(retryAfterSeconds("unknown")).toBe(60);
   });
 
+  it("identifies output limits so extraction can split the batch, retaining usage", async () => {
+    expect(await generateJson({ ...request, fetcher: (async () => Response.json(answer('{"items":[', "length"))) as typeof fetch }))
+      .toMatchObject({ ok: false, kind: "invalid_output", message: "llm_output_limit", reached: true, tokensIn: 1840, tokensOut: 412 });
+  });
+
   it.each([["", "stop"], ["not json", "stop"], ["null", "stop"], ["[]", "stop"], ['{"ok":true}', "length"]])("rejects empty, malformed or truncated output (%s, %s), retaining usage", async (content, reason) => {
     const result = await generateJson({ ...request, fetcher: (async () => Response.json(answer(content, reason))) as typeof fetch });
     expect(result).toMatchObject({ ok: false, kind: "invalid_output", reached: true, tokensIn: 1840, tokensOut: 412 });

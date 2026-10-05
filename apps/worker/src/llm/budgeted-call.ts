@@ -28,7 +28,7 @@ export type BudgetedResult =
   | { status: "retry"; delaySeconds: number }
   /** Leave work in D1 for the next scheduler run: no budget, open circuit or prolonged unavailability. */
   | { status: "park" }
-  /** The provider rejected the request itself; retrying it unchanged is pointless. */
+  /** Invalid request or oversized extraction batch; retrying it unchanged is pointless. */
   | { status: "rejected" };
 
 // Both queue configs allow five retries. Stop availability waits before that
@@ -88,6 +88,11 @@ export async function budgetedCall(env: LlmEnv, request: BudgetedRequest, deps: 
       continue;
     }
     if (result.kind === "invalid_request") return { status: "rejected" };
+    // A valid provider can truncate a large extraction response. Let extraction
+    // bisect that batch within the existing budget, without tripping the circuit.
+    // A single item cannot be split: keep the normal retry/park behavior for it.
+    if (result.message === "llm_output_limit" && request.subjectIds.length > 1 &&
+      (request.kind === "extract" || request.kind === "extract_backfill")) return { status: "rejected" };
     if (result.kind === "transient" && result.httpStatus !== null && result.httpStatus >= 500) {
       // Briefly rest the unavailable model before the next queue delivery.
       serverError = result.kind;

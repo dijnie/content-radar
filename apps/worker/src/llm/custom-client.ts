@@ -91,6 +91,7 @@ export async function generateJson(request: LlmRequest): Promise<LlmResult> {
     };
     usage = { tokensIn: body.usage?.prompt_tokens ?? 0, tokensOut: body.usage?.completion_tokens ?? 0 };
     const choice = body.choices?.[0];
+    if (choice?.finish_reason === "length") return fail("invalid_output", true, "llm_output_limit");
     if (choice?.finish_reason !== "stop") return fail("invalid_output", true, "llm_incomplete_response");
     if (!choice.message?.content?.trim()) return fail("invalid_output", true, "llm_empty_response");
     const data: unknown = JSON.parse(choice.message.content);

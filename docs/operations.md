@@ -26,7 +26,7 @@ Cron khôi phục intent crawl/build bị mất queue và lease quá hạn. Khi 
 
 Cần có trước: một ứng dụng Access kiểu self-hosted cho hostname của Worker với policy cho đúng một email. Hostname hiện tại là `content-radar.<subdomain>.workers.dev`; không cần custom domain. Lấy **Application Audience (AUD) tag** của ứng dụng và miền team dạng `https://<team>.cloudflareaccess.com`. Xem [Access trên Workers](https://developers.cloudflare.com/workers/configuration/cloudflare-access/).
 
-1. Điền `.env.setup` theo [hướng dẫn setup](setup.md), chạy `npm run setup`. Giữ `workers_dev: true` và `preview_urls: false` trong `apps/worker/wrangler.template.json`. Trong Zero Trust, ứng dụng `Content Radar` phải che toàn bộ hostname `workers.dev`, không giới hạn vào một path. Policy hiện tại dùng lại rule chỉ cho một email; thay đổi rule dùng chung cũng ảnh hưởng ứng dụng Access khác đang dùng nó. Worker vẫn kiểm tra email riêng bằng `OWNER_EMAIL`.
+1. Gắn D1 binding `DB` trên Worker theo [hướng dẫn setup](setup.md); Cloudflare Builds không cần `.env.setup` hoặc D1 ID. Các lệnh CLI bên dưới dành cho bảo trì tùy chọn. Giữ `workers_dev: true` và `preview_urls: false` trong `apps/worker/wrangler.template.json`. Trong Zero Trust, ứng dụng `Content Radar` phải che toàn bộ hostname `workers.dev`, không giới hạn vào một path. Policy hiện tại dùng lại rule chỉ cho một email; thay đổi rule dùng chung cũng ảnh hưởng ứng dụng Access khác đang dùng nó. Worker vẫn kiểm tra email riêng bằng `OWNER_EMAIL`.
 
    Trong Zero Trust → Integrations → Identity providers, dùng provider loại `cloudflare` với `restrict_to_account_members: true`. Ở ứng dụng `Content Radar`, `allowed_idps` chỉ gồm provider này và `auto_redirect_to_identity: true`. Email trong policy dùng để kiểm tra danh tính do Cloudflare trả về, không yêu cầu người dùng nhập lại email ở Access. Không chọn `onetimepin` cho ứng dụng này. Xem [Cloudflare làm identity provider](https://developers.cloudflare.com/cloudflare-one/integrations/identity-providers/cloudflare/).
 
@@ -38,10 +38,10 @@ Cần có trước: một ứng dụng Access kiểu self-hosted cho hostname c�
 
    Khi chuyển hoàn toàn sang custom domain, đổi `workers_dev: false`; luôn giữ `preview_urls: false`.
 
-2. Ghi lại bookmark Time Travel, áp dụng migration, đồng bộ cấu hình:
+2. Với CLI bảo trì, đặt `D1_DATABASE_NAME` trong `.env.setup` bằng đúng tên database gắn ở binding `DB`. Ghi lại bookmark Time Travel, áp dụng migration, đồng bộ cấu hình:
 
    ```bash
-   npm run setup
+   npm run setup -- --database
    cd apps/worker
    npx wrangler d1 time-travel info DB
    npx wrangler d1 migrations apply DB --remote
@@ -59,7 +59,7 @@ Cần có trước: một ứng dụng Access kiểu self-hosted cho hostname c�
 
    `ACCESS_TEAM_DOMAIN` không có dấu gạch chéo cuối. `APP_ORIGIN` là origin chính xác đang dùng, hiện là `https://content-radar.<subdomain>.workers.dev`. `OWNER_EMAIL` phải trùng email trong policy. Thiếu một trong ba biến Access thì mọi request nhận 503 `access_not_configured`: Worker từ chối thay vì mở. Chỉ đặt secret còn thiếu; không cần ghi lại key AI/GitHub khi sửa Access.
 
-4. Điền `LLM_ENDPOINT` và `LLM_MODEL` trong `.env.setup` hoặc build variables theo mục bên dưới, rồi chạy lại `npm run setup`. Để tạm dừng LLM, để cả hai trống. Model mới có trần 100 request/ngày Pacific, tối đa 5 request/phút; model đã có giữ nguyên giới hạn. Không phải quota của nhà cung cấp; 429 không tự sửa các trần. Với model có giới hạn `NULL`, giá trị dự phòng lấy từ `settings` (repo mặc định 5/20).
+4. Đặt `LLM_ENDPOINT` và `LLM_MODEL` trong Worker → Settings → Variables and Secrets. Deploy giữ các giá trị này khi build không truyền giá trị mới. Để tạm dừng LLM, đặt cả hai thành chuỗi rỗng. Model mới có trần 100 request/ngày Pacific, tối đa 5 request/phút; model đã có giữ nguyên giới hạn. Không phải quota của nhà cung cấp; 429 không tự sửa các trần. Với model có giới hạn `NULL`, giá trị dự phòng lấy từ `settings` (repo mặc định 5/20).
 5. `npm run deploy`, rồi kiểm tra không hostname nào hở:
 
    ```bash
@@ -84,17 +84,17 @@ Cấu hình ba giá trị:
 | `LLM_API_KEY` | API key gửi trong header `Authorization: Bearer …`; lưu bằng Worker secret. |
 | `LLM_MODEL` | Tên model chính xác mà endpoint hỗ trợ, kể cả tên dạng `vendor/model`. |
 
-Local: chép `.dev.vars.example` thành `apps/worker/.dev.vars` và điền ba giá trị. Production: đặt endpoint/model trong `.env.setup` hoặc build variables rồi chạy `npm run setup`, dùng `npx wrangler secret put LLM_API_KEY` từ `apps/worker` để lưu key. File local không tự trở thành secret production. Xem [Cloudflare Worker secrets](https://developers.cloudflare.com/workers/configuration/secrets/).
+Local: chép `.dev.vars.example` thành `apps/worker/.dev.vars` và điền ba giá trị. Production: đặt endpoint/model và secret `LLM_API_KEY` trong Worker → Settings → Variables and Secrets. `.env.setup`/build variables chỉ dùng nếu muốn ghi đè cả endpoint và model; mặc định deploy giữ cấu hình dashboard. File local không tự trở thành secret production. Xem [Cloudflare Worker secrets](https://developers.cloudflare.com/workers/configuration/secrets/).
 
 Provider cần nhận OpenAI Chat Completions với `messages`, `response_format: { "type": "json_object" }`, `temperature: 0`, `max_tokens: 8192`, `stream: false`; trả JSON trong `choices[0].message.content` và `finish_reason: "stop"`. `usage.prompt_tokens` và `usage.completion_tokens` được lưu nếu có. Client không gửi `thinking` hoặc tùy chọn riêng của một hãng. Binding `AI` tiếp tục dùng cho embedding.
 
-Model mới tự được thêm vào D1 với trần 5/phút và 100/ngày. Model đã có giữ nguyên giới hạn, trạng thái tắt và cooldown. `LLM_MODEL` có giá trị chỉ chọn model đó, không fallback sang các tên cũ. Trong setup mới, để cả endpoint và model trống sẽ tạm dừng LLM. Khả năng dùng chuỗi model D1 khi bỏ hẳn `LLM_MODEL` chỉ còn ở lời gọi nội bộ/legacy; setup luôn sinh biến này. Có thể chỉnh trần model trong bảng `llm_models`; không reset usage để lấy thêm lượt.
+Model mới tự được thêm vào D1 với trần 5/phút và 100/ngày. Model đã có giữ nguyên giới hạn, trạng thái tắt và cooldown. `LLM_MODEL` có giá trị chỉ chọn model đó, không fallback sang các tên cũ. Không truyền endpoint/model vào setup sẽ giữ cấu hình dashboard. Chủ động đặt cả hai thành chuỗi rỗng sẽ tạm dừng LLM. Nếu runtime không có `LLM_MODEL`, code vẫn dùng chuỗi model bật trong D1 như trước. Có thể chỉnh trần model trong bảng `llm_models`; không reset usage để lấy thêm lượt.
 
 Thiếu key/endpoint, URL sai hoặc HTTP 401/403/404 sẽ giữ việc trong D1 và mở ngắt mạch 15 phút. Sau khi sửa, đợi ngắt mạch hết hạn rồi cron rút backlog tiếp. Endpoint không được chứa user/password hoặc fragment; query string được giữ. Không tự theo redirect khi gửi key.
 
 ## Chuyển từ cấu hình DeepSeek cũ
 
-1. Điền Account ID, D1 ID và tên tài nguyên hiện có vào `.env.setup`; đặt `LLM_ENDPOINT`, `LLM_MODEL`, chạy `npm run setup` và lưu secret `LLM_API_KEY`. Key BYOK từng lưu trên AI Gateway không tự trở thành Worker secret.
+1. Gắn D1 binding `DB` trên Worker; đặt `LLM_ENDPOINT`, `LLM_MODEL` và secret `LLM_API_KEY` ở dashboard theo [hướng dẫn setup](setup.md). Key BYOK từng lưu trên AI Gateway không tự trở thành Worker secret.
 2. Build/test rồi deploy. `AI_GATEWAY_ID`, `DEEPSEEK_API_KEY` và `DEEPSEEK_BASE_URL` không còn được đọc bởi code mới.
 3. Không cần migration mới cho việc đổi provider. Giữ nguyên migration đã áp, model cũ và lịch sử usage/call/claim. Sau khi đổi cấu hình, ngắt mạch đang mở vẫn chờ hết hạn.
 4. Kiểm tra `/api/admin/probe?target=llm`, trang System status và một lượt pipeline trong `llm_calls`: endpoint trả thành công, model đúng và claim có quote hợp lệ. Deploy thành công chưa chứng minh inference chạy được.

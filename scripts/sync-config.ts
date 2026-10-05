@@ -30,7 +30,7 @@ try {
   writeFileSync(file, `${statements.join(";\n")};\n`);
   // The production config is used for --remote; the dev config owns the local database.
   const wranglerConfig = target === "--local" ? "wrangler.dev.jsonc" : "wrangler.jsonc";
-  if (target === "--remote") writeDeployConfig();
+  if (target === "--remote") writeDeployConfig(undefined, undefined, { databaseCommands: true });
   execFileSync("npx", ["wrangler", "d1", "execute", "DB", target, "--config", wranglerConfig, "--file", file, "--yes"], {
     cwd: path.join(root, "apps", "worker"),
     stdio: "inherit",

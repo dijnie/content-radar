@@ -15,7 +15,7 @@ if (!target) {
   process.exit(2);
 }
 const workerDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "apps", "worker");
-if (target === "--remote") writeDeployConfig();
+if (target === "--remote") writeDeployConfig(undefined, undefined, { databaseCommands: true });
 
 function query<T>(sql: string): T[] {
   const config = target === "--local" ? "wrangler.dev.jsonc" : "wrangler.jsonc";

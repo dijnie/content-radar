@@ -1,95 +1,79 @@
-# Setup từ template
+# Setup bằng binding trên Cloudflare
 
-Repo không chứa ID database production. Mỗi tài khoản điền cấu hình riêng từ [`.env.setup.example`](../.env.setup.example); `npm run setup` dùng [`wrangler.template.json`](../apps/worker/wrangler.template.json) để sinh `apps/worker/wrangler.jsonc`. File đã điền và file sinh ra đều được Git bỏ qua. Mọi chỉnh sửa lâu dài về bindings, routes, cron hoặc giới hạn queue phải đặt trong template, vì setup sẽ ghi lại file sinh ra.
+Cloudflare Builds deploy từ Git không cần terminal, file `.env.setup` hoặc biến `D1_DATABASE_ID`. Database được chọn trực tiếp trên Worker qua binding **`DB`**. Code truy cập database bằng `env.DB`.
 
-## 1. Chuẩn bị tài nguyên
+## 1. Gắn D1 database
 
-Trong **cùng một tài khoản Cloudflare**, chọn tài nguyên đang dùng hoặc tạo nếu chưa có:
+1. Vào **Workers & Pages → content-radar → Bindings → Add binding**.
+2. Chọn **D1 database**.
+3. Đặt **Variable name = `DB`** (đúng chữ hoa).
+4. Chọn database hiện có trong dropdown và lưu binding.
 
-| Tài nguyên | Tên mặc định | Giá trị cần lấy |
-|---|---|---|
-| Tài khoản Cloudflare | — | Account ID |
-| D1 | `content-radar` | Database ID (UUID) và tên database |
-| R2 | `content-radar-raw` | Tên bucket |
-| Queue crawl | `radar-poll` | Tên queue |
-| Queue LLM | `radar-llm` | Tên queue |
-| Queue lỗi | `radar-dlq` | Tên queue |
-| Worker | `content-radar` | Tên Worker, khớp với Worker liên kết Git nếu dùng Builds |
+Tên thực tế của database có thể khác `content-radar`; không phải sao chép UUID. Chọn database chứa dữ liệu/schema của ứng dụng. [Hướng dẫn binding D1](https://developers.cloudflare.com/d1/get-started/#3-bind-your-worker-to-your-d1-database).
 
-Tạo/chọn các tài nguyên trong Cloudflare Dashboard: **Storage & databases → D1 / R2**, **Queues**, **Workers & Pages**. Lấy UUID từ phần Settings của database; tên `content-radar` không thay thế được UUID. [Tài liệu D1](https://developers.cloudflare.com/d1/get-started/#3-bind-your-worker-to-your-d1-database).
+Cấu hình deploy khai báo:
 
-`npm run setup` chỉ kiểm tra định dạng và sinh file, không gọi Cloudflare, tạo tài nguyên, áp migration hoặc deploy. Vì vậy Account ID và D1 ID đúng định dạng vẫn cần thuộc tài khoản thực tế có quyền deploy.
-
-## 2. Điền template
-
-Từ thư mục gốc repo:
-
-```bash
-cp .env.setup.example .env.setup
-# Mở .env.setup, điền Account ID và D1 ID; sửa tên tài nguyên nếu cần.
-npm run setup
+```json
+{
+  "d1_databases": [{ "binding": "DB", "migrations_dir": "migrations" }]
+}
 ```
 
-| Biến | Cách điền |
+Wrangler 4.135.0 dùng lại binding `DB` trên Worker khi không chỉ định `database_name` hoặc `database_id`. Các giá trị `D1_DATABASE_ID` cũ không được chép vào cấu hình deploy. **Gắn database trước khi retry build**: nếu chưa có binding, cơ chế automatic provisioning của Wrangler có thể tạo database mới; nó chưa có schema hay dữ liệu của ứng dụng. [Automatic provisioning](https://developers.cloudflare.com/workers/wrangler/configuration/#automatic-provisioning).
+
+## 2. Tài nguyên còn lại
+
+Giữ các tài nguyên sau trong cùng tài khoản với Worker:
+
+| Binding / vai trò | Tài nguyên mặc định |
 |---|---|
-| `CLOUDFLARE_ACCOUNT_ID` | Bắt buộc: Account ID 32 ký tự hex chứa Worker và database. |
-| `D1_DATABASE_ID` | Bắt buộc: UUID database đã tạo, không dùng UUID mẫu toàn số 0. |
-| `WORKER_NAME`, `D1_DATABASE_NAME`, `R2_BUCKET_NAME` | Tên thực tế; có thể giữ mặc định trong template. |
-| `POLL_QUEUE_NAME`, `LLM_QUEUE_NAME`, `DLQ_QUEUE_NAME` | Ba queue khác nhau; setup cập nhật cả producer, consumer và router trong Worker. |
-| `LLM_ENDPOINT` | URL HTTP(S) gốc API hoặc đầy đủ `/chat/completions`; query string được giữ. API key điền riêng ở secret `LLM_API_KEY`. |
-| `LLM_MODEL` | Tên model đúng theo provider. Điền cùng endpoint, hoặc để cả hai trống để tạm dừng LLM. |
+| `RAW` | R2 bucket `content-radar-raw` |
+| `POLL_QUEUE` | Queue `radar-poll` |
+| `LLM_QUEUE` | Queue `radar-llm` |
+| Queue lỗi | `radar-dlq` |
+| `AI` | Workers AI cho embedding |
+| `ASSETS` | Web assets được upload khi build |
 
-Biến môi trường của process được ưu tiên hơn `.env.setup`, kể cả giá trị rỗng. Setup báo rõ trường thiếu/sai và giữ nguyên file đã sinh nếu dữ liệu không hợp lệ. `npm run deploy` luôn chạy lại setup nên không dùng nhầm ID cũ đã sinh từ lần trước.
+Nếu dùng tên khác, đặt `R2_BUCKET_NAME`, `POLL_QUEUE_NAME`, `LLM_QUEUE_NAME`, `DLQ_QUEUE_NAME` trong **Settings → Build → Build Variables and Secrets**. `WORKER_NAME` mặc định là `content-radar`, cần khớp Worker liên kết Git. Account ID được Cloudflare Builds cung cấp; không phải thêm lại trong setup.
 
-## 3. Điền secrets của Worker
+## 3. Biến và secrets của ứng dụng
 
-Trong **Worker → Settings → Variables and Secrets**, thêm các giá trị dưới đây với loại **Secret**. Secrets đã có thì giữ lại; chỉ điền những giá trị thiếu hoặc cần đổi.
+Tại **Worker → Settings → Variables and Secrets**, điền:
 
-| Secret | Giá trị |
-|---|---|
-| `LLM_API_KEY` | API key của endpoint; cần khi bật LLM. |
-| `GITHUB_TOKEN` | GitHub PAT có quyền đọc dữ liệu public. |
-| `OWNER_EMAIL` | Email chủ sở hữu được cho phép truy cập. |
-| `ACCESS_TEAM_DOMAIN` | `https://<team>.cloudflareaccess.com`, không có `/` cuối. |
-| `ACCESS_AUD` | Application Audience của ứng dụng Cloudflare Access. |
-| `APP_ORIGIN` | Origin thực tế của ứng dụng, ví dụ `https://content-radar.<subdomain>.workers.dev`. |
+| Tên | Loại | Giá trị |
+|---|---|---|
+| `LLM_ENDPOINT` | Text | URL API tương thích OpenAI, ví dụ `https://your-provider.example/v1`. |
+| `LLM_MODEL` | Text | Tên model provider hỗ trợ. |
+| `LLM_API_KEY` | Secret | API key của provider. |
+| `GITHUB_TOKEN` | Secret | GitHub PAT đọc dữ liệu public. |
+| `OWNER_EMAIL` | Secret | Email chủ sở hữu. |
+| `ACCESS_TEAM_DOMAIN` | Secret | `https://<team>.cloudflareaccess.com`, không có `/` cuối. |
+| `ACCESS_AUD` | Secret | Application Audience của ứng dụng Access. |
+| `APP_ORIGIN` | Secret | Origin ứng dụng, ví dụ `https://content-radar.<subdomain>.workers.dev`. |
 
-Cấu hình Cloudflare Access bảo vệ hostname trước khi đưa ứng dụng vào sử dụng; xem [hướng dẫn Access](operations.md#deploy-lần-đầu). Worker thiếu cấu hình Access sẽ trả 503. Secrets không được chép vào file Wrangler hoặc `.env.setup`; xem [Cloudflare secrets](https://developers.cloudflare.com/workers/configuration/secrets/).
+Deploy giữ các runtime vars đã đặt trên dashboard (`keep_vars: true`). Khi không truyền endpoint/model vào build, setup không sinh giá trị rỗng để ghi đè chúng. Có thể truyền cả `LLM_ENDPOINT` và `LLM_MODEL` vào build để chủ động thay giá trị; đặt cả hai rỗng để tạm dừng LLM. Secrets được giữ lại và không ghi vào file Wrangler. [Wrangler configuration](https://developers.cloudflare.com/workers/wrangler/configuration/#top-level-only-keys), [Worker secrets](https://developers.cloudflare.com/workers/configuration/secrets/).
 
-Nếu dùng CLI, chạy `npx wrangler secret put <TÊN_SECRET> --config wrangler.jsonc` từ `apps/worker` sau setup; Wrangler hỏi giá trị trực tiếp. Lệnh này tạo version và deploy ngay, nên thực hiện với đúng Worker đã cấu hình.
+Bảo vệ hostname bằng Cloudflare Access theo [hướng dẫn vận hành](operations.md#deploy-lần-đầu). Thiếu cấu hình Access, Worker trả 503.
 
-## 4. Migration và deploy
+## 4. Retry deployment
 
-Sau khi đăng nhập Wrangler hoặc cấu hình API token cho đúng tài khoản, từ gốc repo:
+Trong **Settings → Build**, giữ root directory ở gốc repo và deploy command là **`npm run deploy`**. Build command có thể để trống vì deploy command đã build web. Sau khi lưu binding và các biến, vào **Deployments** và **Retry build**. Không cần tạo `.env.setup` trên máy build. [Cấu hình Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/).
+
+## CLI và bảo trì database (tùy chọn)
+
+CLI deploy cũng dùng binding `DB` đã gắn trên Worker. File [`.env.setup.example`](../.env.setup.example) chỉ dành cho các giá trị muốn ghi đè. `npm run setup` sinh `apps/worker/wrangler.jsonc` từ [`wrangler.template.json`](../apps/worker/wrangler.template.json); cả `.env.setup` và file sinh ra đều được Git bỏ qua.
+
+Các lệnh D1 trực tiếp như migrations, `config:sync -- --remote`, `soak-report -- --remote`, `sweep -- --remote` và backup không tự tra binding của Worker. Trước khi chạy chúng, điền **`D1_DATABASE_NAME`** bằng đúng tên database đã chọn ở bước 1 trong `.env.setup`, rồi dùng `npm run setup -- --database`. Các script remote sẽ từ chối chạy nếu thiếu tên này để tránh chọn nhầm database. Không cần UUID.
 
 ```bash
-npm run setup
+npm run setup -- --database
 cd apps/worker
-# Database đã có dữ liệu: ghi bookmark Time Travel trước khi áp migration.
 npx wrangler d1 time-travel info DB --config wrangler.jsonc
 npx wrangler d1 migrations apply DB --remote --config wrangler.jsonc
 cd ../..
 npm run config:sync -- --remote
-npm run deploy
 ```
 
-`DB` là binding ổn định nên các lệnh vẫn hoạt động khi đổi tên database trong template. `npm run deploy` build web rồi sinh cấu hình và upload Worker; không tự áp migration. Tài nguyên, dữ liệu và secrets hiện có không được sao chép từ tài khoản khác.
+Deploy kế tiếp tự sinh lại cấu hình chỉ có binding `DB`, nên tên dùng cho bảo trì không ghi đè binding trên dashboard. Deploy không tự áp migration hoặc đồng bộ `config/*.json`; database mới cần thực hiện hai bước này trước khi phục vụ ứng dụng.
 
-## Cloudflare Builds từ Git
-
-Trong Worker đã liên kết Git, đặt:
-
-- **Root directory:** gốc repo.
-- **Build command:** để trống, vì deploy command bên dưới đã build web.
-- **Deploy command:** `npm run deploy`.
-- **Build variables and secrets:** điền các biến ở `.env.setup.example`, ít nhất `CLOUDFLARE_ACCOUNT_ID` và `D1_DATABASE_ID`; thêm endpoint/model khi bật LLM. `WORKER_NAME` phải trùng tên Worker đã liên kết.
-
-Build không cần `.env.setup` trong Git. Script setup đọc trực tiếp biến môi trường và tạo file Wrangler trong máy build. `LLM_ENDPOINT`/`LLM_MODEL` và tên queue được chuyển vào runtime vars bằng script này. Các secrets như `LLM_API_KEY` phải đặt tại **Worker → Settings → Variables and Secrets** ở bước 3; chỉ thêm chúng vào build secrets sẽ không làm Worker nhận được chúng. [Cấu hình Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/).
-
-Hoàn tất tài nguyên, Access, secrets và migration một lần trước khi retry deployment. Nếu vẫn gặp lỗi D1 `10181`, kiểm tra UUID có thuộc đúng Account ID và tài khoản/token của Builds có quyền với database đó.
-
-## Test và local
-
-`npm test` dùng template với D1 giả lập, không cần `.env.setup` hoặc tài khoản Cloudflare. `npm run dev` dùng `wrangler.dev.jsonc` và `.dev.vars`; [các bước local](../README.md#phát-triển-local) vẫn riêng với deploy.
-
-ID D1 local nay là UUID mẫu toàn số 0, nên lần đầu chuyển từ cấu hình cũ cần chạy lại migration và `config:sync -- --local` như README. Dữ liệu local cũ vẫn nằm trong `.wrangler`; database production không bị thay đổi bởi bước này.
+`npm test` dùng D1 giả lập, không cần tài khoản Cloudflare. `npm run dev` dùng `wrangler.dev.jsonc` và `.dev.vars`; xem [hướng dẫn local](../README.md#phát-triển-local).

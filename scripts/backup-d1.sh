@@ -11,7 +11,7 @@ case "$(cd "$(dirname "$DIR")" 2>/dev/null && pwd)/$(basename "$DIR")" in
 esac
 mkdir -p "$DIR" && chmod 700 "$DIR"
 OUT="$DIR/content-radar-$(date -u +%Y%m%d-%H%M%S).sql"
-node "$ROOT/scripts/setup.ts"
+node "$ROOT/scripts/setup.ts" --database
 (cd "$ROOT/apps/worker" && npx wrangler d1 export DB --remote --config wrangler.jsonc --output "$OUT")
 chmod 600 "$OUT"
 echo "backup written to $OUT ($(wc -c < "$OUT") bytes)"

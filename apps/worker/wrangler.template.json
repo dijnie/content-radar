@@ -5,12 +5,11 @@
   "compatibility_date": "2026-09-01",
   "workers_dev": true,
   "preview_urls": false,
+  "keep_vars": true,
   "observability": {
     "enabled": true
   },
   "vars": {
-    "LLM_ENDPOINT": "",
-    "LLM_MODEL": "",
     "POLL_QUEUE_NAME": "radar-poll",
     "LLM_QUEUE_NAME": "radar-llm",
     "DLQ_QUEUE_NAME": "radar-dlq"
@@ -27,8 +26,6 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "content-radar",
-      "database_id": "00000000-0000-0000-0000-000000000000",
       "migrations_dir": "migrations"
     }
   ],

@@ -41,7 +41,7 @@ export function parseReport(sql: string): { title: string; sql: string }[] {
 
 const queries = parseReport(readFileSync(path.join(root, "scripts", "soak-report.sql"), "utf8"));
 const config = target === "--local" ? "wrangler.dev.jsonc" : "wrangler.jsonc";
-if (target === "--remote") writeDeployConfig();
+if (target === "--remote") writeDeployConfig(undefined, undefined, { databaseCommands: true });
 const out = execFileSync(
   "npx",
   ["wrangler", "d1", "execute", "DB", target, "--config", config, "--json", "--command", queries.map((query) => query.sql).join(";\n")],

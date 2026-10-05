@@ -31,16 +31,11 @@ Test của Worker không chạm mạng và không chạm tài nguyên Cloudflare
 
 ## Setup để deploy
 
-```bash
-cp .env.setup.example .env.setup
-# Điền CLOUDFLARE_ACCOUNT_ID, D1_DATABASE_ID và tên tài nguyên của bạn.
-# Điền cả LLM_ENDPOINT và LLM_MODEL nếu muốn bật AI.
-npm run setup
-```
+Trên Cloudflare: **Workers & Pages → content-radar → Bindings → Add binding → D1 database**, đặt variable name là **`DB`**, rồi chọn database của ứng dụng.
 
-Setup sinh `apps/worker/wrangler.jsonc` từ template; `.env.setup` và file sinh ra không đưa lên Git. Chọn/tạo tài nguyên, điền runtime secrets và áp migration theo [hướng dẫn setup](docs/setup.md) trước khi chạy `npm run deploy`. Lệnh deploy tự chạy lại setup và báo rõ biến thiếu/sai.
+Với **Cloudflare Builds**, đặt root directory ở gốc repo và deploy command là `npm run deploy`, rồi retry build. **Không cần terminal, file `.env.setup` hay biến `D1_DATABASE_ID`**. Wrangler dùng lại binding `DB` đã chọn; gắn database trước khi retry để dùng đúng dữ liệu hiện có. Xem [hướng dẫn setup](docs/setup.md).
 
-Với **Cloudflare Builds**, đặt root directory ở gốc repo, deploy command là `npm run deploy`, rồi điền các biến trong `.env.setup.example` vào **Build variables and secrets**. Secrets của ứng dụng như `LLM_API_KEY` đặt riêng tại **Worker → Settings → Variables and Secrets**.
+Đặt endpoint/model và các secrets của ứng dụng ở **Worker → Settings → Variables and Secrets**. Các tên R2/Queue mặc định có trong hướng dẫn; chỉ dùng **Build variables and secrets** nếu muốn ghi đè tên tài nguyên. Với CLI, `.env.setup.example` là file tùy chọn; `npm run setup` sinh cấu hình deploy từ template.
 
 ## Cấu hình AI
 
@@ -54,9 +49,9 @@ LLM_MODEL=your-model-id
 
 `LLM_ENDPOINT` nhận URL gốc API hoặc URL đầy đủ kết thúc bằng `/chat/completions`. Provider cần hỗ trợ Chat Completions và JSON mode (`response_format: { "type": "json_object" }`). Model được gửi nguyên tên, không giới hạn hãng.
 
-Khi deploy, đặt `LLM_ENDPOINT` và `LLM_MODEL` trong `.env.setup` hoặc build variables, chạy `npm run setup`, rồi lưu `LLM_API_KEY` bằng `npx wrangler secret put LLM_API_KEY` từ `apps/worker` hoặc qua dashboard. Không sửa file Wrangler sinh ra. Binding `AI` vẫn phục vụ embedding; các lượt LLM gọi endpoint trực tiếp. Xem [hướng dẫn vận hành](docs/operations.md#ai-qua-endpoint-tùy-chỉnh).
+Production: đặt `LLM_ENDPOINT`, `LLM_MODEL` và secret `LLM_API_KEY` trong **Worker → Settings → Variables and Secrets**. Deploy giữ các giá trị trên dashboard; chỉ ghi đè endpoint/model khi bạn truyền cả hai qua build variables hoặc `.env.setup`. Binding `AI` vẫn phục vụ embedding; các lượt LLM gọi endpoint trực tiếp. Xem [hướng dẫn vận hành](docs/operations.md#ai-qua-endpoint-tùy-chỉnh).
 
-Model mới tự có trần 5 request/phút, 100 request/ngày Pacific; model đã tồn tại giữ nguyên giới hạn, cooldown và lịch sử. Setup cho phép để trống cả endpoint và model để tạm dừng LLM; không nhận cấu hình chỉ điền một trong hai.
+Model mới tự có trần 5 request/phút, 100 request/ngày Pacific; model đã tồn tại giữ nguyên giới hạn, cooldown và lịch sử. Bỏ cả endpoint/model khỏi build variables để giữ cấu hình dashboard; đặt cả hai thành chuỗi rỗng để chủ động tạm dừng LLM.
 
 ## Cấu trúc
 

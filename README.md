@@ -2,7 +2,7 @@
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/dijnie/content-radar)
 
-Để tạo Radar mới, chọn tài khoản Cloudflare, đặt `OWNER_TOKEN` trong form rồi bấm **Deploy**. Lần triển khai đầu khởi tạo schema và danh sách nguồn trong D1. Sau đó mở **Settings** trên web để cấu hình LLM và embedding.
+Để tạo Radar mới, chọn tài khoản Cloudflare, đặt `PASSWORD` trong form rồi bấm **Deploy**. Lần triển khai đầu khởi tạo schema và danh sách nguồn trong D1. Sau đó mở **Settings** trên web để cấu hình LLM và embedding.
 
 Radar cá nhân trả lời một câu hỏi: **giới nghiên cứu và ứng dụng AI/Agent (cùng System Design, Backend) đang có gì thú vị, và đang dịch chuyển về hướng nào?**
 
@@ -43,9 +43,9 @@ Với **Cloudflare Builds**, đặt root directory ở gốc repo và deploy com
 
 ## Cấu hình AI trên web
 
-Trong **Settings → Variables and Secrets** của Worker, thêm `OWNER_TOKEN` với loại **Secret** và đặt một giá trị ngẫu nhiên. Khi chạy local, đặt biến này trong `apps/worker/.dev.vars`. Sau khi sao lưu D1 và áp các migration, mở **Settings** trong Radar.
+Trong **Settings → Variables and Secrets** của Worker, thêm `PASSWORD` với loại **Secret** và đặt mật khẩu mạnh. Khi chạy local, đặt biến này trong `apps/worker/.dev.vars`. Sau khi sao lưu D1 và áp các migration, mở **Settings** trong Radar.
 
-Dùng mã để mở khóa Settings, nhập endpoint tương thích OpenAI, model chat và API key. Chọn model embedding trả vector 1.024 chiều. Embedding có thể dùng chung endpoint và key với chat hoặc dùng một provider riêng. Bấm **Save settings** để áp dụng cho các tác vụ tiếp theo. Bỏ chọn **Enable AI processing** để tạm dừng.
+Dùng mật khẩu để mở khóa Settings, nhập endpoint tương thích OpenAI, model chat và API key. Chọn model embedding trả vector 1.024 chiều. Embedding có thể dùng chung endpoint và key với chat hoặc dùng một provider riêng. Bấm **Save settings** để áp dụng cho các tác vụ tiếp theo. Bỏ chọn **Enable AI processing** để tạm dừng.
 
 Worker lưu cấu hình và key trong D1. API quản trị chỉ trả trạng thái đã có key. Khi nâng cấp từ bản dùng biến môi trường, nhập lại cấu hình trên web sau migration `0012`. Mỗi lần đổi endpoint hoặc model embedding, lần phân cụm kế tiếp sẽ làm mới các vector đang dùng. [Hướng dẫn vận hành](docs/operations.md#ai-qua-endpoint-tùy-chỉnh)
 

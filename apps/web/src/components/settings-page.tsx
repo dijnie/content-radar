@@ -13,9 +13,10 @@ interface SavedSettings {
 }
 
 const errors: Record<string, string> = {
-  invalid_owner_token: "Check the owner token and try again.",
-  owner_token_required: "Enter the owner token configured for this Worker.",
-  owner_token_not_configured: "Set OWNER_TOKEN in the Worker's Variables and Secrets to unlock settings.",
+  invalid_password: "Incorrect password. Try again.",
+  password_required: "Enter the Settings password.",
+  password_not_configured: "Set PASSWORD in the Worker's Variables and Secrets to unlock Settings.",
+  settings_database_not_ready: "Apply the Radar migrations to the D1 database bound as DB, then reload Settings.",
   provider_key_required: "Enter a new API key for the provider whose endpoint changed.",
   invalid_endpoint: "Use an HTTPS endpoint with the API key in its own field.",
   settings_changed: "Settings changed in another tab. Reload the saved settings before editing.",
@@ -23,7 +24,7 @@ const errors: Record<string, string> = {
 };
 
 export function SettingsPage() {
-  const [token, setToken] = useState("");
+  const [password, setPassword] = useState("");
   const [saved, setSaved] = useState<SavedSettings | null>(null);
   const [draft, setDraft] = useState<SavedSettings | null>(null);
   const [shared, setShared] = useState(true);
@@ -38,7 +39,9 @@ export function SettingsPage() {
     setError("");
     setNotice("");
     try {
-      const headers = { Authorization: `Bearer ${token.trim()}`, "Content-Type": "application/json" };
+      const bytes = new TextEncoder().encode(`settings:${password}`);
+      const credentials = btoa(Array.from(bytes, byte => String.fromCharCode(byte)).join(""));
+      const headers = { Authorization: `Basic ${credentials}`, "Content-Type": "application/json" };
       const body = save && draft ? JSON.stringify({
         revision: draft.revision, enabled: draft.enabled, chatEndpoint: draft.chatEndpoint.trim(), chatModel: draft.chatModel.trim(),
         chatKey, embeddingEndpoint: shared ? "" : draft.embeddingEndpoint.trim(), embeddingModel: draft.embeddingModel.trim(),
@@ -52,7 +55,10 @@ export function SettingsPage() {
       setEmbeddingKey("");
       if (save) setNotice("Settings saved.");
     } catch (err) {
-      setError(err instanceof ApiError && errors[err.code] || "Could not load or save settings. Try again.");
+      const action = save ? "save" : "load";
+      setError(err instanceof ApiError
+        ? errors[err.code] ?? `Could not ${action} settings (HTTP ${err.status}).`
+        : `Could not ${action} settings. Check your connection and try again.`);
     } finally { setBusy(false); }
   }
   function onSubmit(event: FormEvent) {
@@ -60,7 +66,7 @@ export function SettingsPage() {
     void submit(Boolean(saved));
   }
   function lock() {
-    setSaved(null); setDraft(null); setToken(""); setChatKey(""); setEmbeddingKey(""); setError(""); setNotice("");
+    setSaved(null); setDraft(null); setPassword(""); setChatKey(""); setEmbeddingKey(""); setError(""); setNotice("");
   }
   const chatKeySaved = Boolean(saved?.hasChatKey && saved.chatEndpoint === draft?.chatEndpoint.trim());
   const embeddingKeySaved = Boolean(saved?.hasEmbeddingKey && saved.embeddingEndpoint === draft?.embeddingEndpoint.trim());
@@ -69,13 +75,13 @@ export function SettingsPage() {
     <header className="editorial-header"><h1>Settings</h1>{saved && <button type="button" className="text-button" onClick={lock} disabled={busy}>Lock settings</button>}</header>
     <form onSubmit={onSubmit}>
       {!saved || !draft ? <fieldset className="card" disabled={busy}>
-        <legend>Owner access</legend>
-        <label>Owner token<input type="password" autoComplete="off" value={token} onChange={e => setToken(e.target.value)} required /></label>
-        <details><summary>Where to set the token</summary>
-          <p>In the Cloudflare Worker settings, add a secret named <code>OWNER_TOKEN</code> under Variables and Secrets. Enter the same value here.</p>
-          <p>For local development, set <code>OWNER_TOKEN</code> in <code>apps/worker/.dev.vars</code>.</p>
+        <legend>Unlock settings</legend>
+        <label>Password<input type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} required /></label>
+        <details><summary>Where to set the password</summary>
+          <p>In the Cloudflare Worker settings, set <code>PASSWORD</code> under Variables and Secrets. Choose the Secret type.</p>
+          <p>For local development, set <code>PASSWORD</code> in <code>apps/worker/.dev.vars</code>.</p>
         </details>
-        <button className="button button--primary" disabled={!token.trim()}>{busy ? "Unlocking…" : "Unlock settings"}</button>
+        <button className="button button--primary" disabled={!password}>{busy ? "Unlocking…" : "Unlock settings"}</button>
       </fieldset> : <>
         <fieldset className="card" disabled={busy}>
           <legend>Chat model</legend>

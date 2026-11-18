@@ -36,18 +36,32 @@ function validEndpoint(endpoint: string, worker: URL): boolean {
   } catch { return false; }
 }
 
-export async function handleAiSettings(request: Request, { DB: db, OWNER_TOKEN }: Pick<Env, "DB" | "OWNER_TOKEN">): Promise<Response> {
-  const owner = OWNER_TOKEN?.trim();
-  if (!owner) return reply({ error: "owner_token_not_configured" }, 503);
-  const supplied = /^Bearer (\S+)$/i.exec(request.headers.get("Authorization") ?? "")?.[1];
-  if (!supplied) return reply({ error: "owner_token_required" }, 401);
-  const encoder = new TextEncoder();
-  const digest = (token: string) => crypto.subtle.digest("SHA-256", encoder.encode(token));
-  const [expected, received] = await Promise.all([digest(owner), digest(supplied)]);
-  if (!crypto.subtle.timingSafeEqual(expected, received)) {
-    return reply({ error: "invalid_owner_token" }, 403);
+export async function handleAiSettings(request: Request, { DB: db, PASSWORD }: Pick<Env, "DB" | "PASSWORD">): Promise<Response> {
+  if (!PASSWORD) return reply({ error: "password_not_configured" }, 503);
+  const credentials = /^Basic ([A-Za-z0-9+/]+=*)$/i.exec(request.headers.get("Authorization") ?? "")?.[1];
+  if (!credentials) return reply({ error: "password_required" }, 401);
+  let supplied: Uint8Array<ArrayBuffer>;
+  try {
+    supplied = Uint8Array.from(atob(credentials), character => character.charCodeAt(0));
+  } catch {
+    return reply({ error: "invalid_password" }, 403);
   }
-  const row = await getAiSettings(db);
+  const [expected, received] = await Promise.all([
+    crypto.subtle.digest("SHA-256", new TextEncoder().encode(`settings:${PASSWORD}`)),
+    crypto.subtle.digest("SHA-256", supplied),
+  ]);
+  if (!crypto.subtle.timingSafeEqual(expected, received)) {
+    return reply({ error: "invalid_password" }, 403);
+  }
+  let row: AiSettings;
+  try {
+    row = await getAiSettings(db);
+  } catch (error) {
+    if (error instanceof Error && (error.message === "ai_settings_missing" || error.message.includes("no such table: ai_settings"))) {
+      return reply({ error: "settings_database_not_ready" }, 503);
+    }
+    throw error;
+  }
   if (request.method === "GET") return reply(visible(row));
   const parsed = changes.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return reply({ error: "invalid_settings" }, 400);

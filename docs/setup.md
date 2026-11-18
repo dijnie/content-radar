@@ -2,7 +2,7 @@
 
 ## Tạo Radar mới từ template
 
-Nút **Deploy to Cloudflare** ở đầu README mở form tạo Worker và bản sao repo trong tài khoản của bạn. Chọn tên Worker, D1, R2 và các queue, nhập `OWNER_TOKEN`, rồi giữ các lệnh build và deploy được đề xuất. Cloudflare ghi tài nguyên đã cấp vào `wrangler.json` của repo mới. Lệnh deploy áp migration vào binding `DB` và nạp danh sách nguồn nếu bảng nguồn còn trống. Mở **Settings** trên web để khai báo provider. Cloudflare yêu cầu repo nguồn công khai để phân phối theo cách này. [Deploy to Cloudflare buttons](https://developers.cloudflare.com/workers/platform/deploy-buttons/)
+Nút **Deploy to Cloudflare** ở đầu README mở form tạo Worker và bản sao repo trong tài khoản của bạn. Chọn tên Worker, D1, R2 và các queue, nhập `PASSWORD`, rồi giữ các lệnh build và deploy được đề xuất. Cloudflare ghi tài nguyên đã cấp vào `wrangler.json` của repo mới. Lệnh deploy áp migration vào binding `DB` và nạp danh sách nguồn nếu bảng nguồn còn trống. Mở **Settings** trên web để khai báo provider. Cloudflare yêu cầu repo nguồn công khai để phân phối theo cách này. [Deploy to Cloudflare buttons](https://developers.cloudflare.com/workers/platform/deploy-buttons/)
 
 ## Kết nối Worker đang dùng qua Git
 
@@ -47,7 +47,7 @@ Nếu dùng tên khác, đặt `R2_BUCKET_NAME`, `POLL_QUEUE_NAME`, `LLM_QUEUE_N
 
 Đặt `GITHUB_TOKEN` ở **Worker → Settings → Variables and Secrets** nếu dùng GitHub PAT. `APP_ORIGIN` là biến tùy chọn để bộ crawl loại hostname của ứng dụng.
 
-Ở **Worker → Settings → Variables and Secrets**, thêm `OWNER_TOKEN` dưới dạng **Secret** và đặt một giá trị ngẫu nhiên. Khi chạy local, đặt `OWNER_TOKEN` trong `apps/worker/.dev.vars`. Sau khi sao lưu và áp các migration D1 qua `0013`, dùng giá trị đó để mở khóa **Settings** trong Radar. Nhập endpoint, model và API key cho chat và embedding rồi bấm **Save settings**. Các job tiếp theo đọc cấu hình này ngay.
+Ở **Worker → Settings → Variables and Secrets**, thêm `PASSWORD` dưới dạng **Secret** và đặt mật khẩu mạnh. Khi chạy local, đặt `PASSWORD` trong `apps/worker/.dev.vars`. Sau khi sao lưu và áp các migration D1 qua `0013`, dùng giá trị đó để mở khóa **Settings** trong Radar. Nhập endpoint, model và API key cho chat và embedding rồi bấm **Save settings**. Các job tiếp theo đọc cấu hình này ngay.
 
 Nếu trước đây đã bật Access cho hostname này, vào **Worker → Settings → Domains & Routes** (hoặc tab **Domains**) và chọn **Disable Cloudflare Access** cho URL ứng dụng; giữ route `workers.dev` bật. Nếu dùng ứng dụng Access self-hosted riêng, gỡ hostname của Content Radar khỏi ứng dụng Access đó; giữ các hostname và policy dùng cho ứng dụng khác. [Access trên workers.dev](https://developers.cloudflare.com/workers/configuration/routing/workers-dev/#manage-access-to-workersdev).
 

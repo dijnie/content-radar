@@ -1,5 +1,5 @@
-# Choose a random secret to unlock Settings. Configure AI providers in Radar.
-OWNER_TOKEN=
+# Choose a strong password to unlock Settings. Configure AI providers in Radar.
+PASSWORD=
 # Optional: uncomment to use a GitHub PAT for higher rate limits.
 # GITHUB_TOKEN=
 # Optional: exclude the app's own hostname from background ingest.

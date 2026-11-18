@@ -113,7 +113,7 @@ test("CI overrides the local setup file, while provider settings and secrets sta
   const root = fixture(t);
   writeFileSync(path.join(root, ".env.setup"), `CLOUDFLARE_ACCOUNT_ID=${valid.CLOUDFLARE_ACCOUNT_ID}\nWORKER_NAME=local-radar\nLLM_ENDPOINT=https://llm.example/v1\nLLM_MODEL=local-model\nLLM_API_KEY=local-secret\n`);
   const { output } = writeDeployConfig(root, {
-    WORKER_NAME: "ci-radar", LLM_ENDPOINT: "", LLM_MODEL: "", LLM_API_KEY: "build-secret", CLOUDFLARE_API_TOKEN: "token-secret", OWNER_TOKEN: "owner-fixture",
+    WORKER_NAME: "ci-radar", LLM_ENDPOINT: "", LLM_MODEL: "", LLM_API_KEY: "build-secret", CLOUDFLARE_API_TOKEN: "token-secret", PASSWORD: "owner-fixture",
   });
   const text = readFileSync(output, "utf8");
   const config = JSON.parse(text.slice(text.indexOf("\n") + 1));
@@ -122,7 +122,7 @@ test("CI overrides the local setup file, while provider settings and secrets sta
   assert.equal(config.d1_databases[0].database_id, undefined);
   assert.equal(config.vars.LLM_ENDPOINT, undefined);
   assert.equal(config.vars.LLM_MODEL, undefined);
-  assert.doesNotMatch(text, /local-secret|build-secret|token-secret|owner-fixture|LLM_API_KEY|CLOUDFLARE_API_TOKEN|OWNER_TOKEN/);
+  assert.doesNotMatch(text, /local-secret|build-secret|token-secret|owner-fixture|LLM_API_KEY|CLOUDFLARE_API_TOKEN|PASSWORD/);
 });
 
 test("custom resources keep producers, consumers and dead-letter queues connected", (t) => {

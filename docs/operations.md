@@ -52,7 +52,7 @@ Cron khôi phục intent crawl/build bị mất queue và lease quá hạn. Khi 
 
 ## AI qua endpoint tùy chỉnh
 
-Cấu hình AI trong **Settings** của Radar. Đặt hoặc đổi mã mở khóa bằng secret `OWNER_TOKEN` trong **Settings → Variables and Secrets** của Worker. Khi secret chưa được đặt, Settings bị khóa. Migration `0013` bỏ cột mã cũ và giữ cấu hình provider. D1 và bản sao lưu D1 vẫn chứa API key của provider.
+Cấu hình AI trong **Settings** của Radar. Đặt hoặc đổi mật khẩu bằng secret `PASSWORD` trong **Settings → Variables and Secrets** của Worker. Khi secret chưa được đặt, Settings bị khóa. Migration `0013` bỏ cột mã cũ và giữ cấu hình provider. D1 và bản sao lưu D1 vẫn chứa API key của provider.
 
 Chat cần API tương thích OpenAI Chat Completions với JSON mode. Embeddings cần API `/embeddings` trả vector 1.024 chiều. Có thể dùng chung endpoint và key, hoặc cấu hình provider embedding riêng. Nhập key mới khi đổi endpoint. Khi chỉ đổi model, để trống ô key để giữ key đã lưu. Bỏ chọn **Enable AI processing** và lưu để tạm dừng.
 

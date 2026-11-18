@@ -12,7 +12,7 @@ export default defineConfig(async () => {
         remoteBindings: false,
         miniflare: {
           bindings: {
-            OWNER_TOKEN: randomUUID(),
+            PASSWORD: randomUUID(),
             TEST_MIGRATIONS: migrations,
           },
         },

@@ -12,7 +12,7 @@ export interface Env {
   DLQ_QUEUE_NAME?: string;
   GITHUB_TOKEN: string;
   /** Runtime secret for unlocking the AI provider settings. */
-  OWNER_TOKEN?: string;
+  PASSWORD?: string;
   /** Optional origin for excluding the app's own hostname during background ingest. */
   APP_ORIGIN?: string;
 }

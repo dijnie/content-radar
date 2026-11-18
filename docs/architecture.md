@@ -81,7 +81,7 @@ Thiếu số liệu nhận 0 điểm ở thành phần đó và vẫn giữ giá
 
 ## Ngân sách AI
 
-Chat và embedding đọc cấu hình từ bản ghi riêng trong bảng D1 `ai_settings`. Chat gửi key qua header Bearer tới API OpenAI-compatible. Embedding dùng chung endpoint và key của chat hoặc dùng provider riêng. Giao diện Settings chỉ trả trạng thái key đã lưu và yêu cầu mã chủ sở hữu để đọc hoặc sửa cấu hình.
+Chat và embedding đọc cấu hình từ bản ghi riêng trong bảng D1 `ai_settings`. Chat gửi key qua header Bearer tới API OpenAI-compatible. Embedding dùng chung endpoint và key của chat hoặc dùng provider riêng. Giao diện Settings chỉ trả trạng thái key đã lưu và yêu cầu mật khẩu quản trị để đọc hoặc sửa cấu hình.
 
 Client yêu cầu JSON object, giới hạn 8.192 token đầu ra và timeout 60 giây cả lúc đọc body. Không gửi tham số riêng của LLM. Prompt đưa schema cùng ví dụ JSON; code vẫn kiểm tra schema, ID và quote trước khi lưu. Provider cần hỗ trợ JSON mode, `temperature` và `max_tokens` theo hợp đồng Chat Completions này.
 

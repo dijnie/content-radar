@@ -42,7 +42,7 @@ function deepseekReplying(payload: (prompt: string) => unknown) {
 
 async function deliver(messages: LlmMessage[], fetcher: typeof fetch, now: number, attempts = 1): Promise<string[]> {
   const outcomes: string[] = [];
-  const batch = { queue: "radar-llm", messages: messages.map((body) => ({ body, attempts, ack: () => outcomes.push("ack"), retry: () => outcomes.push("retry") })) } as unknown as MessageBatch<LlmMessage>;
+  const batch = { queue: "content-radar-llm", messages: messages.map((body) => ({ body, attempts, ack: () => outcomes.push("ack"), retry: () => outcomes.push("retry") })) } as unknown as MessageBatch<LlmMessage>;
   await consumeLlmBatch(batch, llmEnv, { now, fetcher });
   return outcomes;
 }

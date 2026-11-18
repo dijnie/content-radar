@@ -7,7 +7,7 @@ Tài liệu này giải thích hệ thống hoạt động thế nào và vì sa
 ```mermaid
 flowchart TD
   subgraph "Cron */30"
-    D[start-crawl + recover] -->|radar-poll| P[poll-consumer]
+    D[start-crawl + recover] -->|content-radar-poll| P[poll-consumer]
     DR[drain-backlog + drain-editorial]
     FS[schedule-feeds + recover]
   end
@@ -17,10 +17,10 @@ flowchart TD
   F -->|items: queued hoặc filtered_out| D1[(D1)]
   P -->|crawl hoàn tất và snapshot nguồn| D1
   DR --> L[llm-consumer]
-  FS -->|radar-poll: build-feed| FB[feed builder]
+  FS -->|content-radar-poll: build-feed| FB[feed builder]
   D1 --> FB
   FB -->|công bố nguyên khối| D1
-  DR -->|radar-llm: item queued còn tồn| L
+  DR -->|content-radar-llm: item queued còn tồn| L
   L -->|budgeted-call| G[Custom AI endpoint]
   L -->|claims, entity_mentions| D1
   subgraph "Cron 5 * * * *"
@@ -29,7 +29,7 @@ flowchart TD
   D1 --> C
   C -->|API /embeddings| E[embedding]
   C -->|stories, story_claims, lineage_events| D1
-  C -->|radar-llm: synthesize, adjudicate| L
+  C -->|content-radar-llm: synthesize, adjudicate| L
   subgraph "Cron 20 8 * * *"
     M[daily-maintenance]
   end

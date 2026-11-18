@@ -37,7 +37,7 @@ describe("queue names supplied by deployment setup", () => {
   });
 
   it("retries a queue whose name no longer matches configuration", async () => {
-    const message = batch("radar-poll", { sourceId: -1 });
+    const message = batch("content-radar-poll", { sourceId: -1 });
     await worker.queue(message.input, configured);
     expect(message.retryAll).toHaveBeenCalledWith({ delaySeconds: 300 });
     expect(message.ack).not.toHaveBeenCalled();

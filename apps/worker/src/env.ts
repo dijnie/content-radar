@@ -3,6 +3,7 @@ export interface Env {
   RAW: R2Bucket;
   POLL_QUEUE: Queue;
   LLM_QUEUE: Queue;
+  DLQ_QUEUE: Queue;
   ASSETS: Fetcher;
 
   /** Queue names supplied by deployment setup; defaults support local development. */

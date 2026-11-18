@@ -164,7 +164,7 @@ describe("a consumer that dies after the D1 write but before sending", () => {
 
     const outcomes: string[] = [];
     const batch = {
-      queue: "radar-poll",
+      queue: "content-radar-poll",
       messages: [{ body: { sourceId }, ack: () => outcomes.push("ack"), retry: () => outcomes.push("retry") }],
     } as unknown as MessageBatch<PollMessage>;
     await consumePollBatch(batch, testEnv, { now: NOW, fetcher });

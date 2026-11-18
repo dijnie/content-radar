@@ -71,7 +71,7 @@ Sau khi lưu, có thể kiểm tra chat và embedding qua `/api/admin/probe?targ
 | Cluster runs | `done` mỗi giờ | `failed` quá hai lần liên tiếp: đọc cột Note |
 | Sources | 0 failing | Xem mục "Khi một nguồn bị chặn" |
 
-Khi quota không đủ, chỉnh theo thứ tự: siết bộ lọc rẻ (`filter_min_text_length`, từ khoá trong `config/topics.json`), tắt nguồn ưu tiên thấp, rồi mới cân nhắc tăng `max_batch_size` của consumer `radar-llm` nếu tỉ lệ `quote_not_found` còn dưới 15%. Khi áp lực quota và chất lượng kéo ngược nhau, chất lượng thắng.
+Khi quota không đủ, chỉnh theo thứ tự: siết bộ lọc rẻ (`filter_min_text_length`, từ khoá trong `config/topics.json`), tắt nguồn ưu tiên thấp, rồi mới cân nhắc tăng `max_batch_size` của consumer `content-radar-llm` nếu tỉ lệ `quote_not_found` còn dưới 15%. Khi áp lực quota và chất lượng kéo ngược nhau, chất lượng thắng.
 
 ### Có giao diện nhưng chưa có thẻ
 
@@ -118,7 +118,7 @@ Thứ tự an toàn cho mọi thay đổi schema: migration chỉ **mở rộng*
 
 ## Dead-letter queue
 
-Message hỏng sau 5 lần retry vào `radar-dlq`, và Worker tự tiêu thụ queue này. Riêng chờ quota theo phút hoặc model quá tải được trả về D1 sau tối đa bốn retry ngắn, trước trần queue: item vẫn `queued`, headline vẫn đủ điều kiện tổng hợp và phân xử entity trở về `pending`. Cron rút backlog hoặc job cluster sẽ thử lại khi có ngân sách; không phải sửa trạng thái bằng tay cho các lần chờ này.
+Message hỏng sau 5 lần retry vào `content-radar-dlq`, và Worker tự tiêu thụ queue này. Riêng chờ quota theo phút hoặc model quá tải được trả về D1 sau tối đa bốn retry ngắn, trước trần queue: item vẫn `queued`, headline vẫn đủ điều kiện tổng hợp và phân xử entity trở về `pending`. Cron rút backlog hoặc job cluster sẽ thử lại khi có ngân sách; không phải sửa trạng thái bằng tay cho các lần chờ này.
 
 Một message `extract` thực sự chết thì item tương ứng thành `failed` với `filter_reason = 'dead_letter'` kèm một dòng trong `llm_calls`, để không item nào biến mất trong im lặng. Message crawl hoặc build chết vẫn có intent trong D1; cron khôi phục theo lease và số lần xử lý. Poll cũ không có crawl ID dùng `next_poll_at` để thử lại. Message editorial bổ sung không làm item đã extracted thành failed; giới hạn lần phân tích và cron quản lý việc thử lại. Tìm item hỏng:
 

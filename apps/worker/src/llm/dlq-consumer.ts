@@ -3,7 +3,7 @@ import type { Env } from "../env";
 import type { LlmMessage, PollQueueMessage } from "./messages";
 
 /**
- * `radar-dlq` consumer. A dead-lettered extraction means the item exhausted its
+ * `content-radar-dlq` consumer. A dead-lettered extraction means the item exhausted its
  * retries: it is marked `failed` with a visible reason instead of vanishing. A
  * Tracked crawl/feed jobs recover from D1; legacy polls use source next_poll_at.
  */

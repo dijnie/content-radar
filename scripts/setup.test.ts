@@ -23,6 +23,16 @@ test("dashboard deployments need no account or database IDs and preserve runtime
   assert.deepEqual(config.d1_databases, [{ binding: "DB", migrations_dir: "migrations" }]);
   assert.equal(config.account_id, undefined);
   assert.equal(config.keep_vars, true);
+  assert.deepEqual(config.r2_buckets, [{ binding: "RAW", bucket_name: "content-radar-raw" }]);
+  assert.deepEqual(config.queues.producers, [
+    { binding: "POLL_QUEUE", queue: "content-radar-poll" },
+    { binding: "LLM_QUEUE", queue: "content-radar-llm" },
+    { binding: "DLQ_QUEUE", queue: "content-radar-dlq" },
+  ]);
+  assert.deepEqual(config.queues.consumers.map((q: { queue: string; dead_letter_queue?: string }) =>
+    [q.queue, q.dead_letter_queue]), [
+    ["content-radar-poll", "content-radar-dlq"], ["content-radar-llm", "content-radar-dlq"], ["content-radar-dlq", undefined],
+  ]);
   assert.equal(config.vars.LLM_ENDPOINT, undefined);
   assert.equal(config.vars.LLM_MODEL, undefined);
   assert.equal(config.vars.EMBEDDING_MODEL, undefined);
@@ -46,9 +56,9 @@ test("a template clone uses its provisioned resources for deploy and database co
     assert.deepEqual(cfg.r2_buckets, source.r2_buckets);
     assert.deepEqual(cfg.d1_databases, [{ ...source.d1_databases[0], migrations_dir: "migrations" }]);
     assert.deepEqual(cfg.queues.producers, source.queues.producers);
-    assert.deepEqual(cfg.queues.consumers.map((q: { queue: string }) => q.queue), ["my-radar-poll", "my-radar-llm", "my-radar-dlq"]);
-    assert.equal(cfg.queues.consumers[0].dead_letter_queue, "my-radar-dlq");
-    assert.equal(cfg.vars.LLM_QUEUE_NAME, "my-radar-llm");
+    assert.deepEqual(cfg.queues.consumers.map((q: { queue: string }) => q.queue), ["my-content-radar-poll", "my-content-radar-llm", "my-content-radar-dlq"]);
+    assert.equal(cfg.queues.consumers[0].dead_letter_queue, "my-content-radar-dlq");
+    assert.equal(cfg.vars.LLM_QUEUE_NAME, "my-content-radar-llm");
     assert.equal(cfg.main, "src/index.ts");
     assert.equal(cfg.assets.directory, "../web/dist");
   }
@@ -60,6 +70,22 @@ test("legacy IDs and database names cannot replace the dashboard binding on depl
   });
   const text = readFileSync(output, "utf8");
   assert.doesNotMatch(text, /old-account-database-id|old-database|database_id|database_name|account_id/);
+});
+
+test("upgrading a template with the older DLQ binding keeps its provisioned queue", (t) => {
+  const root = fixture(t);
+  const file = path.join(root, "wrangler.json");
+  const source = JSON.parse(readFileSync(file, "utf8"));
+  source.d1_databases[0].database_id = "3d456789-1234-4321-8765-123456789abc";
+  const dlq = source.queues.producers.find((q: { binding: string }) => q.binding === "DLQ_QUEUE");
+  Object.assign(dlq, { binding: "DLQ", queue: "existing-failed-jobs" });
+  writeFileSync(file, JSON.stringify(source));
+  const { output } = writeDeployConfig(root, {});
+  const cfg = JSON.parse(readFileSync(output, "utf8").split("\n").slice(1).join("\n"));
+  assert.ok(cfg.queues.producers.some((q: { binding: string; queue: string }) => q.binding === "DLQ_QUEUE" && q.queue === "existing-failed-jobs"));
+  assert.equal(cfg.queues.consumers[2].queue, "existing-failed-jobs");
+  assert.equal(cfg.queues.consumers[0].dead_letter_queue, "existing-failed-jobs");
+  assert.equal(cfg.vars.DLQ_QUEUE_NAME, "existing-failed-jobs");
 });
 
 test("invalid account selection does not replace a working config", (t) => {
@@ -109,7 +135,7 @@ test("custom resources keep producers, consumers and dead-letter queues connecte
   assert.equal(config.d1_databases[0].binding, "DB");
   assert.equal(config.d1_databases[0].database_name, undefined);
   assert.equal(config.r2_buckets[0].bucket_name, "custom-raw");
-  assert.deepEqual(config.queues.producers.map((q: { queue: string }) => q.queue), ["custom-poll", "custom-llm"]);
+  assert.deepEqual(config.queues.producers.map((q: { queue: string }) => q.queue), ["custom-poll", "custom-llm", "custom-dlq"]);
   assert.deepEqual(config.queues.consumers.map((q: { queue: string }) => q.queue), ["custom-poll", "custom-llm", "custom-dlq"]);
   assert.equal(config.queues.consumers[0].dead_letter_queue, "custom-dlq");
   assert.equal(config.queues.consumers[1].dead_letter_queue, "custom-dlq");

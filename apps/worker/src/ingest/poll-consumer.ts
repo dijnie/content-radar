@@ -203,7 +203,7 @@ export async function pollSource(env: IngestEnv, sourceId: number, deps: IngestD
   if (deps.crawl) await finishCrawlSource(env.DB, deps.crawl.id, source.id, deps.crawl.token, finishedAt(), itemsNew, null);
 }
 
-/** `radar-poll` consumer: one source per message, each acknowledged on its own. */
+/** `content-radar-poll` consumer: one source per message, each acknowledged on its own. */
 export async function consumePollBatch(batch: MessageBatch<PollMessage>, env: IngestEnv, deps: IngestDeps = {}): Promise<void> {
   for (const message of batch.messages) {
     let crawl: IngestDeps["crawl"];

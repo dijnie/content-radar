@@ -15,9 +15,9 @@ import { runDailyMaintenance } from "./maintenance/run-daily-maintenance";
 const CRON_POLL = "*/30 * * * *";
 const CRON_CLUSTER = "5 * * * *";
 const CRON_MAINTENANCE = "20 8 * * *";
-const QUEUE_POLL = "radar-poll";
-const QUEUE_LLM = "radar-llm";
-const QUEUE_DEAD_LETTER = "radar-dlq";
+const QUEUE_POLL = "content-radar-poll";
+const QUEUE_LLM = "content-radar-llm";
+const QUEUE_DEAD_LETTER = "content-radar-dlq";
 
 export default {
   async fetch(request, env): Promise<Response> {

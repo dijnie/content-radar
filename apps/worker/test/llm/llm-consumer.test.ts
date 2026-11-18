@@ -51,7 +51,7 @@ function fakeBatch(bodies: LlmMessage[], attempts = 1) {
     ack: () => outcomes.set(index, "ack"),
     retry: (options?: { delaySeconds?: number }) => outcomes.set(index, `retry:${options?.delaySeconds}`),
   }));
-  return { batch: { queue: "radar-llm", messages } as unknown as MessageBatch<LlmMessage>, outcomes: () => bodies.map((_, index) => outcomes.get(index)) };
+  return { batch: { queue: "content-radar-llm", messages } as unknown as MessageBatch<LlmMessage>, outcomes: () => bodies.map((_, index) => outcomes.get(index)) };
 }
 
 async function seedItems(count: number, mode: "live" | "backfill" = "live"): Promise<number[]> {
@@ -517,7 +517,7 @@ describe("consumeDeadLetters", () => {
   it("marks a dead-lettered extraction as failed with a visible reason", async () => {
     const [itemId] = await seedItems(1);
     const acks: number[] = [];
-    const batch = { queue: "radar-dlq", messages: [{ body: { kind: "extract", itemId }, ack: () => acks.push(1) }, { body: { sourceId: 5 }, ack: () => acks.push(2) }] } as unknown as MessageBatch<LlmMessage>;
+    const batch = { queue: "content-radar-dlq", messages: [{ body: { kind: "extract", itemId }, ack: () => acks.push(1) }, { body: { sourceId: 5 }, ack: () => acks.push(2) }] } as unknown as MessageBatch<LlmMessage>;
     await consumeDeadLetters(batch, { DB: env.DB }, NOW);
     expect(acks).toEqual([1, 2]);
     expect(await env.DB.prepare("SELECT status, filter_reason FROM items WHERE id = ?").bind(itemId).first()).toEqual({ status: "failed", filter_reason: "dead_letter" });

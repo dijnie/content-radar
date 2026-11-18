@@ -8,7 +8,7 @@ const SEND_BATCH_SIZE = 100;
 /** A dispatched source is not due again for this long, even if its message is lost. */
 const IN_FLIGHT_LEASE_SECONDS = 15 * 60;
 
-/** Pushes due sources to `radar-poll`. The ledger is updated first, then the wake-ups go out. */
+/** Pushes due sources to `content-radar-poll`. The ledger is updated first, then the wake-ups go out. */
 export async function dispatchPolls(env: Pick<Env, "DB" | "POLL_QUEUE">, now: number): Promise<number> {
   const due = await listDueSources(env.DB, now, MAX_SOURCES_PER_TICK);
   if (due.length === 0) return 0;

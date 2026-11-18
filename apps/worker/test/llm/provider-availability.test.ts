@@ -24,7 +24,7 @@ async function run(status: number, apiKey = "test-key", attempts = 1) {
   let calls = 0;
   const fetcher = (async () => { calls++; return new Response(status === 200 ? '{}' : "", { status, headers: { "Retry-After": "23" } }); }) as typeof fetch;
   const outcomes: string[] = [];
-  const batch = { queue: "radar-llm", messages: [{ body: { kind: "extract", itemId: id }, attempts, ack: () => outcomes.push("ack"), retry: (o?: { delaySeconds?: number }) => outcomes.push(`retry:${o?.delaySeconds}`) }] } as unknown as MessageBatch<LlmMessage>;
+  const batch = { queue: "content-radar-llm", messages: [{ body: { kind: "extract", itemId: id }, attempts, ack: () => outcomes.push("ack"), retry: (o?: { delaySeconds?: number }) => outcomes.push(`retry:${o?.delaySeconds}`) }] } as unknown as MessageBatch<LlmMessage>;
   await seedAi(env.DB, { apiKey });
   const testEnv: LlmEnv = { DB: env.DB, RAW: env.RAW, LLM_QUEUE: {} as Queue<LlmMessage> };
   await consumeLlmBatch(batch, testEnv, { now: NOW, fetcher });

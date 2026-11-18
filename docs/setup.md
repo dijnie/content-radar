@@ -36,9 +36,9 @@ Giữ các tài nguyên sau trong cùng tài khoản với Worker:
 | Binding / vai trò | Tài nguyên mặc định |
 |---|---|
 | `RAW` | R2 bucket `content-radar-raw` |
-| `POLL_QUEUE` | Queue `radar-poll` |
-| `LLM_QUEUE` | Queue `radar-llm` |
-| Queue lỗi | `radar-dlq` |
+| `POLL_QUEUE` | Queue `content-radar-poll` |
+| `LLM_QUEUE` | Queue `content-radar-llm` |
+| `DLQ_QUEUE` | Queue nhận lỗi `content-radar-dlq` |
 | `ASSETS` | Web assets được upload khi build |
 
 Nếu dùng tên khác, đặt `R2_BUCKET_NAME`, `POLL_QUEUE_NAME`, `LLM_QUEUE_NAME`, `DLQ_QUEUE_NAME` trong **Settings → Build → Build Variables and Secrets**. `WORKER_NAME` mặc định là `content-radar`, cần khớp Worker liên kết Git. Account ID được Cloudflare Builds cung cấp; không phải thêm lại trong setup.

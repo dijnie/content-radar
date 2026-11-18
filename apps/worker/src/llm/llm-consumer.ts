@@ -9,7 +9,7 @@ import { synthesizeStory } from "./synthesize/synthesize-story";
 type ExtractMessage = Message<LlmMessage> & { body: Extract<LlmMessage, { kind: "extract" }> };
 
 /**
- * `radar-llm` consumer routes automated LLM calls through the budget ledger. Every message
+ * `content-radar-llm` consumer routes automated LLM calls through the budget ledger. Every message
  * is acknowledged on its own once its item's result is committed. A message
  * whose item is no longer `queued` is acknowledged without a call, which makes
  * redelivery and replayed batches harmless.

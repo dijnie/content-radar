@@ -27,6 +27,10 @@ describe("the checked-in config", () => {
     const config = parseConfig(RAW);
     expect(config.topics.map((topic) => topic.slug)).toEqual(["ai", "system-design", "backend"]);
     const xSources = config.sources.filter((source) => source.type === "x");
+    const active = config.sources.filter((source) => source.enabled);
+    expect(active.every((source) => source.collection)).toBe(true);
+    expect(new Set(active.map((source) => source.collection)).size).toBe(6);
+    expect(active.filter((source) => source.collection === "Tech News & Discovery" && source.alwaysPass)).toEqual([]);
     expect(xSources.length).toBeGreaterThanOrEqual(30);
     expect(config.sources.some((source) => (source.type as string) === "reddit")).toBe(false);
     expect(config.settings).toMatchObject({ display_min_score: 40, synthesis_min_score: 30, llm_safe_default_rpd: 20 });
@@ -41,8 +45,8 @@ describe("config sync", () => {
 
     await sync(RAW);
     expect(await counts()).toEqual(first);
-    const source = await env.DB.prepare("SELECT next_poll_at, cursor_json FROM sources WHERE type = 'x' AND key = 'karpathy'").first();
-    expect(source).toEqual({ next_poll_at: 1790000000, cursor_json: '{"top":"abc"}' });
+    const source = await env.DB.prepare("SELECT collection, next_poll_at, cursor_json FROM sources WHERE type = 'x' AND key = 'karpathy'").first();
+    expect(source).toEqual({ collection: "AI Frontier & Research", next_poll_at: 1790000000, cursor_json: '{"top":"abc"}' });
   });
 
   it("links every handle of one person to a single author", async () => {
@@ -67,6 +71,14 @@ describe("config sync", () => {
 });
 
 describe("config validation", () => {
+  it("rejects RSS tracking aliases while preserving distinct feed selectors", () => {
+    const feed = { type: "rss", label: "Issues", pollIntervalMin: 360 };
+    const first = { ...feed, key: "https://journal.example/feed?series=ai" };
+    const alias = { ...feed, key: "https://journal.example/feed?utm_source=social&series=ai#latest" };
+    expect(() => parseConfig({ ...RAW, sources: [first, alias] })).toThrow(/duplicate source/);
+    expect(parseConfig({ ...RAW, sources: [first, { ...feed, key: "https://journal.example/feed?series=infra" }] }).sources).toHaveLength(2);
+  });
+
   it("rejects a malformed X handle", () => {
     const bad = [...sources, { type: "x", key: "not/a/handle", label: "Bad", pollIntervalMin: 30 }];
     expect(() => parseConfig({ ...RAW, sources: bad })).toThrow();

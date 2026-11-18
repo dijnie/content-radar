@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { fetchStatus } from "../api-client";
 import { formatTime } from "./story-card";
 
-interface SourceRow { id: number; type: string; label: string; enabled: number; lastOkAt: number | null; lastError: string | null; consecutiveFailures: number; itemsLastPoll: number }
+interface SourceRow { id: number; type: string; label: string; collection: string | null; enabled: number; lastOkAt: number | null; lastError: string | null; consecutiveFailures: number; itemsLastPoll: number }
 interface ModelRow { model: string; rpd: number; rpm: number; limitsAreDefaults: boolean; exhaustedUntil: number | null }
 interface UsageRow { model: string; kind: string; requests: number }
 interface RunRow { id: number; startedAt: number; status: string; stage: string | null; claims: number | null; communities: number | null; error: string | null }
@@ -17,6 +17,7 @@ const ago = (now: number, at: number | null) => (at === null ? "never" : now - a
 
 export function StatusPage({ timeZone }: { timeZone: string }) {
   const [status, setStatus] = useState<Status | null>(null);
+  const [collection, setCollection] = useState("");
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     const controller = new AbortController();
@@ -75,13 +76,20 @@ export function StatusPage({ timeZone }: { timeZone: string }) {
 
       <section className="panel">
         <h2>Sources</h2>
+        <label>Collection{" "}
+          <select value={collection} onChange={(event) => setCollection(event.target.value)}>
+            <option value="">All collections</option>
+            {[...new Set(status.sources.map((source) => source.collection).filter((name) => name != null))].sort().map((name) =>
+              <option key={name} value={name}>{name}</option>)}
+          </select>
+        </label>
         <div className="table-scroll">
           <table>
-            <thead><tr><th>Source</th><th>Type</th><th>Last success</th><th>Failures in a row</th><th>New items</th><th>Last error</th></tr></thead>
+            <thead><tr><th>Source</th><th>Collection</th><th>Type</th><th>Last success</th><th>Failures in a row</th><th>New items</th><th>Last error</th></tr></thead>
             <tbody>
-              {status.sources.map((source) => (
+              {status.sources.filter((source) => !collection || source.collection === collection).map((source) => (
                 <tr key={source.id} className={source.enabled === 1 ? "" : "row--disabled"}>
-                  <td>{source.label}</td><td className="mono">{source.type}</td><td>{ago(status.now, source.lastOkAt)}</td>
+                  <td>{source.label}</td><td>{source.collection ?? "—"}</td><td className="mono">{source.type}</td><td>{ago(status.now, source.lastOkAt)}</td>
                   <td>{source.consecutiveFailures > 0 ? <span className="state state--failed">{source.consecutiveFailures}</span> : 0}</td><td>{source.itemsLastPoll}</td><td>{source.lastError ?? ""}</td>
                 </tr>
               ))}

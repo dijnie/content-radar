@@ -4,340 +4,417 @@
     "key": "karpathy",
     "label": "Andrej Karpathy (@karpathy)",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 60,
+    "collection": "AI Frontier & Research",
+    "priority": 2
   },
   {
     "type": "x",
     "key": "sama",
     "label": "Sam Altman (@sama)",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Frontier & Research"
   },
   {
     "type": "x",
     "key": "ylecun",
     "label": "Yann LeCun (@ylecun)",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 120,
+    "collection": "AI Frontier & Research",
+    "priority": 4
   },
   {
     "type": "x",
     "key": "AndrewYNg",
     "label": "Andrew Ng (@AndrewYNg)",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 120,
+    "collection": "AI Frontier & Research",
+    "priority": 4
   },
   {
     "type": "x",
     "key": "DrJimFan",
     "label": "Jim Fan (@DrJimFan)",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 120,
+    "collection": "AI Frontier & Research",
+    "priority": 4
   },
   {
     "type": "x",
     "key": "simonw",
     "label": "Simon Willison (@simonw)",
     "topicHint": "ai",
-    "pollIntervalMin": 30,
-    "authorKey": "simon-willison"
+    "pollIntervalMin": 60,
+    "authorKey": "simon-willison",
+    "collection": "AI Agents & LLM Engineering",
+    "priority": 2
   },
   {
     "type": "x",
     "key": "swyx",
     "label": "swyx (@swyx)",
     "topicHint": "ai",
-    "pollIntervalMin": 30,
-    "authorKey": "swyx"
+    "pollIntervalMin": 60,
+    "authorKey": "swyx",
+    "collection": "AI Agents & LLM Engineering",
+    "priority": 2
   },
   {
     "type": "x",
     "key": "hwchase17",
     "label": "Harrison Chase (@hwchase17)",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 60,
+    "collection": "AI Agents & LLM Engineering",
+    "priority": 3
   },
   {
     "type": "x",
     "key": "jerryjliu0",
     "label": "Jerry Liu (@jerryjliu0)",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Agents & LLM Engineering"
   },
   {
     "type": "x",
     "key": "omarsar0",
     "label": "elvis (@omarsar0)",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Agents & LLM Engineering"
   },
   {
     "type": "x",
     "key": "_akhaliq",
     "label": "AK (@_akhaliq)",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Frontier & Research"
   },
   {
     "type": "x",
     "key": "rasbt",
     "label": "Sebastian Raschka (@rasbt)",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 60,
+    "collection": "AI Frontier & Research",
+    "priority": 2,
+    "authorKey": "sebastian-raschka"
   },
   {
     "type": "x",
     "key": "jeremyphoward",
     "label": "Jeremy Howard (@jeremyphoward)",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 120,
+    "collection": "AI Frontier & Research",
+    "priority": 4
   },
   {
     "type": "x",
     "key": "natolambert",
     "label": "Nathan Lambert (@natolambert)",
     "topicHint": "ai",
-    "pollIntervalMin": 30,
-    "authorKey": "nathan-lambert"
+    "pollIntervalMin": 60,
+    "authorKey": "nathan-lambert",
+    "collection": "AI Frontier & Research",
+    "priority": 3
   },
   {
     "type": "x",
     "key": "giffmana",
     "label": "Lucas Beyer (bl16) (@giffmana)",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Frontier & Research"
   },
   {
     "type": "x",
     "key": "alexalbert__",
     "label": "Alex Albert (@alexalbert__)",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Agents & LLM Engineering"
   },
   {
     "type": "x",
     "key": "AnthropicAI",
     "label": "Anthropic (@AnthropicAI)",
     "topicHint": "ai",
-    "pollIntervalMin": 30,
-    "authorKey": "anthropic"
+    "pollIntervalMin": 60,
+    "authorKey": "anthropic",
+    "collection": "AI Frontier & Research",
+    "priority": 3
   },
   {
     "type": "x",
     "key": "OpenAI",
     "label": "OpenAI (@OpenAI)",
     "topicHint": "ai",
-    "pollIntervalMin": 30,
-    "authorKey": "openai"
+    "pollIntervalMin": 60,
+    "authorKey": "openai",
+    "collection": "AI Frontier & Research",
+    "priority": 3
   },
   {
     "type": "x",
     "key": "GoogleDeepMind",
     "label": "Google DeepMind (@GoogleDeepMind)",
     "topicHint": "ai",
-    "pollIntervalMin": 30,
-    "authorKey": "google-deepmind"
+    "pollIntervalMin": 60,
+    "authorKey": "google-deepmind",
+    "collection": "AI Frontier & Research",
+    "priority": 3
   },
   {
     "type": "x",
     "key": "huggingface",
     "label": "Hugging Face (@huggingface)",
     "topicHint": "ai",
-    "pollIntervalMin": 30,
-    "authorKey": "hugging-face"
+    "pollIntervalMin": 60,
+    "authorKey": "hugging-face",
+    "collection": "AI Frontier & Research",
+    "priority": 3
   },
   {
     "type": "x",
     "key": "MistralAI",
     "label": "Mistral AI (@MistralAI)",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 60,
+    "collection": "AI Frontier & Research",
+    "priority": 3,
+    "authorKey": "mistral-ai"
   },
   {
     "type": "x",
     "key": "deepseek_ai",
     "label": "DeepSeek (@deepseek_ai)",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Frontier & Research"
   },
   {
     "type": "x",
     "key": "Alibaba_Qwen",
     "label": "Qwen (@Alibaba_Qwen)",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Frontier & Research"
   },
   {
     "type": "x",
     "key": "cursor_ai",
     "label": "Cursor (@cursor_ai)",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Agents & LLM Engineering"
   },
   {
     "type": "x",
     "key": "llama_index",
     "label": "LlamaIndex 🦙 (@llama_index)",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 60,
+    "collection": "AI Agents & LLM Engineering",
+    "priority": 3,
+    "authorKey": "llamaindex"
   },
   {
     "type": "x",
     "key": "OfficialLoganK",
     "label": "Logan Kilpatrick (@OfficialLoganK)",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Agents & LLM Engineering"
   },
   {
     "type": "x",
     "key": "jxnlco",
     "label": "jason (@jxnlco)",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Agents & LLM Engineering"
   },
   {
     "type": "x",
     "key": "eugeneyan",
     "label": "Eugene Yan (@eugeneyan)",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Agents & LLM Engineering"
   },
   {
     "type": "x",
     "key": "HamelHusain",
     "label": "Hamel Husain (@HamelHusain)",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Agents & LLM Engineering"
   },
   {
     "type": "x",
     "key": "ClementDelangue",
     "label": "clem 🤗 (@ClementDelangue)",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Agents & LLM Engineering"
   },
   {
     "type": "x",
     "key": "Thom_Wolf",
     "label": "Thomas Wolf (@Thom_Wolf)",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Frontier & Research"
   },
   {
     "type": "x",
     "key": "soumithchintala",
     "label": "Soumith Chintala (@soumithchintala)",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Frontier & Research"
   },
   {
     "type": "x",
     "key": "tri_dao",
     "label": "Tri Dao (@tri_dao)",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Frontier & Research"
   },
   {
     "type": "x",
     "key": "_philschmid",
     "label": "Philipp Schmid (@_philschmid)",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Agents & LLM Engineering"
   },
   {
     "type": "x",
     "key": "kelseyhightower",
     "label": "Kelsey Hightower (@kelseyhightower)",
     "topicHint": "backend",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "Infrastructure / SRE / Security",
+    "enabled": false
   },
   {
     "type": "x",
     "key": "b0rk",
     "label": "🔎Julia Evans🔍 (@b0rk)",
     "topicHint": "backend",
-    "pollIntervalMin": 30,
-    "authorKey": "julia-evans"
+    "pollIntervalMin": 1440,
+    "authorKey": "julia-evans",
+    "collection": "Backend & Distributed Systems",
+    "priority": 7,
+    "enabled": false
   },
   {
     "type": "x",
     "key": "mipsytipsy",
     "label": "Charity Majors (@mipsytipsy)",
-    "topicHint": "system-design",
-    "pollIntervalMin": 30
+    "topicHint": "backend",
+    "pollIntervalMin": 60,
+    "collection": "Infrastructure / SRE / Security",
+    "priority": 2
   },
   {
     "type": "x",
     "key": "copyconstruct",
     "label": "Cindy Sridharan (@copyconstruct)",
     "topicHint": "system-design",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "Infrastructure / SRE / Security"
   },
   {
     "type": "x",
     "key": "martinkl",
     "label": "Martin Kleppmann (@martinkl)",
     "topicHint": "system-design",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 1440,
+    "collection": "Backend & Distributed Systems",
+    "priority": 7,
+    "enabled": false
   },
   {
     "type": "x",
     "key": "GergelyOrosz",
     "label": "Gergely Orosz (@GergelyOrosz)",
-    "topicHint": "backend",
-    "pollIntervalMin": 30,
-    "authorKey": "gergely-orosz"
+    "topicHint": "system-design",
+    "pollIntervalMin": 60,
+    "authorKey": "gergely-orosz",
+    "collection": "Backend & Distributed Systems",
+    "priority": 2
   },
   {
     "type": "x",
     "key": "alexxubyte",
     "label": "Alex Xu (@alexxubyte)",
     "topicHint": "system-design",
-    "pollIntervalMin": 30,
-    "authorKey": "bytebytego"
+    "pollIntervalMin": 60,
+    "authorKey": "bytebytego",
+    "collection": "Backend & Distributed Systems",
+    "priority": 2
   },
   {
     "type": "x",
     "key": "brendangregg",
     "label": "Brendan Gregg (@brendangregg)",
     "topicHint": "backend",
-    "pollIntervalMin": 30,
-    "authorKey": "brendan-gregg"
+    "pollIntervalMin": 1440,
+    "authorKey": "brendan-gregg",
+    "collection": "Infrastructure / SRE / Security",
+    "priority": 7
   },
   {
     "type": "x",
     "key": "mitchellh",
     "label": "Mitchell Hashimoto (@mitchellh)",
     "topicHint": "backend",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 60,
+    "collection": "Infrastructure / SRE / Security",
+    "priority": 2
   },
   {
     "type": "x",
     "key": "antirez",
     "label": "antirez (@antirez)",
     "topicHint": "backend",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 60,
+    "collection": "Databases & Data Infrastructure",
+    "priority": 3
   },
   {
     "type": "x",
     "key": "danluu",
     "label": "Dan Luu (@danluu)",
     "topicHint": "backend",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "Backend & Distributed Systems"
   },
   {
     "type": "x",
     "key": "rakyll",
     "label": "Jaana Dogan ヤナ ドガン (@rakyll)",
     "topicHint": "backend",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "Infrastructure / SRE / Security"
   },
   {
     "type": "x",
     "key": "eatonphil",
     "label": "Phil Eaton (@eatonphil)",
     "topicHint": "backend",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "Databases & Data Infrastructure"
   },
   {
     "type": "x",
@@ -345,7 +422,8 @@
     "label": "Marc Brooker (@MarcJBrooker)",
     "topicHint": "system-design",
     "pollIntervalMin": 30,
-    "authorKey": "marc-brooker"
+    "authorKey": "marc-brooker",
+    "collection": "Backend & Distributed Systems"
   },
   {
     "type": "x",
@@ -353,203 +431,317 @@
     "label": "Werner Vogels (@Werner)",
     "topicHint": "system-design",
     "pollIntervalMin": 30,
-    "authorKey": "werner-vogels"
+    "authorKey": "werner-vogels",
+    "collection": "Infrastructure / SRE / Security"
   },
   {
     "type": "x",
     "key": "chipro",
     "label": "@chipro",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 60,
+    "collection": "AI Agents & LLM Engineering",
+    "priority": 2
   },
   {
     "type": "x",
     "key": "badlogicgames",
     "label": "@badlogicgames",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Agents & LLM Engineering"
   },
   {
     "type": "x",
     "key": "BenjaminPasero",
     "label": "@BenjaminPasero",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Agents & LLM Engineering"
   },
   {
     "type": "x",
     "key": "adocomplete",
     "label": "@adocomplete",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Agents & LLM Engineering"
   },
   {
     "type": "x",
     "key": "thsottiaux",
     "label": "@thsottiaux",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Agents & LLM Engineering"
   },
   {
     "type": "x",
     "key": "Dimillian",
     "label": "@Dimillian",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Agents & LLM Engineering"
   },
   {
     "type": "x",
     "key": "_mohansolo",
     "label": "@_mohansolo",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Agents & LLM Engineering"
   },
   {
     "type": "x",
     "key": "_can1357",
     "label": "@_can1357",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Agents & LLM Engineering",
+    "enabled": false
   },
   {
     "type": "x",
     "key": "Steve_Yegge",
     "label": "@Steve_Yegge",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Agents & LLM Engineering"
   },
   {
     "type": "x",
     "key": "cloudxdev",
     "label": "@cloudxdev",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "enabled": false,
+    "collection": "Tech News & Discovery"
   },
   {
     "type": "x",
     "key": "luongnv89",
     "label": "@luongnv89",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Agents & LLM Engineering"
   },
   {
     "type": "x",
     "key": "melvindvivas",
     "label": "@melvindvivas",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Agents & LLM Engineering"
   },
   {
     "type": "x",
     "key": "justtomey",
     "label": "@justtomey",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "enabled": false,
+    "collection": "Tech News & Discovery"
   },
   {
     "type": "x",
     "key": "jasonzhou1993",
     "label": "@jasonzhou1993",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Agents & LLM Engineering"
   },
   {
     "type": "x",
     "key": "johnennis",
     "label": "@johnennis",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "enabled": false,
+    "collection": "Tech News & Discovery"
   },
   {
     "type": "x",
     "key": "willtran33",
     "label": "@willtran33",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Agents & LLM Engineering"
   },
   {
     "type": "x",
     "key": "tom_doerr",
     "label": "@tom_doerr",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Agents & LLM Engineering"
   },
   {
     "type": "x",
     "key": "BestAgentKits",
     "label": "@BestAgentKits",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 1440,
+    "collection": "AI Agents & LLM Engineering",
+    "priority": 7
   },
   {
     "type": "x",
     "key": "MiniMax_AI",
     "label": "@MiniMax_AI",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Frontier & Research"
   },
   {
     "type": "x",
     "key": "orca_build",
     "label": "@orca_build",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Agents & LLM Engineering"
   },
   {
     "type": "x",
     "key": "khoa_solo",
     "label": "@khoa_solo",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Agents & LLM Engineering"
   },
   {
     "type": "x",
     "key": "TeeDevh",
     "label": "@TeeDevh",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "enabled": false,
+    "collection": "Tech News & Discovery"
   },
   {
     "type": "x",
     "key": "dhh",
     "label": "@dhh",
-    "topicHint": "backend",
-    "pollIntervalMin": 30
+    "topicHint": "system-design",
+    "pollIntervalMin": 120,
+    "collection": "Backend & Distributed Systems",
+    "priority": 4
   },
   {
     "type": "x",
     "key": "pontusab",
     "label": "@pontusab",
     "topicHint": "backend",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "enabled": false,
+    "collection": "Tech News & Discovery"
   },
   {
     "type": "x",
     "key": "burcs",
     "label": "@burcs",
     "topicHint": "backend",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "Infrastructure / SRE / Security"
   },
   {
     "type": "x",
     "key": "petergyang",
     "label": "@petergyang",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Agents & LLM Engineering"
   },
   {
     "type": "x",
     "key": "melvynx",
     "label": "@melvynx",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Agents & LLM Engineering"
   },
   {
     "type": "x",
     "key": "weswinder",
     "label": "@weswinder",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "AI Agents & LLM Engineering"
+  },
+  {
+    "type": "x",
+    "key": "lilianweng",
+    "label": "Lilian Weng (@lilianweng)",
+    "topicHint": "ai",
+    "pollIntervalMin": 1440,
+    "collection": "AI Frontier & Research",
+    "priority": 7
+  },
+  {
+    "type": "x",
+    "key": "Tim_Dettmers",
+    "label": "Tim Dettmers (@Tim_Dettmers)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30,
+    "collection": "AI Frontier & Research"
+  },
+  {
+    "type": "x",
+    "key": "JayAlammar",
+    "label": "Jay Alammar (@JayAlammar)",
+    "topicHint": "ai",
+    "pollIntervalMin": 30,
+    "collection": "AI Agents & LLM Engineering"
+  },
+  {
+    "type": "x",
+    "key": "muratdemirbas",
+    "label": "Murat Demirbas (@muratdemirbas)",
+    "topicHint": "system-design",
+    "pollIntervalMin": 30,
+    "collection": "Backend & Distributed Systems",
+    "authorKey": "murat-demirbas"
+  },
+  {
+    "type": "x",
+    "key": "AlekseyCharapko",
+    "label": "Aleksey Charapko (@AlekseyCharapko)",
+    "topicHint": "system-design",
+    "pollIntervalMin": 30,
+    "collection": "Backend & Distributed Systems"
+  },
+  {
+    "type": "x",
+    "key": "heidiann360",
+    "label": "Heidi Howard (@heidiann360)",
+    "topicHint": "system-design",
+    "pollIntervalMin": 1440,
+    "collection": "Backend & Distributed Systems",
+    "priority": 7
+  },
+  {
+    "type": "x",
+    "key": "brandur",
+    "label": "Brandur Leach (@brandur)",
+    "topicHint": "backend",
+    "pollIntervalMin": 30,
+    "collection": "Databases & Data Infrastructure"
+  },
+  {
+    "type": "x",
+    "key": "be_haki",
+    "label": "Haki Benita (@be_haki)",
+    "topicHint": "backend",
+    "pollIntervalMin": 1440,
+    "collection": "Databases & Data Infrastructure",
+    "priority": 7
+  },
+  {
+    "type": "x",
+    "key": "andy_pavlo",
+    "label": "Andy Pavlo (@andy_pavlo)",
+    "topicHint": "backend",
+    "pollIntervalMin": 30,
+    "collection": "Databases & Data Infrastructure"
   },
   {
     "type": "rss",
@@ -558,7 +750,9 @@
     "topicHint": "ai",
     "pollIntervalMin": 120,
     "alwaysPass": true,
-    "authorKey": "openai"
+    "authorKey": "openai",
+    "collection": "AI Frontier & Research",
+    "priority": 2
   },
   {
     "type": "rss",
@@ -567,32 +761,40 @@
     "topicHint": "ai",
     "pollIntervalMin": 120,
     "alwaysPass": true,
-    "authorKey": "google-deepmind"
+    "authorKey": "google-deepmind",
+    "collection": "AI Frontier & Research",
+    "priority": 2
   },
   {
     "type": "rss",
-    "key": "https://blog.research.google/feeds/posts/default",
+    "key": "https://research.google/blog/rss/",
     "label": "Google Research Blog",
     "topicHint": "ai",
     "pollIntervalMin": 120,
-    "alwaysPass": true
+    "alwaysPass": true,
+    "collection": "AI Frontier & Research",
+    "priority": 2
   },
   {
     "type": "rss",
     "key": "https://huggingface.co/blog/feed.xml",
     "label": "Hugging Face Blog",
     "topicHint": "ai",
-    "pollIntervalMin": 120,
+    "pollIntervalMin": 180,
     "alwaysPass": true,
-    "authorKey": "hugging-face"
+    "authorKey": "hugging-face",
+    "collection": "AI Agents & LLM Engineering",
+    "priority": 3
   },
   {
     "type": "rss",
     "key": "https://stability.ai/news?format=rss",
     "label": "Stability AI News",
     "topicHint": "ai",
-    "pollIntervalMin": 120,
-    "alwaysPass": true
+    "pollIntervalMin": 1440,
+    "alwaysPass": true,
+    "collection": "AI Frontier & Research",
+    "priority": 7
   },
   {
     "type": "rss",
@@ -600,15 +802,18 @@
     "label": "Cohere Blog",
     "topicHint": "ai",
     "pollIntervalMin": 120,
-    "alwaysPass": true
+    "alwaysPass": true,
+    "collection": "AI Frontier & Research",
+    "enabled": false
   },
   {
     "type": "rss",
     "key": "https://www.microsoft.com/en-us/research/feed/",
     "label": "Microsoft Research",
     "topicHint": "ai",
-    "pollIntervalMin": 120,
-    "alwaysPass": false
+    "pollIntervalMin": 360,
+    "collection": "AI Frontier & Research",
+    "priority": 5
   },
   {
     "type": "rss",
@@ -616,7 +821,8 @@
     "label": "AWS Machine Learning Blog",
     "topicHint": "ai",
     "pollIntervalMin": 120,
-    "alwaysPass": false
+    "alwaysPass": false,
+    "collection": "AI Agents & LLM Engineering"
   },
   {
     "type": "rss",
@@ -624,7 +830,8 @@
     "label": "NVIDIA Blog",
     "topicHint": "ai",
     "pollIntervalMin": 120,
-    "alwaysPass": false
+    "alwaysPass": false,
+    "collection": "AI Agents & LLM Engineering"
   },
   {
     "type": "rss",
@@ -632,7 +839,8 @@
     "label": "Berkeley BAIR Blog",
     "topicHint": "ai",
     "pollIntervalMin": 120,
-    "alwaysPass": true
+    "alwaysPass": true,
+    "collection": "AI Frontier & Research"
   },
   {
     "type": "rss",
@@ -640,23 +848,29 @@
     "label": "MIT News: AI",
     "topicHint": "ai",
     "pollIntervalMin": 120,
-    "alwaysPass": false
+    "alwaysPass": false,
+    "collection": "AI Frontier & Research"
   },
   {
     "type": "rss",
     "key": "https://www.together.ai/blog/rss.xml",
     "label": "Together AI Blog",
     "topicHint": "ai",
-    "pollIntervalMin": 120,
-    "alwaysPass": true
+    "pollIntervalMin": 180,
+    "alwaysPass": true,
+    "collection": "AI Agents & LLM Engineering",
+    "priority": 3
   },
   {
     "type": "rss",
-    "key": "https://blog.langchain.dev/rss/",
+    "key": "https://www.langchain.com/blog/rss.xml",
     "label": "LangChain Blog",
     "topicHint": "ai",
     "pollIntervalMin": 120,
-    "alwaysPass": true
+    "alwaysPass": true,
+    "collection": "AI Agents & LLM Engineering",
+    "priority": 2,
+    "authorKey": "langchain"
   },
   {
     "type": "rss",
@@ -665,7 +879,9 @@
     "topicHint": "ai",
     "pollIntervalMin": 120,
     "alwaysPass": true,
-    "authorKey": "simon-willison"
+    "authorKey": "simon-willison",
+    "collection": "AI Agents & LLM Engineering",
+    "priority": 2
   },
   {
     "type": "rss",
@@ -674,7 +890,9 @@
     "topicHint": "ai",
     "pollIntervalMin": 120,
     "alwaysPass": true,
-    "authorKey": "nathan-lambert"
+    "authorKey": "nathan-lambert",
+    "collection": "AI Frontier & Research",
+    "priority": 2
   },
   {
     "type": "rss",
@@ -683,25 +901,32 @@
     "topicHint": "ai",
     "pollIntervalMin": 120,
     "alwaysPass": true,
-    "authorKey": "swyx"
+    "authorKey": "latent-space",
+    "collection": "AI Agents & LLM Engineering",
+    "priority": 2
   },
   {
     "type": "rss",
-    "key": "https://tim-hilde.github.io/anthropic-rss/rss.xml",
+    "key": "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_news.xml",
     "label": "Anthropic News (unofficial mirror)",
     "topicHint": "ai",
-    "pollIntervalMin": 120,
-    "alwaysPass": true,
-    "authorKey": "anthropic"
+    "pollIntervalMin": 360,
+    "alwaysPass": false,
+    "authorKey": "anthropic",
+    "collection": "AI Frontier & Research",
+    "priority": 4
   },
   {
     "type": "rss",
     "key": "https://conoro.github.io/anthropic-engineering-rss-feed/anthropic_engineering_rss.xml",
     "label": "Anthropic Engineering (unofficial mirror)",
     "topicHint": "ai",
-    "pollIntervalMin": 120,
+    "pollIntervalMin": 1440,
     "alwaysPass": true,
-    "authorKey": "anthropic"
+    "authorKey": "anthropic",
+    "collection": "AI Agents & LLM Engineering",
+    "priority": 7,
+    "enabled": false
   },
   {
     "type": "rss",
@@ -709,15 +934,20 @@
     "label": "Martin Fowler",
     "topicHint": "system-design",
     "pollIntervalMin": 120,
-    "alwaysPass": true
+    "alwaysPass": true,
+    "collection": "Backend & Distributed Systems",
+    "priority": 2,
+    "authorKey": "martin-fowler"
   },
   {
     "type": "rss",
     "key": "https://aws.amazon.com/blogs/architecture/feed/",
     "label": "AWS Architecture Blog",
-    "topicHint": "system-design",
-    "pollIntervalMin": 120,
-    "alwaysPass": true
+    "topicHint": "backend",
+    "pollIntervalMin": 180,
+    "alwaysPass": true,
+    "collection": "Infrastructure / SRE / Security",
+    "priority": 3
   },
   {
     "type": "rss",
@@ -725,7 +955,9 @@
     "label": "Netflix Tech Blog",
     "topicHint": "system-design",
     "pollIntervalMin": 120,
-    "alwaysPass": true
+    "alwaysPass": true,
+    "collection": "Backend & Distributed Systems",
+    "priority": 2
   },
   {
     "type": "rss",
@@ -733,63 +965,78 @@
     "label": "Cloudflare Blog",
     "topicHint": "backend",
     "pollIntervalMin": 120,
-    "alwaysPass": false
+    "alwaysPass": false,
+    "collection": "Infrastructure / SRE / Security",
+    "priority": 2,
+    "authorKey": "cloudflare"
   },
   {
     "type": "rss",
     "key": "https://discord.com/blog/rss.xml",
     "label": "Discord Blog",
-    "topicHint": "backend",
-    "pollIntervalMin": 120,
-    "alwaysPass": false
+    "topicHint": "system-design",
+    "pollIntervalMin": 360,
+    "collection": "Backend & Distributed Systems",
+    "priority": 5
   },
   {
     "type": "rss",
     "key": "https://dropbox.tech/feed",
     "label": "Dropbox Tech",
-    "topicHint": "backend",
-    "pollIntervalMin": 120,
-    "alwaysPass": true
+    "topicHint": "system-design",
+    "pollIntervalMin": 180,
+    "alwaysPass": true,
+    "collection": "Backend & Distributed Systems",
+    "priority": 3
   },
   {
     "type": "rss",
     "key": "https://shopify.engineering/blog.atom",
     "label": "Shopify Engineering",
-    "topicHint": "backend",
-    "pollIntervalMin": 120,
-    "alwaysPass": true
+    "topicHint": "system-design",
+    "pollIntervalMin": 180,
+    "alwaysPass": true,
+    "collection": "Backend & Distributed Systems",
+    "priority": 3
   },
   {
     "type": "rss",
     "key": "https://engineering.atspotify.com/feed/",
     "label": "Spotify Engineering",
-    "topicHint": "backend",
-    "pollIntervalMin": 120,
-    "alwaysPass": true
+    "topicHint": "system-design",
+    "pollIntervalMin": 180,
+    "alwaysPass": true,
+    "collection": "Backend & Distributed Systems",
+    "priority": 3
   },
   {
     "type": "rss",
     "key": "https://slack.engineering/feed/",
     "label": "Slack Engineering",
-    "topicHint": "backend",
-    "pollIntervalMin": 120,
-    "alwaysPass": true
+    "topicHint": "system-design",
+    "pollIntervalMin": 1440,
+    "alwaysPass": true,
+    "collection": "Backend & Distributed Systems",
+    "priority": 7
   },
   {
     "type": "rss",
     "key": "https://github.blog/engineering.atom",
     "label": "GitHub Engineering",
-    "topicHint": "backend",
-    "pollIntervalMin": 120,
-    "alwaysPass": true
+    "topicHint": "system-design",
+    "pollIntervalMin": 360,
+    "collection": "Backend & Distributed Systems",
+    "priority": 5
   },
   {
     "type": "rss",
     "key": "https://engineering.fb.com/feed/",
     "label": "Meta Engineering",
     "topicHint": "system-design",
-    "pollIntervalMin": 120,
-    "alwaysPass": true
+    "pollIntervalMin": 180,
+    "alwaysPass": true,
+    "collection": "Backend & Distributed Systems",
+    "priority": 3
   },
   {
     "type": "rss",
@@ -798,42 +1045,51 @@
     "topicHint": "system-design",
     "pollIntervalMin": 120,
     "alwaysPass": true,
-    "authorKey": "bytebytego"
+    "authorKey": "bytebytego",
+    "collection": "Backend & Distributed Systems",
+    "priority": 2
   },
   {
     "type": "rss",
     "key": "https://blog.pragmaticengineer.com/feed",
-    "label": "The Pragmatic Engineer",
+    "label": "Gergely Orosz — Pragmatic Engineer blog",
     "topicHint": "backend",
     "pollIntervalMin": 120,
     "alwaysPass": true,
-    "authorKey": "gergely-orosz"
+    "authorKey": "gergely-orosz",
+    "collection": "Backend & Distributed Systems"
   },
   {
     "type": "rss",
-    "key": "https://feed.infoq.com/",
-    "label": "InfoQ",
+    "key": "https://feed.infoq.com/architecture-design",
+    "label": "InfoQ Architecture & Design",
     "topicHint": "system-design",
-    "pollIntervalMin": 120,
-    "alwaysPass": false
+    "pollIntervalMin": 180,
+    "alwaysPass": false,
+    "collection": "Backend & Distributed Systems",
+    "priority": 3
   },
   {
     "type": "rss",
     "key": "https://www.brendangregg.com/blog/rss.xml",
     "label": "Brendan Gregg",
     "topicHint": "backend",
-    "pollIntervalMin": 120,
+    "pollIntervalMin": 1440,
     "alwaysPass": true,
-    "authorKey": "brendan-gregg"
+    "authorKey": "brendan-gregg",
+    "collection": "Infrastructure / SRE / Security",
+    "priority": 7
   },
   {
     "type": "rss",
     "key": "https://jvns.ca/atom.xml",
     "label": "Julia Evans",
     "topicHint": "backend",
-    "pollIntervalMin": 120,
+    "pollIntervalMin": 1440,
     "alwaysPass": true,
-    "authorKey": "julia-evans"
+    "authorKey": "julia-evans",
+    "collection": "Backend & Distributed Systems",
+    "priority": 7
   },
   {
     "type": "rss",
@@ -842,24 +1098,29 @@
     "topicHint": "system-design",
     "pollIntervalMin": 120,
     "alwaysPass": true,
-    "authorKey": "marc-brooker"
+    "authorKey": "marc-brooker",
+    "collection": "Backend & Distributed Systems",
+    "priority": 2
   },
   {
     "type": "rss",
     "key": "https://www.allthingsdistributed.com/atom.xml",
     "label": "All Things Distributed",
     "topicHint": "system-design",
-    "pollIntervalMin": 120,
+    "pollIntervalMin": 180,
     "alwaysPass": true,
-    "authorKey": "werner-vogels"
+    "authorKey": "werner-vogels",
+    "collection": "Backend & Distributed Systems",
+    "priority": 3
   },
   {
     "type": "rss",
     "key": "https://stripe.com/blog/feed.rss",
     "label": "Stripe Blog",
-    "topicHint": "backend",
-    "pollIntervalMin": 120,
-    "alwaysPass": false
+    "topicHint": "system-design",
+    "pollIntervalMin": 360,
+    "collection": "Backend & Distributed Systems",
+    "priority": 5
   },
   {
     "type": "rss",
@@ -867,77 +1128,89 @@
     "label": "LinkedIn Engineering",
     "topicHint": "backend",
     "pollIntervalMin": 120,
-    "alwaysPass": true
+    "alwaysPass": true,
+    "collection": "Backend & Distributed Systems",
+    "enabled": false
   },
   {
     "type": "hn",
     "key": "LLM",
     "label": "HN: LLM",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "Tech News & Discovery"
   },
   {
     "type": "hn",
     "key": "AI agent",
     "label": "HN: AI agent",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "Tech News & Discovery"
   },
   {
     "type": "hn",
     "key": "Claude",
     "label": "HN: Claude",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "Tech News & Discovery"
   },
   {
     "type": "hn",
     "key": "GPT",
     "label": "HN: GPT",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "Tech News & Discovery"
   },
   {
     "type": "hn",
     "key": "open weights",
     "label": "HN: open weights",
     "topicHint": "ai",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "Tech News & Discovery"
   },
   {
     "type": "hn",
     "key": "distributed systems",
     "label": "HN: distributed systems",
     "topicHint": "system-design",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "Tech News & Discovery"
   },
   {
     "type": "hn",
     "key": "system design",
     "label": "HN: system design",
     "topicHint": "system-design",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "Tech News & Discovery"
   },
   {
     "type": "hn",
     "key": "Postgres",
     "label": "HN: Postgres",
     "topicHint": "backend",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "Tech News & Discovery"
   },
   {
     "type": "hn",
     "key": "database",
     "label": "HN: database",
     "topicHint": "backend",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "Tech News & Discovery"
   },
   {
     "type": "hn",
     "key": "Kubernetes",
     "label": "HN: Kubernetes",
     "topicHint": "backend",
-    "pollIntervalMin": 30
+    "pollIntervalMin": 30,
+    "collection": "Tech News & Discovery"
   },
   {
     "type": "github",
@@ -945,7 +1218,9 @@
     "label": "vllm-project/vllm releases",
     "topicHint": "ai",
     "pollIntervalMin": 360,
-    "alwaysPass": true
+    "alwaysPass": true,
+    "collection": "AI Agents & LLM Engineering",
+    "authorKey": "vllm"
   },
   {
     "type": "github",
@@ -953,7 +1228,8 @@
     "label": "ggml-org/llama.cpp releases",
     "topicHint": "ai",
     "pollIntervalMin": 360,
-    "alwaysPass": true
+    "alwaysPass": true,
+    "collection": "AI Agents & LLM Engineering"
   },
   {
     "type": "github",
@@ -961,7 +1237,9 @@
     "label": "langchain-ai/langchain releases",
     "topicHint": "ai",
     "pollIntervalMin": 360,
-    "alwaysPass": true
+    "alwaysPass": true,
+    "collection": "AI Agents & LLM Engineering",
+    "authorKey": "langchain"
   },
   {
     "type": "github",
@@ -969,7 +1247,9 @@
     "label": "langchain-ai/langgraph releases",
     "topicHint": "ai",
     "pollIntervalMin": 360,
-    "alwaysPass": true
+    "alwaysPass": true,
+    "collection": "AI Agents & LLM Engineering",
+    "authorKey": "langchain"
   },
   {
     "type": "github",
@@ -977,7 +1257,9 @@
     "label": "run-llama/llama_index releases",
     "topicHint": "ai",
     "pollIntervalMin": 360,
-    "alwaysPass": true
+    "alwaysPass": true,
+    "collection": "AI Agents & LLM Engineering",
+    "authorKey": "llamaindex"
   },
   {
     "type": "github",
@@ -985,7 +1267,9 @@
     "label": "huggingface/transformers releases",
     "topicHint": "ai",
     "pollIntervalMin": 360,
-    "alwaysPass": true
+    "alwaysPass": true,
+    "collection": "AI Agents & LLM Engineering",
+    "authorKey": "hugging-face"
   },
   {
     "type": "github",
@@ -993,7 +1277,9 @@
     "label": "ollama/ollama releases",
     "topicHint": "ai",
     "pollIntervalMin": 360,
-    "alwaysPass": true
+    "alwaysPass": true,
+    "collection": "AI Agents & LLM Engineering",
+    "authorKey": "ollama"
   },
   {
     "type": "github",
@@ -1001,7 +1287,9 @@
     "label": "openai/openai-agents-python releases",
     "topicHint": "ai",
     "pollIntervalMin": 360,
-    "alwaysPass": true
+    "alwaysPass": true,
+    "collection": "AI Agents & LLM Engineering",
+    "authorKey": "openai"
   },
   {
     "type": "github",
@@ -1009,7 +1297,8 @@
     "label": "modelcontextprotocol/typescript-sdk releases",
     "topicHint": "ai",
     "pollIntervalMin": 360,
-    "alwaysPass": true
+    "alwaysPass": true,
+    "collection": "AI Agents & LLM Engineering"
   },
   {
     "type": "github",
@@ -1017,7 +1306,9 @@
     "label": "cloudflare/workers-sdk releases",
     "topicHint": "backend",
     "pollIntervalMin": 360,
-    "alwaysPass": true
+    "alwaysPass": true,
+    "collection": "Infrastructure / SRE / Security",
+    "authorKey": "cloudflare"
   },
   {
     "type": "github",
@@ -1025,7 +1316,9 @@
     "label": "redis/redis releases",
     "topicHint": "backend",
     "pollIntervalMin": 360,
-    "alwaysPass": true
+    "alwaysPass": true,
+    "collection": "Databases & Data Infrastructure",
+    "authorKey": "redis"
   },
   {
     "type": "github",
@@ -1033,7 +1326,9 @@
     "label": "kubernetes/kubernetes releases",
     "topicHint": "backend",
     "pollIntervalMin": 360,
-    "alwaysPass": true
+    "alwaysPass": true,
+    "collection": "Infrastructure / SRE / Security",
+    "authorKey": "kubernetes"
   },
   {
     "type": "github",
@@ -1041,7 +1336,8 @@
     "label": "nodejs/node releases",
     "topicHint": "backend",
     "pollIntervalMin": 360,
-    "alwaysPass": true
+    "alwaysPass": true,
+    "collection": "Backend & Distributed Systems"
   },
   {
     "type": "github",
@@ -1049,7 +1345,8 @@
     "label": "denoland/deno releases",
     "topicHint": "backend",
     "pollIntervalMin": 360,
-    "alwaysPass": true
+    "alwaysPass": true,
+    "collection": "Backend & Distributed Systems"
   },
   {
     "type": "github",
@@ -1057,15 +1354,18 @@
     "label": "oven-sh/bun releases",
     "topicHint": "backend",
     "pollIntervalMin": 360,
-    "alwaysPass": true
+    "alwaysPass": true,
+    "collection": "Backend & Distributed Systems"
   },
   {
     "type": "github",
     "key": "tigerbeetle/tigerbeetle",
     "label": "tigerbeetle/tigerbeetle releases",
     "topicHint": "system-design",
-    "pollIntervalMin": 360,
-    "alwaysPass": true
+    "pollIntervalMin": 1440,
+    "alwaysPass": true,
+    "collection": "Databases & Data Infrastructure",
+    "priority": 7
   },
   {
     "type": "github",
@@ -1073,7 +1373,8 @@
     "label": "duckdb/duckdb releases",
     "topicHint": "backend",
     "pollIntervalMin": 360,
-    "alwaysPass": true
+    "alwaysPass": true,
+    "collection": "Databases & Data Infrastructure"
   },
   {
     "type": "github",
@@ -1081,7 +1382,9 @@
     "label": "grafana/grafana releases",
     "topicHint": "backend",
     "pollIntervalMin": 360,
-    "alwaysPass": true
+    "alwaysPass": true,
+    "collection": "Infrastructure / SRE / Security",
+    "authorKey": "grafana-labs"
   },
   {
     "type": "github",
@@ -1089,36 +1392,40 @@
     "label": "etcd-io/etcd releases",
     "topicHint": "system-design",
     "pollIntervalMin": 360,
-    "alwaysPass": true
+    "alwaysPass": true,
+    "collection": "Infrastructure / SRE / Security"
   },
   {
     "type": "github",
     "key": "search:topic:llm stars:>200",
     "label": "GitHub discovery: LLM",
     "topicHint": "ai",
-    "pollIntervalMin": 720
+    "pollIntervalMin": 720,
+    "collection": "Tech News & Discovery"
   },
   {
     "type": "github",
     "key": "search:topic:ai-agents stars:>100",
     "label": "GitHub discovery: AI agents",
     "topicHint": "ai",
-    "pollIntervalMin": 720
+    "pollIntervalMin": 720,
+    "collection": "Tech News & Discovery"
   },
   {
     "type": "github",
     "key": "search:topic:distributed-systems stars:>100",
     "label": "GitHub discovery: distributed systems",
     "topicHint": "system-design",
-    "pollIntervalMin": 720
+    "pollIntervalMin": 720,
+    "collection": "Tech News & Discovery"
   },
   {
     "type": "github",
     "key": "trending:daily",
     "label": "GitHub Trending (daily)",
-    "topicHint": "ai",
     "priority": 2,
-    "pollIntervalMin": 1440
+    "pollIntervalMin": 1440,
+    "collection": "Tech News & Discovery"
   },
   {
     "type": "rss",
@@ -1126,6 +1433,924 @@
     "label": "Hugging Face Papers",
     "topicHint": "ai",
     "priority": 2,
+    "pollIntervalMin": 1440,
+    "collection": "AI Frontier & Research"
+  },
+  {
+    "type": "x",
+    "key": "dair_ai",
+    "label": "DAIR.AI (@dair_ai)",
+    "collection": "AI Frontier & Research",
+    "priority": 4,
+    "pollIntervalMin": 120,
+    "topicHint": "ai"
+  },
+  {
+    "type": "x",
+    "key": "dylan522p",
+    "label": "Dylan Patel (@dylan522p)",
+    "collection": "AI Frontier & Research",
+    "priority": 4,
+    "pollIntervalMin": 120,
+    "topicHint": "ai"
+  },
+  {
+    "type": "x",
+    "key": "emollick",
+    "label": "Ethan Mollick (@emollick)",
+    "collection": "AI Agents & LLM Engineering",
+    "priority": 4,
+    "pollIntervalMin": 120,
+    "topicHint": "ai",
+    "authorKey": "ethan-mollick"
+  },
+  {
+    "type": "x",
+    "key": "bcherny",
+    "label": "Boris Cherny (@bcherny)",
+    "collection": "AI Agents & LLM Engineering",
+    "priority": 3,
+    "pollIntervalMin": 60,
+    "topicHint": "ai"
+  },
+  {
+    "type": "x",
+    "key": "mntruell",
+    "label": "Michael Truell (@mntruell)",
+    "collection": "AI Agents & LLM Engineering",
+    "priority": 4,
+    "pollIntervalMin": 120,
+    "topicHint": "ai"
+  },
+  {
+    "type": "x",
+    "key": "fofrAI",
+    "label": "fofr (@fofrAI)",
+    "collection": "AI Agents & LLM Engineering",
+    "priority": 4,
+    "pollIntervalMin": 120,
+    "topicHint": "ai"
+  },
+  {
+    "type": "x",
+    "key": "Hesamation",
+    "label": "ℏεsam (@Hesamation)",
+    "collection": "AI Agents & LLM Engineering",
+    "priority": 4,
+    "pollIntervalMin": 120,
+    "topicHint": "ai"
+  },
+  {
+    "type": "x",
+    "key": "vasuman",
+    "label": "vas (@vasuman)",
+    "collection": "AI Agents & LLM Engineering",
+    "priority": 7,
+    "pollIntervalMin": 360,
+    "topicHint": "ai"
+  },
+  {
+    "type": "x",
+    "key": "latentspacepod",
+    "label": "Latent.Space (@latentspacepod)",
+    "collection": "AI Agents & LLM Engineering",
+    "priority": 4,
+    "pollIntervalMin": 120,
+    "topicHint": "ai",
+    "authorKey": "latent-space"
+  },
+  {
+    "type": "x",
+    "key": "goodside",
+    "label": "Riley Goodside (@goodside)",
+    "collection": "AI Agents & LLM Engineering",
+    "priority": 4,
+    "pollIntervalMin": 120,
+    "topicHint": "ai"
+  },
+  {
+    "type": "x",
+    "key": "yoheinakajima",
+    "label": "Yohei (@yoheinakajima)",
+    "collection": "AI Agents & LLM Engineering",
+    "priority": 4,
+    "pollIntervalMin": 120,
+    "topicHint": "ai"
+  },
+  {
+    "type": "x",
+    "key": "vllm_project",
+    "label": "vLLM (@vllm_project)",
+    "collection": "AI Agents & LLM Engineering",
+    "priority": 2,
+    "pollIntervalMin": 60,
+    "topicHint": "ai",
+    "authorKey": "vllm"
+  },
+  {
+    "type": "x",
+    "key": "ollama",
+    "label": "ollama (@ollama)",
+    "collection": "AI Agents & LLM Engineering",
+    "priority": 4,
+    "pollIntervalMin": 120,
+    "topicHint": "ai",
+    "authorKey": "ollama"
+  },
+  {
+    "type": "x",
+    "key": "ArtificialAnlys",
+    "label": "Artificial Analysis (@ArtificialAnlys)",
+    "collection": "AI Agents & LLM Engineering",
+    "priority": 2,
+    "pollIntervalMin": 60,
+    "topicHint": "ai"
+  },
+  {
+    "type": "x",
+    "key": "levelsio",
+    "label": "@levelsio (@levelsio)",
+    "collection": "Tech News & Discovery",
+    "priority": 7,
+    "pollIntervalMin": 360
+  },
+  {
+    "type": "x",
+    "key": "gregisenberg",
+    "label": "GREG ISENBERG (@gregisenberg)",
+    "collection": "Tech News & Discovery",
+    "priority": 7,
+    "pollIntervalMin": 360
+  },
+  {
+    "type": "x",
+    "key": "kloss_xyz",
+    "label": "klöss (@kloss_xyz)",
+    "collection": "AI Agents & LLM Engineering",
+    "priority": 7,
+    "pollIntervalMin": 360,
+    "topicHint": "ai"
+  },
+  {
+    "type": "x",
+    "key": "EXM7777",
+    "label": "Machina (@EXM7777)",
+    "collection": "Tech News & Discovery",
+    "priority": 7,
+    "pollIntervalMin": 360
+  },
+  {
+    "type": "x",
+    "key": "rbranson",
+    "label": "Rick Branson (@rbranson)",
+    "collection": "Databases & Data Infrastructure",
+    "priority": 7,
+    "pollIntervalMin": 360,
+    "topicHint": "backend"
+  },
+  {
+    "type": "x",
+    "key": "martinfowler",
+    "label": "Martin Fowler (@martinfowler)",
+    "collection": "Backend & Distributed Systems",
+    "priority": 2,
+    "pollIntervalMin": 60,
+    "topicHint": "system-design",
+    "authorKey": "martin-fowler"
+  },
+  {
+    "type": "x",
+    "key": "bcantrill",
+    "label": "Bryan Cantrill (@bcantrill)",
+    "collection": "Backend & Distributed Systems",
+    "priority": 3,
+    "pollIntervalMin": 60,
+    "topicHint": "system-design"
+  },
+  {
+    "type": "x",
+    "key": "rauchg",
+    "label": "Guillermo Rauch (@rauchg)",
+    "collection": "Backend & Distributed Systems",
+    "priority": 4,
+    "pollIntervalMin": 120,
+    "topicHint": "system-design"
+  },
+  {
+    "type": "x",
+    "key": "theo",
+    "label": "Theo - t3.gg (@theo)",
+    "collection": "Backend & Distributed Systems",
+    "priority": 4,
+    "pollIntervalMin": 120,
+    "topicHint": "system-design"
+  },
+  {
+    "type": "x",
+    "key": "ThePrimeagen",
+    "label": "ThePrimeagen (@ThePrimeagen)",
+    "collection": "Backend & Distributed Systems",
+    "priority": 7,
+    "pollIntervalMin": 360,
+    "topicHint": "system-design"
+  },
+  {
+    "type": "x",
+    "key": "addyosmani",
+    "label": "Addy Osmani (@addyosmani)",
+    "collection": "Backend & Distributed Systems",
+    "priority": 4,
+    "pollIntervalMin": 120,
+    "topicHint": "system-design"
+  },
+  {
+    "type": "x",
+    "key": "golang",
+    "label": "Go (@golang)",
+    "collection": "Backend & Distributed Systems",
+    "priority": 3,
+    "pollIntervalMin": 60,
+    "topicHint": "system-design"
+  },
+  {
+    "type": "x",
+    "key": "allspaw",
+    "label": "John Allspaw (@allspaw)",
+    "collection": "Infrastructure / SRE / Security",
+    "priority": 7,
+    "pollIntervalMin": 1440,
+    "topicHint": "backend"
+  },
+  {
+    "type": "x",
+    "key": "Cloudflare",
+    "label": "Cloudflare (@Cloudflare)",
+    "collection": "Infrastructure / SRE / Security",
+    "priority": 3,
+    "pollIntervalMin": 60,
+    "topicHint": "backend",
+    "authorKey": "cloudflare"
+  },
+  {
+    "type": "x",
+    "key": "Docker",
+    "label": "Docker (@Docker)",
+    "collection": "Infrastructure / SRE / Security",
+    "priority": 3,
+    "pollIntervalMin": 60,
+    "topicHint": "backend"
+  },
+  {
+    "type": "x",
+    "key": "kubernetesio",
+    "label": "Kubernetes (@kubernetesio)",
+    "collection": "Infrastructure / SRE / Security",
+    "priority": 3,
+    "pollIntervalMin": 60,
+    "topicHint": "backend",
+    "authorKey": "kubernetes"
+  },
+  {
+    "type": "x",
+    "key": "GitHub",
+    "label": "GitHub (@GitHub)",
+    "collection": "Infrastructure / SRE / Security",
+    "priority": 4,
+    "pollIntervalMin": 120,
+    "topicHint": "backend"
+  },
+  {
+    "type": "x",
+    "key": "HashiCorp",
+    "label": "HashiCorp (@HashiCorp)",
+    "collection": "Infrastructure / SRE / Security",
+    "priority": 4,
+    "pollIntervalMin": 120,
+    "topicHint": "backend",
+    "authorKey": "hashicorp"
+  },
+  {
+    "type": "x",
+    "key": "grafana",
+    "label": "Grafana (@grafana)",
+    "collection": "Infrastructure / SRE / Security",
+    "priority": 4,
+    "pollIntervalMin": 120,
+    "topicHint": "backend",
+    "authorKey": "grafana-labs"
+  },
+  {
+    "type": "x",
+    "key": "prometheusio",
+    "label": "PrometheusMonitoring (@prometheusio)",
+    "collection": "Infrastructure / SRE / Security",
+    "priority": 7,
+    "pollIntervalMin": 1440,
+    "topicHint": "backend"
+  },
+  {
+    "type": "x",
+    "key": "elastic",
+    "label": "Elastic (@elastic)",
+    "collection": "Databases & Data Infrastructure",
+    "priority": 4,
+    "pollIntervalMin": 120,
+    "topicHint": "backend"
+  },
+  {
+    "type": "x",
+    "key": "ubuntu",
+    "label": "Ubuntu (@ubuntu)",
+    "collection": "Infrastructure / SRE / Security",
+    "priority": 4,
+    "pollIntervalMin": 120,
+    "topicHint": "backend"
+  },
+  {
+    "type": "x",
+    "key": "CloudNativeFdn",
+    "label": "CNCF (@CloudNativeFdn)",
+    "collection": "Infrastructure / SRE / Security",
+    "priority": 4,
+    "pollIntervalMin": 120,
+    "topicHint": "backend",
+    "authorKey": "cncf"
+  },
+  {
+    "type": "x",
+    "key": "PostgreSQL",
+    "label": "PostgreSQL (@PostgreSQL)",
+    "collection": "Databases & Data Infrastructure",
+    "priority": 7,
+    "pollIntervalMin": 1440,
+    "topicHint": "backend",
+    "authorKey": "postgresql"
+  },
+  {
+    "type": "rss",
+    "key": "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_research.xml",
+    "label": "Anthropic Research (unofficial RSS mirror)",
+    "collection": "AI Frontier & Research",
+    "priority": 2,
+    "pollIntervalMin": 120,
+    "topicHint": "ai",
+    "authorKey": "anthropic"
+  },
+  {
+    "type": "rss",
+    "key": "https://mistral.ai/news/rss",
+    "label": "Mistral AI News",
+    "collection": "AI Frontier & Research",
+    "priority": 3,
+    "pollIntervalMin": 180,
+    "topicHint": "ai",
+    "authorKey": "mistral-ai"
+  },
+  {
+    "type": "rss",
+    "key": "https://developer.nvidia.com/blog/feed/",
+    "label": "NVIDIA Developer Blog",
+    "collection": "AI Agents & LLM Engineering",
+    "priority": 3,
+    "pollIntervalMin": 180,
+    "topicHint": "ai"
+  },
+  {
+    "type": "rss",
+    "key": "https://www.databricks.com/feed",
+    "label": "Databricks Blog",
+    "collection": "Databases & Data Infrastructure",
+    "priority": 5,
+    "pollIntervalMin": 360,
+    "topicHint": "backend"
+  },
+  {
+    "type": "rss",
+    "key": "https://vllm.ai/blog/rss.xml",
+    "label": "vLLM Blog",
+    "collection": "AI Agents & LLM Engineering",
+    "priority": 2,
+    "pollIntervalMin": 120,
+    "topicHint": "ai",
+    "authorKey": "vllm"
+  },
+  {
+    "type": "rss",
+    "key": "https://airbnb.tech/feed/",
+    "label": "Airbnb Engineering",
+    "collection": "Backend & Distributed Systems",
+    "priority": 3,
+    "pollIntervalMin": 180,
+    "topicHint": "system-design"
+  },
+  {
+    "type": "rss",
+    "key": "https://www.mongodb.com/company/blog/rss",
+    "label": "MongoDB Blog",
+    "collection": "Databases & Data Infrastructure",
+    "priority": 5,
+    "pollIntervalMin": 360,
+    "topicHint": "backend"
+  },
+  {
+    "type": "rss",
+    "key": "https://www.datadoghq.com/blog/engineering/index.xml",
+    "label": "Datadog Engineering",
+    "collection": "Infrastructure / SRE / Security",
+    "priority": 2,
+    "pollIntervalMin": 120,
+    "topicHint": "backend"
+  },
+  {
+    "type": "rss",
+    "key": "https://aphyr.com/posts.atom",
+    "label": "Aphyr / Jepsen",
+    "collection": "Backend & Distributed Systems",
+    "priority": 2,
+    "pollIntervalMin": 120,
+    "topicHint": "system-design"
+  },
+  {
+    "type": "rss",
+    "key": "https://muratdemirbas.substack.com/feed",
+    "label": "Distributed Systems by Murat",
+    "collection": "Backend & Distributed Systems",
+    "priority": 3,
+    "pollIntervalMin": 180,
+    "topicHint": "system-design",
+    "authorKey": "murat-demirbas"
+  },
+  {
+    "type": "rss",
+    "key": "https://transactional.blog/feed.xml",
+    "label": "Transactional",
+    "collection": "Databases & Data Infrastructure",
+    "priority": 2,
+    "pollIntervalMin": 120,
+    "topicHint": "backend"
+  },
+  {
+    "type": "rss",
+    "key": "https://www.cybertec-postgresql.com/en/feed/",
+    "label": "CYBERTEC PostgreSQL",
+    "collection": "Databases & Data Infrastructure",
+    "priority": 3,
+    "pollIntervalMin": 180,
+    "topicHint": "backend"
+  },
+  {
+    "type": "rss",
+    "key": "https://www.crunchydata.com/blog/rss.xml",
+    "label": "Crunchy Data",
+    "collection": "Databases & Data Infrastructure",
+    "priority": 7,
+    "pollIntervalMin": 1440,
+    "topicHint": "backend"
+  },
+  {
+    "type": "rss",
+    "key": "https://www.tigerdata.com/blog/rss",
+    "label": "Tiger Data",
+    "collection": "Databases & Data Infrastructure",
+    "priority": 2,
+    "pollIntervalMin": 120,
+    "topicHint": "backend"
+  },
+  {
+    "type": "rss",
+    "key": "https://redis.io/blog/feed/",
+    "label": "Redis Blog",
+    "collection": "Databases & Data Infrastructure",
+    "priority": 2,
+    "pollIntervalMin": 120,
+    "topicHint": "backend",
+    "authorKey": "redis"
+  },
+  {
+    "type": "rss",
+    "key": "https://www.confluent.io/rss.xml",
+    "label": "Confluent Blog",
+    "collection": "Databases & Data Infrastructure",
+    "priority": 2,
+    "pollIntervalMin": 120,
+    "topicHint": "backend"
+  },
+  {
+    "type": "rss",
+    "key": "https://cloudblog.withgoogle.com/products/devops-sre/rss/",
+    "label": "Google Cloud DevOps & SRE",
+    "collection": "Infrastructure / SRE / Security",
+    "priority": 5,
+    "pollIntervalMin": 360,
+    "topicHint": "backend",
+    "enabled": false
+  },
+  {
+    "type": "rss",
+    "key": "https://aws.amazon.com/blogs/compute/feed/",
+    "label": "AWS Compute",
+    "collection": "Infrastructure / SRE / Security",
+    "priority": 5,
+    "pollIntervalMin": 360,
+    "topicHint": "backend"
+  },
+  {
+    "type": "rss",
+    "key": "https://cloudblog.withgoogle.com/products/containers-kubernetes/rss/",
+    "label": "Google Cloud Kubernetes",
+    "collection": "Infrastructure / SRE / Security",
+    "priority": 3,
+    "pollIntervalMin": 180,
+    "topicHint": "backend"
+  },
+  {
+    "type": "rss",
+    "key": "https://kubernetes.io/feed.xml",
+    "label": "Kubernetes Blog",
+    "collection": "Infrastructure / SRE / Security",
+    "priority": 2,
+    "pollIntervalMin": 120,
+    "topicHint": "backend",
+    "authorKey": "kubernetes"
+  },
+  {
+    "type": "rss",
+    "key": "https://www.cncf.io/blog/feed/",
+    "label": "CNCF Blog",
+    "collection": "Infrastructure / SRE / Security",
+    "priority": 2,
+    "pollIntervalMin": 120,
+    "topicHint": "backend",
+    "authorKey": "cncf"
+  },
+  {
+    "type": "rss",
+    "key": "https://grafana.com/blog/index.xml",
+    "label": "Grafana Labs Blog",
+    "collection": "Infrastructure / SRE / Security",
+    "priority": 2,
+    "pollIntervalMin": 120,
+    "topicHint": "backend",
+    "authorKey": "grafana-labs"
+  },
+  {
+    "type": "rss",
+    "key": "https://www.honeycomb.io/rss/blog.xml",
+    "label": "Honeycomb Blog",
+    "collection": "Infrastructure / SRE / Security",
+    "priority": 2,
+    "pollIntervalMin": 120,
+    "topicHint": "backend"
+  },
+  {
+    "type": "rss",
+    "key": "https://www.hashicorp.com/blog/feed.xml",
+    "label": "HashiCorp Blog",
+    "collection": "Infrastructure / SRE / Security",
+    "priority": 3,
+    "pollIntervalMin": 180,
+    "topicHint": "backend",
+    "authorKey": "hashicorp"
+  },
+  {
+    "type": "rss",
+    "key": "https://tailscale.com/blog/index.xml",
+    "label": "Tailscale Blog",
+    "collection": "Infrastructure / SRE / Security",
+    "priority": 2,
+    "pollIntervalMin": 120,
+    "topicHint": "backend"
+  },
+  {
+    "type": "rss",
+    "key": "https://cilium.io/blog/rss.xml",
+    "label": "Cilium Blog",
+    "collection": "Infrastructure / SRE / Security",
+    "priority": 3,
+    "pollIntervalMin": 180,
+    "topicHint": "backend"
+  },
+  {
+    "type": "rss",
+    "key": "https://www.technologyreview.com/feed/",
+    "label": "MIT Technology Review",
+    "collection": "Tech News & Discovery",
+    "priority": 7,
+    "pollIntervalMin": 360
+  },
+  {
+    "type": "rss",
+    "key": "https://spectrum.ieee.org/feeds/feed.rss",
+    "label": "IEEE Spectrum",
+    "collection": "Tech News & Discovery",
+    "priority": 7,
+    "pollIntervalMin": 360
+  },
+  {
+    "type": "rss",
+    "key": "https://www.wired.com/feed/rss",
+    "label": "WIRED",
+    "collection": "Tech News & Discovery",
+    "priority": 7,
+    "pollIntervalMin": 360
+  },
+  {
+    "type": "rss",
+    "key": "https://arstechnica.com/feed/",
+    "label": "Ars Technica",
+    "collection": "Tech News & Discovery",
+    "priority": 7,
+    "pollIntervalMin": 360
+  },
+  {
+    "type": "rss",
+    "key": "https://www.theregister.com/headlines.atom",
+    "label": "The Register",
+    "collection": "Tech News & Discovery",
+    "priority": 7,
+    "pollIntervalMin": 360
+  },
+  {
+    "type": "rss",
+    "key": "https://techcrunch.com/feed/",
+    "label": "TechCrunch",
+    "collection": "Tech News & Discovery",
+    "priority": 7,
+    "pollIntervalMin": 360
+  },
+  {
+    "type": "rss",
+    "key": "https://www.theverge.com/rss/index.xml",
+    "label": "The Verge",
+    "collection": "Tech News & Discovery",
+    "priority": 7,
+    "pollIntervalMin": 360
+  },
+  {
+    "type": "rss",
+    "key": "https://newsletter.semianalysis.com/feed",
+    "label": "SemiAnalysis",
+    "collection": "AI Frontier & Research",
+    "priority": 3,
+    "pollIntervalMin": 180,
+    "topicHint": "ai"
+  },
+  {
+    "type": "rss",
+    "key": "https://www.bleepingcomputer.com/feed/",
+    "label": "BleepingComputer",
+    "collection": "Infrastructure / SRE / Security",
+    "priority": 5,
+    "pollIntervalMin": 360,
+    "topicHint": "backend"
+  },
+  {
+    "type": "rss",
+    "key": "https://www.darkreading.com/rss.xml",
+    "label": "Dark Reading",
+    "collection": "Infrastructure / SRE / Security",
+    "priority": 5,
+    "pollIntervalMin": 360,
+    "topicHint": "backend"
+  },
+  {
+    "type": "rss",
+    "key": "https://www.servethehome.com/feed/",
+    "label": "ServeTheHome",
+    "collection": "Infrastructure / SRE / Security",
+    "priority": 5,
+    "pollIntervalMin": 360,
+    "topicHint": "backend"
+  },
+  {
+    "type": "rss",
+    "key": "https://www.tomshardware.com/feeds/all",
+    "label": "Tom's Hardware",
+    "collection": "Tech News & Discovery",
+    "priority": 7,
+    "pollIntervalMin": 360
+  },
+  {
+    "type": "rss",
+    "key": "https://www.nextplatform.com/feed/",
+    "label": "The Next Platform",
+    "collection": "Infrastructure / SRE / Security",
+    "priority": 5,
+    "pollIntervalMin": 360,
+    "topicHint": "backend"
+  },
+  {
+    "type": "rss",
+    "key": "https://thenewstack.io/feed/",
+    "label": "The New Stack",
+    "collection": "Infrastructure / SRE / Security",
+    "priority": 5,
+    "pollIntervalMin": 360,
+    "topicHint": "backend"
+  },
+  {
+    "type": "rss",
+    "key": "https://www.zdnet.com/news/rss.xml",
+    "label": "ZDNET",
+    "collection": "Tech News & Discovery",
+    "priority": 7,
+    "pollIntervalMin": 360
+  },
+  {
+    "type": "rss",
+    "key": "https://www.techmeme.com/feed.xml",
+    "label": "Techmeme",
+    "collection": "Tech News & Discovery",
+    "priority": 7,
+    "pollIntervalMin": 360
+  },
+  {
+    "type": "rss",
+    "key": "https://www.theinformation.com/feed",
+    "label": "The Information",
+    "collection": "Tech News & Discovery",
+    "priority": 7,
+    "pollIntervalMin": 360
+  },
+  {
+    "type": "rss",
+    "key": "https://tldr.tech/api/rss/tech",
+    "label": "TLDR",
+    "collection": "Tech News & Discovery",
+    "priority": 7,
+    "pollIntervalMin": 360
+  },
+  {
+    "type": "rss",
+    "key": "https://tldr.tech/api/rss/ai",
+    "label": "TLDR AI",
+    "collection": "AI Agents & LLM Engineering",
+    "priority": 5,
+    "pollIntervalMin": 360,
+    "topicHint": "ai"
+  },
+  {
+    "type": "rss",
+    "key": "https://newsletter.pragmaticengineer.com/feed",
+    "label": "The Pragmatic Engineer",
+    "collection": "Backend & Distributed Systems",
+    "priority": 2,
+    "pollIntervalMin": 120,
+    "topicHint": "system-design",
+    "authorKey": "gergely-orosz"
+  },
+  {
+    "type": "rss",
+    "key": "https://softwareengineeringdaily.com/feed/",
+    "label": "Software Engineering Daily",
+    "collection": "Backend & Distributed Systems",
+    "priority": 5,
+    "pollIntervalMin": 360,
+    "topicHint": "system-design"
+  },
+  {
+    "type": "rss",
+    "key": "https://magazine.sebastianraschka.com/feed",
+    "label": "Ahead of AI",
+    "collection": "AI Frontier & Research",
+    "priority": 2,
+    "pollIntervalMin": 120,
+    "topicHint": "ai",
+    "authorKey": "sebastian-raschka"
+  },
+  {
+    "type": "rss",
+    "key": "https://importai.substack.com/feed",
+    "label": "Import AI",
+    "collection": "AI Frontier & Research",
+    "priority": 3,
+    "pollIntervalMin": 180,
+    "topicHint": "ai"
+  },
+  {
+    "type": "rss",
+    "key": "https://www.oneusefulthing.org/feed",
+    "label": "One Useful Thing",
+    "collection": "AI Agents & LLM Engineering",
+    "priority": 5,
+    "pollIntervalMin": 360,
+    "topicHint": "ai",
+    "authorKey": "ethan-mollick"
+  },
+  {
+    "type": "rss",
+    "key": "https://www.lastweekinaws.com/newsletter/feed.xml",
+    "label": "Last Week in AWS",
+    "collection": "Infrastructure / SRE / Security",
+    "priority": 7,
+    "pollIntervalMin": 1440,
+    "topicHint": "backend"
+  },
+  {
+    "type": "rss",
+    "key": "https://newsletter.systemdesign.one/feed",
+    "label": "System Design Newsletter",
+    "collection": "Backend & Distributed Systems",
+    "priority": 3,
+    "pollIntervalMin": 180,
+    "topicHint": "system-design"
+  },
+  {
+    "type": "rss",
+    "key": "https://rss.arxiv.org/rss/cs.AI",
+    "label": "arXiv cs.AI",
+    "collection": "AI Frontier & Research",
+    "priority": 3,
+    "pollIntervalMin": 360,
+    "topicHint": "ai"
+  },
+  {
+    "type": "rss",
+    "key": "https://rss.arxiv.org/rss/cs.DC",
+    "label": "arXiv cs.DC",
+    "collection": "Backend & Distributed Systems",
+    "priority": 3,
+    "pollIntervalMin": 360,
+    "topicHint": "system-design"
+  },
+  {
+    "type": "rss",
+    "key": "https://www.producthunt.com/feed",
+    "label": "Product Hunt",
+    "collection": "Tech News & Discovery",
+    "priority": 7,
+    "pollIntervalMin": 360
+  },
+  {
+    "type": "rss",
+    "key": "https://lobste.rs/rss",
+    "label": "Lobsters",
+    "collection": "Tech News & Discovery",
+    "priority": 7,
+    "pollIntervalMin": 360
+  },
+  {
+    "type": "rss",
+    "key": "https://blog.rust-lang.org/feed.xml",
+    "label": "Rust Blog",
+    "collection": "Backend & Distributed Systems",
+    "priority": 3,
+    "pollIntervalMin": 180,
+    "topicHint": "system-design"
+  },
+  {
+    "type": "rss",
+    "key": "https://www.postgresql.org/news.rss",
+    "label": "PostgreSQL News",
+    "collection": "Databases & Data Infrastructure",
+    "priority": 2,
+    "pollIntervalMin": 120,
+    "topicHint": "backend",
+    "authorKey": "postgresql"
+  },
+  {
+    "type": "rss",
+    "key": "https://prometheus.io/blog/feed.xml",
+    "label": "Prometheus Blog",
+    "collection": "Infrastructure / SRE / Security",
+    "priority": 7,
+    "pollIntervalMin": 1440,
+    "topicHint": "backend"
+  },
+  {
+    "type": "rss",
+    "key": "https://words.filippo.io/rss/",
+    "label": "Filippo Valsorda",
+    "collection": "Backend & Distributed Systems",
+    "priority": 7,
+    "pollIntervalMin": 1440,
+    "topicHint": "system-design"
+  },
+  {
+    "type": "github",
+    "key": "can1357/oh-my-pi",
+    "label": "Can Bölük — Oh My Pi releases",
+    "collection": "AI Agents & LLM Engineering",
+    "topicHint": "ai",
+    "priority": 4,
+    "pollIntervalMin": 360
+  },
+  {
+    "type": "rss",
+    "key": "https://feeds.feedburner.com/martinkl?format=xml",
+    "label": "Martin Kleppmann",
+    "collection": "Backend & Distributed Systems",
+    "topicHint": "system-design",
+    "priority": 7,
+    "pollIntervalMin": 1440
+  },
+  {
+    "type": "github",
+    "key": "wandb/wandb",
+    "label": "Weights & Biases — SDK releases",
+    "collection": "AI Agents & LLM Engineering",
+    "topicHint": "ai",
+    "priority": 7,
     "pollIntervalMin": 1440
   }
 ]

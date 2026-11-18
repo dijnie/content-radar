@@ -24,10 +24,6 @@
       {
         "platform": "x",
         "handle": "swyx"
-      },
-      {
-        "platform": "rss",
-        "handle": "www.latent.space"
       }
     ]
   },
@@ -74,6 +70,10 @@
       {
         "platform": "rss",
         "handle": "openai.com"
+      },
+      {
+        "platform": "github",
+        "handle": "openai"
       }
     ]
   },
@@ -102,6 +102,10 @@
       {
         "platform": "rss",
         "handle": "huggingface.co"
+      },
+      {
+        "platform": "github",
+        "handle": "huggingface"
       }
     ]
   },
@@ -130,6 +134,10 @@
       {
         "platform": "rss",
         "handle": "blog.pragmaticengineer.com"
+      },
+      {
+        "platform": "rss",
+        "handle": "newsletter.pragmaticengineer.com"
       }
     ]
   },
@@ -186,6 +194,260 @@
       {
         "platform": "rss",
         "handle": "www.allthingsdistributed.com"
+      }
+    ]
+  },
+  {
+    "authorKey": "sebastian-raschka",
+    "name": "Sebastian Raschka",
+    "handles": [
+      {
+        "platform": "x",
+        "handle": "rasbt"
+      },
+      {
+        "platform": "rss",
+        "handle": "magazine.sebastianraschka.com"
+      }
+    ]
+  },
+  {
+    "authorKey": "ethan-mollick",
+    "name": "Ethan Mollick",
+    "handles": [
+      {
+        "platform": "x",
+        "handle": "emollick"
+      },
+      {
+        "platform": "rss",
+        "handle": "www.oneusefulthing.org"
+      }
+    ]
+  },
+  {
+    "authorKey": "martin-fowler",
+    "name": "Martin Fowler",
+    "handles": [
+      {
+        "platform": "x",
+        "handle": "martinfowler"
+      },
+      {
+        "platform": "rss",
+        "handle": "martinfowler.com"
+      }
+    ]
+  },
+  {
+    "authorKey": "murat-demirbas",
+    "name": "Murat Demirbas",
+    "handles": [
+      {
+        "platform": "x",
+        "handle": "muratdemirbas"
+      },
+      {
+        "platform": "rss",
+        "handle": "muratdemirbas.substack.com"
+      }
+    ]
+  },
+  {
+    "authorKey": "vllm",
+    "name": "vLLM",
+    "handles": [
+      {
+        "platform": "x",
+        "handle": "vllm_project"
+      },
+      {
+        "platform": "rss",
+        "handle": "vllm.ai"
+      },
+      {
+        "platform": "github",
+        "handle": "vllm-project"
+      }
+    ]
+  },
+  {
+    "authorKey": "mistral-ai",
+    "name": "Mistral AI",
+    "handles": [
+      {
+        "platform": "x",
+        "handle": "MistralAI"
+      },
+      {
+        "platform": "rss",
+        "handle": "mistral.ai"
+      }
+    ]
+  },
+  {
+    "authorKey": "cloudflare",
+    "name": "Cloudflare",
+    "handles": [
+      {
+        "platform": "x",
+        "handle": "Cloudflare"
+      },
+      {
+        "platform": "rss",
+        "handle": "blog.cloudflare.com"
+      },
+      {
+        "platform": "github",
+        "handle": "cloudflare"
+      }
+    ]
+  },
+  {
+    "authorKey": "cncf",
+    "name": "CNCF",
+    "handles": [
+      {
+        "platform": "x",
+        "handle": "CloudNativeFdn"
+      },
+      {
+        "platform": "rss",
+        "handle": "www.cncf.io"
+      }
+    ]
+  },
+  {
+    "authorKey": "kubernetes",
+    "name": "Kubernetes",
+    "handles": [
+      {
+        "platform": "x",
+        "handle": "kubernetesio"
+      },
+      {
+        "platform": "rss",
+        "handle": "kubernetes.io"
+      },
+      {
+        "platform": "github",
+        "handle": "kubernetes"
+      }
+    ]
+  },
+  {
+    "authorKey": "grafana-labs",
+    "name": "Grafana Labs",
+    "handles": [
+      {
+        "platform": "x",
+        "handle": "grafana"
+      },
+      {
+        "platform": "rss",
+        "handle": "grafana.com"
+      },
+      {
+        "platform": "github",
+        "handle": "grafana"
+      }
+    ]
+  },
+  {
+    "authorKey": "postgresql",
+    "name": "PostgreSQL",
+    "handles": [
+      {
+        "platform": "x",
+        "handle": "PostgreSQL"
+      },
+      {
+        "platform": "rss",
+        "handle": "www.postgresql.org"
+      }
+    ]
+  },
+  {
+    "authorKey": "hashicorp",
+    "name": "HashiCorp",
+    "handles": [
+      {
+        "platform": "x",
+        "handle": "HashiCorp"
+      },
+      {
+        "platform": "rss",
+        "handle": "www.hashicorp.com"
+      }
+    ]
+  },
+  {
+    "authorKey": "latent-space",
+    "name": "Latent Space",
+    "handles": [
+      {
+        "platform": "x",
+        "handle": "latentspacepod"
+      },
+      {
+        "platform": "rss",
+        "handle": "www.latent.space"
+      }
+    ]
+  },
+  {
+    "authorKey": "langchain",
+    "name": "LangChain",
+    "handles": [
+      {
+        "platform": "rss",
+        "handle": "www.langchain.com"
+      },
+      {
+        "platform": "github",
+        "handle": "langchain-ai"
+      }
+    ]
+  },
+  {
+    "authorKey": "llamaindex",
+    "name": "LlamaIndex",
+    "handles": [
+      {
+        "platform": "x",
+        "handle": "llama_index"
+      },
+      {
+        "platform": "github",
+        "handle": "run-llama"
+      }
+    ]
+  },
+  {
+    "authorKey": "ollama",
+    "name": "Ollama",
+    "handles": [
+      {
+        "platform": "x",
+        "handle": "ollama"
+      },
+      {
+        "platform": "github",
+        "handle": "ollama"
+      }
+    ]
+  },
+  {
+    "authorKey": "redis",
+    "name": "Redis",
+    "handles": [
+      {
+        "platform": "rss",
+        "handle": "redis.io"
+      },
+      {
+        "platform": "github",
+        "handle": "redis"
       }
     ]
   }

@@ -8,7 +8,7 @@ import { pacificDay } from "../llm/pacific-day";
 
 /** Named queries behind the status page; the soak report runs the very same SQL. */
 export const STATUS_QUERIES = {
-  sources: `SELECT s.id, s.type, s.key, s.label, s.enabled, s.next_poll_at AS nextPollAt, h.last_ok_at AS lastOkAt, h.last_error_at AS lastErrorAt,
+  sources: `SELECT s.id, s.type, s.key, s.label, s.collection, s.enabled, s.next_poll_at AS nextPollAt, h.last_ok_at AS lastOkAt, h.last_error_at AS lastErrorAt,
                    h.last_error AS lastError, COALESCE(h.consecutive_failures, 0) AS consecutiveFailures, COALESCE(h.items_last_poll, 0) AS itemsLastPoll
             FROM sources s LEFT JOIN source_health h ON h.source_id = s.id
             ORDER BY COALESCE(h.consecutive_failures, 0) DESC, s.type, s.key`,

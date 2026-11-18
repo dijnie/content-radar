@@ -14,6 +14,10 @@ export const topicSchema = z.strictObject({
 
 const sourceBase = {
   label: z.string().min(1),
+  collection: z.enum([
+    "AI Frontier & Research", "AI Agents & LLM Engineering", "Backend & Distributed Systems",
+    "Databases & Data Infrastructure", "Infrastructure / SRE / Security", "Tech News & Discovery",
+  ]).optional(),
   topicHint: SLUG.optional(),
   authorKey: SLUG.optional(),
   priority: z.int().min(1).max(9).default(5),

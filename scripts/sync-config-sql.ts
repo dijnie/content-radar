@@ -16,6 +16,20 @@ export interface RawConfig {
   stopEntities: unknown;
 }
 
+function sourceIdentity(source: { type: string; key: string }): string {
+  let key = source.key;
+  if (source.type === "rss") {
+    const url = new URL(key);
+    url.hash = "";
+    for (const param of [...url.searchParams.keys()]) {
+      if (/^utm_/i.test(param)) url.searchParams.delete(param);
+    }
+    url.searchParams.sort();
+    key = url.href;
+  }
+  return `${source.type}:${key.toLowerCase()}`;
+}
+
 export function parseConfig(raw: RawConfig) {
   const config = {
     topics: z.array(topicSchema).min(1).parse(raw.topics),
@@ -32,7 +46,7 @@ export function parseConfig(raw: RawConfig) {
 
   for (const slug of duplicates(config.topics.map((topic) => topic.slug))) problems.push(`duplicate topic ${slug}`);
   for (const key of duplicates(config.authors.map((author) => author.authorKey))) problems.push(`duplicate author ${key}`);
-  for (const key of duplicates(config.sources.map((source) => `${source.type}:${source.key.toLowerCase()}`))) {
+  for (const key of duplicates(config.sources.map(sourceIdentity))) {
     problems.push(`duplicate source ${key}`);
   }
   for (const source of config.sources) {
@@ -99,10 +113,10 @@ export function buildSyncStatements(config: ParsedConfig): string[] {
 
   for (const source of config.sources) {
     statements.push(
-      `INSERT INTO sources (type, key, label, topic_hint, author_key, priority, poll_interval_min, always_pass, enabled) VALUES (` +
-        `${text(source.type)}, ${text(source.key)}, ${text(source.label)}, ${text(source.topicHint)}, ${text(source.authorKey)}, ` +
+      `INSERT INTO sources (type, key, label, collection, topic_hint, author_key, priority, poll_interval_min, always_pass, enabled) VALUES (` +
+        `${text(source.type)}, ${text(source.key)}, ${text(source.label)}, ${text(source.collection)}, ${text(source.topicHint)}, ${text(source.authorKey)}, ` +
         `${source.priority}, ${source.pollIntervalMin}, ${flag(source.alwaysPass)}, ${flag(source.enabled)}) ` +
-        `ON CONFLICT(type, key) DO UPDATE SET label = excluded.label, topic_hint = excluded.topic_hint, author_key = excluded.author_key, ` +
+        `ON CONFLICT(type, key) DO UPDATE SET label = excluded.label, collection = excluded.collection, topic_hint = excluded.topic_hint, author_key = excluded.author_key, ` +
         `priority = excluded.priority, poll_interval_min = excluded.poll_interval_min, always_pass = excluded.always_pass, enabled = excluded.enabled`,
     );
   }

@@ -1,3 +1,4 @@
+import { OperatorAction } from "../operator-action";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { FeedKind, FeedSchedule, JobRow, JobsResponse } from "../../../../../packages/core/src/editorial-types";
 import { ApiError, request } from "../../api-client";
@@ -84,12 +85,13 @@ function JobDetail({ job, timezone }: { job: JobRow; timezone: string }) {
 type JobProps = {
   job: JobRow;
   revealLog?: boolean;
+  refresh: () => void;
   timezone: string;
   onBuild: (feed: FeedKind, crawlId: number) => void;
   pending: boolean;
 };
 
-function Job({ job, timezone, onBuild, pending, revealLog }: JobProps) {
+function Job({ job, timezone, onBuild, pending, revealLog, refresh }: JobProps) {
   const details = useRef<HTMLDetailsElement>(null);
   useEffect(() => {
     if (revealLog && details.current) details.current.open = true;
@@ -128,14 +130,15 @@ function Job({ job, timezone, onBuild, pending, revealLog }: JobProps) {
           {isCrawl && (
             <div className="job-progress">
               {job.sources > 0 && <progress value={job.sourcesProcessed} max={job.sources} aria-label={`Crawl #${job.id} sources processed`} />}
-              <span>{job.sourcesProcessed - job.failures} succeeded · {job.failures} failed{job.status === "running" && ` · ${job.sourcesRunning} running · ${job.sources - job.sourcesProcessed - job.sourcesRunning} queued`}</span>
+              <span>{job.sourcesProcessed - job.failures} succeeded · {job.failures} failed{job.status === "stopped" && ` · ${job.sources - job.sourcesProcessed} stopped`}{job.status === "running" && ` · ${job.sourcesRunning} running · ${job.sources - job.sourcesProcessed - job.sourcesRunning} queued`}</span>
             </div>
           )}
         </summary>
         {open && <JobDetail job={job} timezone={timezone} />}
       </details>
-      {open && (
+      {(open || ["queued", "running"].includes(job.status)) && (
         <div className="job-actions">
+          {["queued", "running"].includes(job.status) && <OperatorAction label={`Stop ${jobLabel} #${job.id}`} path={`/api/jobs/${job.kind}/${job.id}/stop`} refresh={refresh} />}
           {canBuildFeeds && FEEDS.map((feed) => (
             <button className="button" disabled={pending} key={feed} onClick={() => onBuild(feed, job.id)}>
               Build {FEED_LABEL[feed]}
@@ -269,7 +272,7 @@ export function JobsPage() {
       <ResourceState loading={resource.loading && !data} error={resource.error} empty={false} reload={resource.reload}>
         <div className="job-list">
           {data?.crawls.map((job) => (
-            <Job key={job.id} job={job} revealLog={submitted?.kind === "crawl" && submitted.id === job.id} timezone={data.timezone} pending={pending} onBuild={(feed, id) => void run(feed, id)} />
+            <Job key={job.id} job={job} refresh={resource.reload} revealLog={submitted?.kind === "crawl" && submitted.id === job.id} timezone={data.timezone} pending={pending} onBuild={(feed, id) => void run(feed, id)} />
           ))}
           {data && !data.crawls.length && <p className="notice">No crawls in this view.</p>}
         </div>
@@ -296,7 +299,7 @@ export function JobsPage() {
 
       <div className="job-list">
         {data?.builds.map((job) => (
-          <Job key={`${job.kind}-${job.id}`} job={job} timezone={data.timezone} pending={pending} onBuild={(feed, id) => void run(feed, id)} />
+          <Job key={`${job.kind}-${job.id}`} job={job} refresh={resource.reload} timezone={data.timezone} pending={pending} onBuild={(feed, id) => void run(feed, id)} />
         ))}
         {data && !data.builds.length && <p className="notice">No feed builds in this view.</p>}
       </div>

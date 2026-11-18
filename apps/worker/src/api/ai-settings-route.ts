@@ -1,3 +1,4 @@
+import { checkOperatorPassword } from "./operator-password";
 import { z } from "zod";
 import { getAiSettings, type AiSettings } from "../db/ai-settings";
 import type { Env } from "../env";
@@ -37,22 +38,8 @@ function validEndpoint(endpoint: string, worker: URL): boolean {
 }
 
 export async function handleAiSettings(request: Request, { DB: db, PASSWORD }: Pick<Env, "DB" | "PASSWORD">): Promise<Response> {
-  if (!PASSWORD) return reply({ error: "password_not_configured" }, 503);
-  const credentials = /^Basic ([A-Za-z0-9+/]+=*)$/i.exec(request.headers.get("Authorization") ?? "")?.[1];
-  if (!credentials) return reply({ error: "password_required" }, 401);
-  let supplied: Uint8Array<ArrayBuffer>;
-  try {
-    supplied = Uint8Array.from(atob(credentials), character => character.charCodeAt(0));
-  } catch {
-    return reply({ error: "invalid_password" }, 403);
-  }
-  const [expected, received] = await Promise.all([
-    crypto.subtle.digest("SHA-256", new TextEncoder().encode(`settings:${PASSWORD}`)),
-    crypto.subtle.digest("SHA-256", supplied),
-  ]);
-  if (!crypto.subtle.timingSafeEqual(expected, received)) {
-    return reply({ error: "invalid_password" }, 403);
-  }
+  const denied = await checkOperatorPassword(request, PASSWORD);
+  if (denied) return denied;
   let row: AiSettings;
   try {
     row = await getAiSettings(db);

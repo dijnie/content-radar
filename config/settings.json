@@ -4,6 +4,7 @@
   "synthesis_reserved_share": 0.2,
   "backfill_max_share": 0.25,
   "display_timezone": "Asia/Ho_Chi_Minh",
+  "llm_unlimited": true,
   "llm_safe_default_rpm": 5,
   "llm_safe_default_rpd": 20,
   "filter_languages": ["en", "vi"],

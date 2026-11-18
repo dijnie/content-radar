@@ -255,6 +255,7 @@ describe("consumeLlmBatch", () => {
   });
 
   it("when every model is out of daily budget: acks, leaves items queued, calls nothing, and the drain resends them later", async () => {
+    await env.DB.prepare("UPDATE settings SET value_json = 'false' WHERE key = 'llm_unlimited'").run();
     const ids = await seedItems(4);
     await env.DB.prepare("UPDATE llm_models SET rpd = 0").run();
     const deepseek = fakeDeepSeek();
@@ -274,6 +275,7 @@ describe("consumeLlmBatch", () => {
   });
 
   it("waits seconds, not hours, when only the per-minute limit is hit", async () => {
+    await env.DB.prepare("UPDATE settings SET value_json = 'false' WHERE key = 'llm_unlimited'").run();
     const ids = await seedItems(2);
     await env.DB.prepare("UPDATE llm_models SET rpm = 0").run();
     const deepseek = fakeDeepSeek();
@@ -284,6 +286,7 @@ describe("consumeLlmBatch", () => {
   });
 
   it("returns prolonged quota waits to D1 before the queue dead-letters untouched items", async () => {
+    await env.DB.prepare("UPDATE settings SET value_json = 'false' WHERE key = 'llm_unlimited'").run();
     const ids = await seedItems(2);
     await env.DB.prepare("UPDATE llm_models SET rpm = 0").run();
     const deepseek = fakeDeepSeek();
@@ -451,6 +454,7 @@ describe("consumeLlmBatch", () => {
 
 describe("extraction attempts", () => {
   it("are not spent by wake-ups that never reach DeepSeek, only by real calls", async () => {
+    await env.DB.prepare("UPDATE settings SET value_json = 'false' WHERE key = 'llm_unlimited'").run();
     const ids = await seedItems(2);
     const attempts = async () => (await env.DB.prepare(`SELECT MAX(enqueue_attempts) AS n FROM items WHERE id IN (${ids.join(",")})`).first<{ n: number }>())!.n;
     const deepseek = fakeDeepSeek();

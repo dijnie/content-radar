@@ -2,6 +2,7 @@ import type { LlmKind, LlmModelRow } from "../db/llm-repo";
 import { pacificDay } from "./pacific-day";
 
 export interface BudgetSettings {
+  unlimited?: boolean;
   safeDefaultRpm: number;
   safeDefaultRpd: number;
   /** Share of the daily requests reserved for synthesize and adjudicate. */
@@ -58,6 +59,7 @@ export function reservedRemainingToday(db: D1Database, model: LlmModelRow, now: 
 
 export async function remainingToday(db: D1Database, model: LlmModelRow, kind: LlmKind, now: number, settings: BudgetSettings): Promise<number> {
   if (model.exhausted_until !== null && model.exhausted_until > now) return 0;
+  if (settings.unlimited) return Infinity;
   return remainingForKind(await usageByKind(db, pacificDay(now), model.model), kind, limitsOf(model, settings).rpd, settings);
 }
 
@@ -68,6 +70,11 @@ export async function remainingToday(db: D1Database, model: LlmModelRow, kind: L
 export async function reserve(db: D1Database, model: LlmModelRow, kind: LlmKind, now: number, settings: BudgetSettings): Promise<ReserveResult> {
   const { rpm, rpd } = limitsOf(model, settings);
   const dayPt = pacificDay(now);
+  if (settings.unlimited) {
+    await db.prepare(`INSERT INTO llm_usage (day_pt, model, kind, requests) VALUES (?, ?, ?, 1)
+      ON CONFLICT(day_pt, model, kind) DO UPDATE SET requests = requests + 1`).bind(dayPt, model.model, kind).run();
+    return { ok: true, reservation: { dayPt, model: model.model, kind } };
+  }
   const usage = await usageByKind(db, dayPt, model.model);
   const total = Object.values(usage).reduce((sum, value) => sum + value, 0);
   if (total >= rpd) return { ok: false, reason: "rpd_exhausted" };

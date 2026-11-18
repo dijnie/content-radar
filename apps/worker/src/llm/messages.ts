@@ -1,6 +1,6 @@
 /** Wake-up messages on `content-radar-llm`. D1 holds the work itself; a lost message loses nothing. */
 export type LlmMessage =
-  | { kind: "extract"; itemId: number; backfill?: boolean }
+  | { kind: "extract"; itemId: number; backfill?: boolean; operatorRetry?: boolean }
   | { kind: "editorial"; itemId: number }
   | { kind: "synthesize"; storyId: number; membersHash: string }
   | { kind: "adjudicate"; adjudicationIds: number[] };

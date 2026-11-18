@@ -3,7 +3,7 @@ import { finishLlmCall, insertLlmCall, type LlmCallInput, type LlmKind } from ".
 import type { Env } from "../env";
 import { commit, markRateLimited, release, restOverloaded } from "./budget-ledger";
 import { circuitOpenUntil, pauseCircuit, recordFailure, recordSuccess } from "./circuit-breaker";
-import { generateJson } from "./custom-client";
+import { aiPaused, controlledGenerate } from "./call-control";
 import { loadBudgetSettings, reserveOnChain } from "./model-chain";
 
 export type LlmEnv = Pick<Env, "DB" | "RAW" | "LLM_QUEUE">;
@@ -37,13 +37,13 @@ export type BudgetedResult =
 const MAX_AVAILABILITY_RETRIES = 4;
 
 /**
- * Reserves an application request slot before each provider attempt. HTTP responses
- * count toward this local cap; network failures before headers release the slot.
+ * Tracks each provider attempt. In metered mode the reservation also enforces the
+ * configured cap. Network failures before headers release the reservation.
  * Actual paid usage is recorded separately in token counts returned by the provider.
  */
 export async function budgetedCall(env: LlmEnv, request: BudgetedRequest, deps: LlmDeps = {}, attempt = 0): Promise<BudgetedResult> {
   const clock = () => deps.now ?? Math.floor(Date.now() / 1000);
-  if ((await circuitOpenUntil(env.DB, clock())) !== null) return { status: "park" };
+  if (await aiPaused(env.DB) || (await circuitOpenUntil(env.DB, clock())) !== null) return { status: "park" };
   const settings = await loadBudgetSettings(env.DB);
   const provider = await getAiSettings(env.DB);
   const modelSelection = selectedChatModel(provider);
@@ -77,12 +77,21 @@ export async function budgetedCall(env: LlmEnv, request: BudgetedRequest, deps: 
       await release(env.DB, reservation);
       throw error;
     }
-    const result = await generateJson({
+    const result = await controlledGenerate(env.DB, logId, {
       apiKey: provider.chat_key, endpoint: provider.chat_endpoint, model: model.model, system: request.system, user: request.user, schema: request.schema,
       ...(deps.fetcher ? { fetcher: deps.fetcher } : {}),
     });
     const log: LlmCallInput = { ...started, status: "ok", httpStatus: result.httpStatus, latencyMs: result.latencyMs };
 
+    // Stop and completion compete for this one transition. Only the winner can apply results.
+    const acquired = await env.DB.prepare(`UPDATE llm_calls SET status = 'processing' WHERE id = ? AND status = 'running'
+      AND NOT EXISTS (SELECT 1 FROM settings WHERE key = 'ai_processing_paused' AND value_json = 'true') RETURNING id`).bind(logId).first();
+    if (!acquired) {
+      if (!result.ok && result.kind === "rate_limited") await markRateLimited(env.DB, model, clock(), result.retryDelaySeconds);
+      await env.DB.prepare("UPDATE llm_calls SET status = 'stopped' WHERE id = ? AND status = 'running'").bind(logId).run();
+      await (result.ok || result.reached ? commit(env.DB, reservation, result.tokensIn, result.tokensOut) : release(env.DB, reservation));
+      return { status: "park" };
+    }
     if (result.ok) {
       await commit(env.DB, reservation, result.tokensIn, result.tokensOut);
       await recordSuccess(env.DB);
@@ -96,7 +105,7 @@ export async function budgetedCall(env: LlmEnv, request: BudgetedRequest, deps: 
       return { status: "park" };
     }
     if (result.kind === "rate_limited") {
-      await markRateLimited(env.DB, model, now, result.retryDelaySeconds);
+      await markRateLimited(env.DB, model, clock(), result.retryDelaySeconds);
       tried.add(model.model);
       continue;
     }

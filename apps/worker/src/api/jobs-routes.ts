@@ -1,3 +1,4 @@
+import { checkOperatorPassword } from "./operator-password";
 import { z } from "zod";
 import type { FeedKind, JobRow, JobsResponse } from "@radar/core";
 import { getSetting } from "../db/settings-repo";
@@ -91,4 +92,31 @@ export async function handleFeedSchedule(request: Request, env: Env, feed: strin
   await env.DB.prepare("UPDATE feed_schedules SET enabled = ?, interval_minutes = ?, next_run_at = ? WHERE feed = ?")
     .bind(Number(schedule.enabled), schedule.intervalMinutes, now + schedule.intervalMinutes * 60, feed).run();
   return Response.json({ feed, ...schedule, nextRunAt: now + schedule.intervalMinutes * 60 });
+}
+
+
+export async function handleStopJob(request: Request, env: Env, kind: string, id: number, now = Math.floor(Date.now() / 1000)) {
+  const denied = await checkOperatorPassword(request, env.PASSWORD);
+  if (denied) return denied;
+  if (kind !== "crawl" && !isFeed(kind)) return jsonError(400, "invalid_feed");
+  const db = env.DB;
+  let row: { status: string } | null;
+  if (kind === "crawl") {
+    const results = await db.batch([
+      db.prepare("UPDATE crawl_runs SET status = 'stopped', finished_at = ? WHERE id = ? AND status = 'running'").bind(now, id),
+      db.prepare(`UPDATE crawl_sources SET status = 'stopped', finished_at = ?, lease_until = 0, token = NULL
+        WHERE crawl_id = ? AND status IN ('queued','running') AND EXISTS (SELECT 1 FROM crawl_runs WHERE id = ? AND status = 'stopped')`).bind(now, id, id),
+      db.prepare("SELECT status FROM crawl_runs WHERE id = ?").bind(id),
+    ]);
+    row = (results[2]!.results[0] as { status: string } | undefined) ?? null;
+  } else {
+    const results = await db.batch([
+      db.prepare(`UPDATE feed_runs SET status = 'stopped', finished_at = ?, token = NULL, lease_until = 0
+        WHERE id = ? AND feed = ? AND status IN ('queued','running')`).bind(now, id, kind),
+      db.prepare("SELECT status FROM feed_runs WHERE id = ? AND feed = ?").bind(id, kind),
+    ]);
+    row = (results[1]!.results[0] as { status: string } | undefined) ?? null;
+  }
+  if (!row) return jsonError(404, "job_not_found");
+  return row.status === "stopped" ? Response.json(row) : jsonError(409, "job_already_finished");
 }

@@ -45,3 +45,27 @@ it("opens the selected model's request log from its extraction budget", async ()
   expect(screen.getByRole("cell", { name: "2.3s" })).toBeTruthy();
   expect(queries).toContain("/api/status/llm-calls?model=my%2Fmodel");
 });
+
+it("offers an authenticated retry for an unlimited model with an empty log", async () => {
+  const actions: { body: unknown; authorization: string | null }[] = [];
+  vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (String(input) === "/api/status/ai-control") {
+      actions.push({ body: JSON.parse(String(init?.body)), authorization: new Headers(init?.headers).get("Authorization") });
+      return Response.json({ status: "queued", sent: 3 }, { status: 202 });
+    }
+    if (String(input).includes("/llm-calls?")) return Response.json({ calls: [], nextBefore: null });
+    return Response.json({ now: 1, pacificDay: "1970-01-01", sources: [], itemsByStatus: [], cards: {}, backlog: [], clusterRuns: [],
+      llm: { unlimited: true, paused: false, models: [{ model: "my/model", rpm: null, rpd: null }], usageToday: [] } });
+  });
+  const user = userEvent.setup();
+  render(<StatusPage timeZone="UTC" />);
+  expect(await screen.findByText("0 requests · No app limit")).toBeTruthy();
+  expect(screen.queryByRole("progressbar")).toBeNull();
+  await user.click(screen.getByText("View log · 0 requests"));
+  expect(await screen.findByText("No calls recorded for this Pacific day.")).toBeTruthy();
+  await user.click(screen.getByRole("button", { name: "Retry pending" }));
+  await user.type(screen.getByLabelText("Settings password"), "test-password");
+  await user.click(screen.getByRole("button", { name: "Retry pending" }));
+  expect(await screen.findByText("Queued 3 items.")).toBeTruthy();
+  expect(actions).toEqual([{ body: { action: "retry", model: "my/model" }, authorization: "Basic " + btoa("settings:test-password") }]);
+});

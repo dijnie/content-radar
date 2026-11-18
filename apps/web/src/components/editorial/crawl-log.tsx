@@ -4,7 +4,7 @@ export interface CrawlSource {
   sourceId: number;
   label: string;
   type: string;
-  status: "queued" | "running" | "ok" | "failed";
+  status: "queued" | "running" | "ok" | "failed" | "stopped";
   finishedAt: number | null;
   itemsNew: number;
   error: string | null;

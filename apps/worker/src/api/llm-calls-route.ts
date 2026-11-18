@@ -17,7 +17,7 @@ export async function handleLlmCalls(request: Request, env: Pick<Env, "DB">, now
   // Noon on the previous Pacific day stays on that day across DST changes.
   const start = nextPacificMidnight(end - 36 * 3600);
   const rows = await env.DB.prepare(`SELECT id, at, kind,
-      CASE WHEN status = 'running' AND at < ? THEN 'no_final_result' ELSE status END AS status,
+      CASE WHEN status IN ('running','processing') AND at < ? THEN 'no_final_result' ELSE status END AS status,
       http_status AS httpStatus, latency_ms AS latencyMs,
       tokens_in AS tokensIn, tokens_out AS tokensOut,
       CASE WHEN json_valid(item_ids_json) THEN json_array_length(item_ids_json) END AS subjects, claims_accepted AS claimsAccepted,

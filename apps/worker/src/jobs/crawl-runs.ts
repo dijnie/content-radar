@@ -21,7 +21,7 @@ export async function startCrawl(env: CrawlEnv, now: number, trigger: "manual" |
   // Membership is persisted before any message. Recovery also repairs a crash during dispatch.
   await env.DB.batch([
     env.DB.prepare(`INSERT INTO crawl_sources (crawl_id, source_id)
-      SELECT ?, id FROM sources WHERE enabled = 1 ${trigger === "schedule" ? "AND next_poll_at <= ?" : ""}
+      SELECT ?1, id FROM sources WHERE enabled = 1 AND EXISTS (SELECT 1 FROM crawl_runs WHERE id = ?1 AND status = 'running') ${trigger === "schedule" ? "AND next_poll_at <= ?" : ""}
       ORDER BY priority, next_poll_at ${trigger === "schedule" ? "LIMIT 500" : ""}`)
       .bind(...(trigger === "schedule" ? [run.id, now] : [run.id])),
     env.DB.prepare("UPDATE sources SET next_poll_at = ? WHERE id IN (SELECT source_id FROM crawl_sources WHERE crawl_id = ?)").bind(now + LEASE_SECONDS, run.id),

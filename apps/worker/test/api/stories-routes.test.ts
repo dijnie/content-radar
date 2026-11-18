@@ -142,8 +142,9 @@ describe("GET /api/status", () => {
   it("reports the configured model and its budget without exposing the endpoint or key", async () => {
     await seedAi(env.DB, { endpoint: "https://private.example/v1", model: "vendor/status-model", apiKey: "private-status-key" });
     const response = await handleStatus(env, NOW);
-    const body = await response.json() as { llm: { models: { model: string; rpm: number; rpd: number }[] } };
-    expect(body.llm.models).toEqual([expect.objectContaining({ model: "vendor/status-model", rpm: 5, rpd: 100 })]);
+    const body = await response.json() as { llm: { unlimited: boolean; models: { model: string; rpm: number | null; rpd: number | null }[] } };
+    expect(body.llm.unlimited).toBe(true);
+    expect(body.llm.models).toEqual([expect.objectContaining({ model: "vendor/status-model", rpm: null, rpd: null })]);
     expect(JSON.stringify(body)).not.toContain("private-status-key");
     expect(JSON.stringify(body)).not.toContain("private.example");
   });

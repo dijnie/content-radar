@@ -51,6 +51,7 @@ export async function consumeLlmBatch(batch: MessageBatch<LlmMessage>, env: LlmE
   const items = new Map((await getItemsByIds(env.DB, extract.map((message) => message.body.itemId))).map((item) => [item.id, item]));
   const since = await extractionWindowStart(env.DB, deps.now ?? Math.floor(Date.now() / 1000));
   const recentPending = await hasRecentQueuedItems(env.DB, since);
+  const selectedByOperator = new Set(extract.filter(message => message.body.operatorRetry).map(message => message.body.itemId));
   const heldItems = new Set<number>();
   for (const ids of chunkForParams([...items.keys()])) {
     const held = await env.DB.prepare(`SELECT id FROM items WHERE id IN (${placeholders(ids.length)}) AND NOT (${CRAWL_FINISHED_SQL})`).bind(...ids).all<{ id: number }>();
@@ -70,7 +71,7 @@ export async function consumeLlmBatch(batch: MessageBatch<LlmMessage>, env: LlmE
     seen.add(item.id);
     // Queue order can predate the priority policy, or a newer article may have
     // arrived since dispatch. Defer old work in D1 without spending quota or retries.
-    if (recentPending && item.published_at < since) {
+    if (recentPending && item.published_at < since && !selectedByOperator.has(item.id)) {
       message.ack();
       continue;
     }

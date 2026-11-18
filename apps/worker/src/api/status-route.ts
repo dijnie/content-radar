@@ -1,3 +1,4 @@
+import { getSetting } from "../db/settings-repo";
 import { listEnabledModels } from "../db/llm-repo";
 import { nowSeconds } from "../db/batch";
 import type { Env } from "../env";
@@ -29,7 +30,7 @@ export async function handleStatus(env: Pick<Env, "DB">, now = nowSeconds()): Pr
   const all = async <T>(sql: string, ...binds: unknown[]) => (await db.prepare(sql).bind(...binds).all<T>()).results;
   const settings = await loadBudgetSettings(db);
   const models = (await listEnabledModels(db)).map((model) => ({
-    model: model.model, priority: model.priority, ...limitsOf(model, settings), limitsAreDefaults: model.rpd === null, exhaustedUntil: model.exhausted_until,
+    model: model.model, priority: model.priority, ...(settings.unlimited ? { rpm: null, rpd: null } : limitsOf(model, settings)), limitsAreDefaults: model.rpd === null, exhaustedUntil: model.exhausted_until,
   }));
 
   return Response.json({
@@ -37,7 +38,7 @@ export async function handleStatus(env: Pick<Env, "DB">, now = nowSeconds()): Pr
     sources: await all(STATUS_QUERIES.sources),
     backlog: await all(STATUS_QUERIES.backlog),
     itemsByStatus: await all(STATUS_QUERIES.itemsByStatus),
-    llm: { models, usageToday: await all(STATUS_QUERIES.usageToday, day), circuitOpenUntil: await circuitOpenUntil(db, now), reservedShare: settings.synthesisReservedShare },
+    llm: { models, paused: (await getSetting<boolean>(db, "ai_processing_paused")) === true, unlimited: settings.unlimited, usageToday: await all(STATUS_QUERIES.usageToday, day), circuitOpenUntil: await circuitOpenUntil(db, now), reservedShare: settings.synthesisReservedShare },
     clusterRuns: await all(STATUS_QUERIES.lastRuns),
     cards: await db.prepare(STATUS_QUERIES.cards).first(),
     pendingAdjudications: await all(STATUS_QUERIES.pendingAdjudications),

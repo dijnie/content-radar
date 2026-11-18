@@ -22,6 +22,8 @@ export async function* buildNews(context: FeedBuildContext, cutoff: number): Asy
         grouped.set(row.story_id, members);
       }
     }
+    // Renew the job lease and observe Stop even before any stories are ready to stage.
+    yield [];
   }
   context.metadata.candidates = grouped.size;
   for (const ids of chunkForParams([...grouped.keys()])) {

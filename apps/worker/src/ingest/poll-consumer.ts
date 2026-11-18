@@ -2,7 +2,7 @@ import { upsertAuthorByHandle } from "../db/authors-repo";
 import { chunkedBatch } from "../db/batch";
 import { getItemStates, insertItemLinks, insertMetricSnapshot, upsertItemStatement, type IngestMode } from "../db/items-repo";
 import { getAllSettings } from "../db/settings-repo";
-import { getSource, getSourceHealth, insertPollLog, recordPollError, recordPollOk, scheduleNextPoll, type SourceRow } from "../db/sources-repo";
+import { getSource, getSourceHealth, insertPollLog, recordPollError, recordPollOk, scheduleNextPoll, type CrawlLease, type SourceRow } from "../db/sources-repo";
 import type { Env } from "../env";
 import { claimCrawlSource, finishCrawlSource } from "../jobs/crawl-runs";
 import { recordCrawlItems } from "../jobs/crawl-snapshots";
@@ -30,7 +30,7 @@ export interface IngestDeps {
   now?: number;
   fetcher?: typeof fetch;
   adapters?: Partial<Record<SourceRow["type"], SourceAdapter>>;
-  crawl?: { id: number; token: string };
+  crawl?: CrawlLease;
 }
 
 function ownHosts(env: Pick<Env, "APP_ORIGIN">): string[] {
@@ -177,28 +177,33 @@ export async function pollSource(env: IngestEnv, sourceId: number, deps: IngestD
   const finishedAt = () => now + Math.floor((Date.now() - started) / 1000);
   const { ctx, filter } = await buildAdapterContext(env, now, deps.fetcher);
 
+  const stillOwned = async () => !deps.crawl || Boolean(await env.DB.prepare(
+    "SELECT 1 FROM crawl_sources WHERE crawl_id = ? AND source_id = ? AND token = ? AND status = 'running'"
+  ).bind(deps.crawl.id, source.id, deps.crawl.token).first());
   let result: PollResult;
   try {
     result = await (deps.adapters?.[source.type] ?? ADAPTERS[source.type]).poll(source, ctx);
   } catch (err) {
+    if (!await stillOwned()) return;
     const http = err instanceof HttpError ? err : null;
     const message = http ? `${http.kind}:${http.reason}` : err instanceof Error ? `${err.name}: ${err.message}`.slice(0, 300) : "unknown_error";
     const failures = ((await getSourceHealth(env.DB, source.id))?.consecutive_failures ?? 0) + 1;
     await env.DB.batch([
-      recordPollError(env.DB, source.id, now, message),
-      insertPollLog(env.DB, { sourceId: source.id, at: now, status: "error", httpStatus: http?.status ?? null, durationMs: Date.now() - started, error: message }),
-      scheduleNextPoll(env.DB, source.id, nextPollAt(now, source.poll_interval_min, failures)),
+      recordPollError(env.DB, source.id, now, message, deps.crawl),
+      insertPollLog(env.DB, { sourceId: source.id, at: now, status: "error", httpStatus: http?.status ?? null, durationMs: Date.now() - started, error: message }, deps.crawl),
+      scheduleNextPoll(env.DB, source.id, nextPollAt(now, source.poll_interval_min, failures), undefined, deps.crawl),
     ]);
     if (deps.crawl) await finishCrawlSource(env.DB, deps.crawl.id, source.id, deps.crawl.token, finishedAt(), 0, message);
     return;
   }
 
+  if (!await stillOwned()) return;
   const { itemsNew } = await ingestPollResult(env, source, result, filter, now, "live", Boolean(deps.crawl));
   if (deps.crawl) await recordCrawlItems(env.DB, source, result, deps.crawl.id, deps.crawl.token, now);
   await env.DB.batch([
-    recordPollOk(env.DB, source.id, now, itemsNew),
-    insertPollLog(env.DB, { sourceId: source.id, at: now, status: "ok", httpStatus: 200, itemsNew, durationMs: Date.now() - started }),
-    scheduleNextPoll(env.DB, source.id, nextPollAt(now, source.poll_interval_min, 0)),
+    recordPollOk(env.DB, source.id, now, itemsNew, deps.crawl),
+    insertPollLog(env.DB, { sourceId: source.id, at: now, status: "ok", httpStatus: 200, itemsNew, durationMs: Date.now() - started }, deps.crawl),
+    scheduleNextPoll(env.DB, source.id, nextPollAt(now, source.poll_interval_min, 0), undefined, deps.crawl),
   ]);
   if (deps.crawl) await finishCrawlSource(env.DB, deps.crawl.id, source.id, deps.crawl.token, finishedAt(), itemsNew, null);
 }

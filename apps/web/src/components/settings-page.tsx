@@ -1,3 +1,4 @@
+import { operatorAuthorization } from "./operator-action";
 import { useState, type FormEvent } from "react";
 import { ApiError, request } from "../api-client";
 
@@ -39,9 +40,7 @@ export function SettingsPage() {
     setError("");
     setNotice("");
     try {
-      const bytes = new TextEncoder().encode(`settings:${password}`);
-      const credentials = btoa(Array.from(bytes, byte => String.fromCharCode(byte)).join(""));
-      const headers = { Authorization: `Basic ${credentials}`, "Content-Type": "application/json" };
+      const headers = { Authorization: operatorAuthorization(password), "Content-Type": "application/json" };
       const body = save && draft ? JSON.stringify({
         revision: draft.revision, enabled: draft.enabled, chatEndpoint: draft.chatEndpoint.trim(), chatModel: draft.chatModel.trim(),
         chatKey, embeddingEndpoint: shared ? "" : draft.embeddingEndpoint.trim(), embeddingModel: draft.embeddingModel.trim(),

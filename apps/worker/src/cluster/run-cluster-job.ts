@@ -1,3 +1,4 @@
+import { aiPaused } from "../llm/call-control";
 import { getAiSettings, embeddingProvider } from "../db/ai-settings";
 import { providerUrl } from "../llm/api-url";
 import { sha256Hex } from "../util/hash";
@@ -24,7 +25,7 @@ export interface ClusterJobDeps {
   onStage?: (stage: string) => void | Promise<void>;
 }
 
-export type ClusterJobResult = { status: "skipped"; reason: "lease_held" | "ai_not_configured" } | { status: "done"; runId: number; communities: number; synthesisQueued: number };
+export type ClusterJobResult = { status: "skipped"; reason: "lease_held" | "ai_not_configured" | "ai_paused" } | { status: "done"; runId: number; communities: number; synthesisQueued: number };
 
 class LeaseLost extends Error {}
 
@@ -37,6 +38,7 @@ class LeaseLost extends Error {}
 export async function runClusterJob(env: ClusterEnv, deps: ClusterJobDeps = {}): Promise<ClusterJobResult> {
   const db = env.DB;
   const now = deps.now ?? Math.floor(Date.now() / 1000);
+  if (await aiPaused(db)) return { status: "skipped", reason: "ai_paused" };
   const settings = await getAiSettings(db);
   const provider = embeddingProvider(settings);
   if (!settings.enabled || !provider.endpoint || !provider.model || !provider.apiKey) return { status: "skipped", reason: "ai_not_configured" };
@@ -58,16 +60,21 @@ export async function runClusterJob(env: ClusterEnv, deps: ClusterJobDeps = {}):
     .first<{ id: number }>();
 
   let tokens = 0;
+  const embed = deps.embed ?? openAiEmbedder(provider, (count) => void (tokens += count));
   const ctx: JobContext = {
     env, db, runId: run!.id, holder, now, params, lastDoneRunStartedAt: lastDone?.at ?? 0,
     embeddingModel: cacheId,
-    embed: deps.embed ?? openAiEmbedder(provider, (count) => void (tokens += count)),
+    async embed(texts) {
+      if (await aiPaused(db)) throw new Error("AI processing paused");
+      return embed(texts);
+    },
   };
   const holdLease = async (where: string) => {
     if (!(await renewLease(db, CLUSTER_LEASE, holder, clock()))) throw new LeaseLost(`lease lost ${where}`);
   };
   const stage = async <T>(name: string, work: () => Promise<T>): Promise<T> => {
     // Checked before the stage writes anything, not only after it.
+    if (await aiPaused(db)) throw new Error("AI processing paused");
     await holdLease(`before ${name}`);
     await db.prepare("UPDATE cluster_runs SET stage = ?, heartbeat_at = ? WHERE id = ?").bind(name, clock(), ctx.runId).run();
     await deps.onStage?.(name);

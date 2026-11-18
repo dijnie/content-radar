@@ -55,6 +55,7 @@ export const settingsSchema = z.strictObject({
   synthesis_reserved_share: z.number().min(0).max(1),
   backfill_max_share: z.number().min(0).max(1),
   display_timezone: z.string().min(1),
+  llm_unlimited: z.boolean().optional(),
   llm_safe_default_rpm: z.int().min(1),
   llm_safe_default_rpd: z.int().min(1),
   filter_languages: z.array(z.string().length(2)).min(1),

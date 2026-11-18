@@ -68,6 +68,7 @@ describe("provider availability does not poison queued articles", () => {
   });
 
   it("plans backlog against the configured model's budget, preserving disabled models and usage", async () => {
+    await env.DB.prepare("UPDATE settings SET value_json = 'false' WHERE key = 'llm_unlimited'").run();
     const model = "vendor/backlog-model";
     await seedAi(env.DB, { model });
     await listEnabledModels(env.DB, model);

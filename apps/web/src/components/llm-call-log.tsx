@@ -1,3 +1,4 @@
+import { OperatorAction } from "./operator-action";
 import { useState } from "react";
 import { useResource } from "../hooks/use-resource";
 
@@ -17,7 +18,7 @@ function CallRows({ path, timeZone, onOlder, onNewer }: {
     {!data && !error && <p role="status">Loading calls…</p>}
     {data && (!data.calls.length ? <p>No calls recorded for this Pacific day.</p> : <div className="table-scroll">
       <table aria-label="AI calls">
-        <thead><tr><th>Started ({timeZone})</th><th>Task</th><th>Result</th><th>Duration</th><th>Batch size</th><th>Claims accepted</th><th>Tokens in / out</th></tr></thead>
+        <thead><tr><th>Started ({timeZone})</th><th>Task</th><th>Result</th><th>Duration</th><th>Batch size</th><th>Claims accepted</th><th>Tokens in / out</th><th>Action</th></tr></thead>
         <tbody>{data.calls.map((call) => <tr key={call.id}>
           <td><time dateTime={new Date(call.at * 1000).toISOString()}>{time.format(call.at * 1000)}</time></td>
           <td>{call.kind}</td>
@@ -25,6 +26,9 @@ function CallRows({ path, timeZone, onOlder, onNewer }: {
           <td>{call.latencyMs === null ? "—" : `${(call.latencyMs / 1000).toFixed(1)}s`}</td>
           <td>{call.subjects ?? "—"}</td><td>{call.claimsAccepted ?? "—"}</td>
           <td>{call.tokensIn ?? "—"} / {call.tokensOut ?? "—"}</td>
+          <td>{call.status === "running" ? <OperatorAction label="Stop request" body={{ action: "stop_call", id: call.id }} refresh={reload} />
+            : ["extract", "extract_backfill"].includes(call.kind) && !["ok", "processing"].includes(call.status)
+              ? <OperatorAction label="Retry batch" body={{ action: "retry", id: call.id }} refresh={reload} /> : "—"}</td>
         </tr>)}</tbody>
       </table>
     </div>)}

@@ -5,6 +5,7 @@ import { reserve, type BudgetSettings, type Reservation, type ReserveFailure } f
 export async function loadBudgetSettings(db: D1Database): Promise<BudgetSettings> {
   const settings = await getAllSettings(db);
   return {
+    unlimited: settings.llm_unlimited === true,
     safeDefaultRpm: (settings.llm_safe_default_rpm as number | undefined) ?? 5,
     safeDefaultRpd: (settings.llm_safe_default_rpd as number | undefined) ?? 20,
     synthesisReservedShare: (settings.synthesis_reserved_share as number | undefined) ?? 0.2,

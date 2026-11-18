@@ -30,7 +30,7 @@ export interface LlmCallInput {
 }
 
 /** Resolve the configured model consistently for consumers, planners and status.
- * New custom models keep the existing 5/minute, 100/day application caps.
+ * The stored quotas apply only when the operator explicitly enables metered mode.
  * Existing limits, disabled state, cooldowns and historical usage are preserved.
  */
 export async function listEnabledModels(db: D1Database, configuredModel?: string | null): Promise<LlmModelRow[]> {

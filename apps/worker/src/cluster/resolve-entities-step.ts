@@ -98,7 +98,7 @@ export async function resolveEntitiesStep(ctx: JobContext): Promise<{ resolved: 
   for (const model of await listEnabledModels(db)) calls += await reservedRemainingToday(db, model, now, settings);
   const { results: pending } = await db
     .prepare("SELECT id FROM entity_adjudications WHERE status = 'pending' ORDER BY id LIMIT ?")
-    .bind(Math.max(0, calls) * ADJUDICATIONS_PER_MESSAGE)
+    .bind(Number.isFinite(calls) ? Math.max(0, calls) * ADJUDICATIONS_PER_MESSAGE : -1)
     .all<{ id: number }>();
   // Ledger first: rows are marked queued, then the wake-ups go out in groups of twenty.
   for (let start = 0; start < pending.length; start += ADJUDICATIONS_PER_MESSAGE) {

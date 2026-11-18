@@ -12,6 +12,7 @@ export interface LlmRequest {
   endpoint: string;
   fetcher?: typeof fetch;
   timeoutMs?: number;
+  signal?: AbortSignal;
 }
 
 interface Usage { tokensIn: number; tokensOut: number }
@@ -57,7 +58,9 @@ export async function generateJson(request: LlmRequest): Promise<LlmResult> {
       response_format: { type: "json_object" },
       temperature: 0, max_tokens: MAX_OUTPUT_TOKENS, stream: false,
     };
-    const signal = AbortSignal.timeout(request.timeoutMs ?? 60_000);
+    const deadline = AbortSignal.timeout(request.timeoutMs ?? 60_000);
+    const signal = request.signal ? AbortSignal.any([deadline, request.signal]) : deadline;
+    signal.throwIfAborted();
     response = await (request.fetcher ?? fetch)(endpoint.toString(), {
       method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${request.apiKey.trim()}` },
       // Workers supports manual/follow redirects. Never follow a provider

@@ -1,24 +1,25 @@
+import { OperatorAction } from "./operator-action";
 import { useState } from "react";
 import { useResource } from "../hooks/use-resource";
 import { LlmCallLog } from "./llm-call-log";
 import { formatTime } from "./story-card";
 
 interface SourceRow { id: number; type: string; label: string; collection: string | null; enabled: number; lastOkAt: number | null; lastError: string | null; consecutiveFailures: number; itemsLastPoll: number }
-interface ModelRow { model: string; rpd: number; rpm: number; limitsAreDefaults: boolean; exhaustedUntil: number | null }
+interface ModelRow { model: string; rpd: number | null; rpm: number | null; limitsAreDefaults: boolean; exhaustedUntil: number | null }
 interface UsageRow { model: string; kind: string; requests: number }
 interface RunRow { id: number; startedAt: number; status: string; stage: string | null; claims: number | null; communities: number | null; error: string | null }
 interface BacklogRow { ingestMode: string; queued: number; oldestQueuedAt: number | null; maxAttempts: number }
 interface Status {
   itemsByStatus: { status: string; n: number }[];
   now: number; pacificDay: string; sources: SourceRow[]; backlog: BacklogRow[];
-  llm: { models: ModelRow[]; usageToday: UsageRow[]; circuitOpenUntil: number | null };
+  llm: { paused: boolean; unlimited: boolean; models: ModelRow[]; usageToday: UsageRow[]; circuitOpenUntil: number | null };
   clusterRuns: RunRow[]; cards: { alive: number; fallbackHeadlines: number | null; ready: number | null; lead: number | null };
 }
 
 const ago = (now: number, at: number | null) => (at === null ? "never" : now - at < 3600 ? `${Math.max(1, Math.round((now - at) / 60))} min ago` : now - at < 86_400 ? `${Math.round((now - at) / 3600)} h ago` : `${Math.round((now - at) / 86_400)} d ago`);
 
 export function StatusPage({ timeZone }: { timeZone: string }) {
-  const { data: status, error } = useResource<Status>("/api/status", 15000);
+  const { data: status, error, reload } = useResource<Status>("/api/status", 15000);
   const [collection, setCollection] = useState("");
   if (error) return <p className="notice notice--error" role="alert">Could not load the system status: {error}</p>;
   if (!status) return <p className="notice" role="status">Loading system status…</p>;
@@ -40,7 +41,11 @@ export function StatusPage({ timeZone }: { timeZone: string }) {
       </section>
 
       <section className="panel">
-        <h2>AI app budget, Pacific day {status.pacificDay}</h2>
+        <h2>AI usage · Pacific day {status.pacificDay}</h2>
+        <div className="operator-controls">
+          <OperatorAction label={status.llm.paused ? "Resume AI" : "Pause AI"} body={{ action: status.llm.paused ? "resume" : "pause" }} refresh={reload} />
+          {status.llm.paused && <span>AI processing paused</span>}
+        </div>
         {status.llm.models.map((model) => {
           const used = status.llm.usageToday.filter((row) => row.model === model.model);
           const total = used.reduce((sum, row) => sum + row.requests, 0);
@@ -48,11 +53,12 @@ export function StatusPage({ timeZone }: { timeZone: string }) {
             <div className="budget" key={model.model}>
               <div className="budget-head">
                 <span className="mono">{model.model}</span>
-                <span>{total} / {model.rpd} requests{model.limitsAreDefaults ? " (safe default)" : ""}{model.exhaustedUntil && model.exhaustedUntil > status.now ? " · parked" : ""}</span>
+                <span>{total}{status.llm.unlimited ? " requests · No app limit" : ` / ${model.rpd} requests`}{!status.llm.unlimited && model.limitsAreDefaults ? " (safe default)" : ""}{model.exhaustedUntil && model.exhaustedUntil > status.now ? " · parked" : ""}</span>
               </div>
-              <progress value={Math.min(total, model.rpd)} max={Math.max(1, model.rpd)} aria-label={`${model.model} requests used today`} />
+              {model.rpd != null && <progress value={Math.min(total, model.rpd)} max={Math.max(1, model.rpd)} aria-label={`${model.model} requests used today`} />}
+              {!status.llm.paused && <OperatorAction label="Retry pending" body={{ action: "retry", model: model.model }} refresh={reload} />}
               <LlmCallLog key={status.pacificDay} model={model.model} timeZone={timeZone}
-                usage={used.length === 0 ? "0 budgeted requests" : used.map((row) => `${row.kind} ${row.requests}`).join(" · ")} />
+                usage={used.length === 0 ? "0 requests" : used.map((row) => `${row.kind} ${row.requests}`).join(" · ")} />
             </div>
           );
         })}

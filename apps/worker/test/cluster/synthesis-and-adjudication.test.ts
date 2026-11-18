@@ -52,6 +52,7 @@ const ctxAt = (now: number): JobContext => ({ env: clusterEnv, embeddingModel: "
 
 describe("synthesis", () => {
   it("keeps a story eligible for synthesis when quota waits outlast queue retries", async () => {
+    await env.DB.prepare("UPDATE settings SET value_json = 'false' WHERE key = 'llm_unlimited'").run();
     await seedClaims(env.DB, [{ tag: "S1", publishedAt: T0 - HOUR }, { tag: "S1", publishedAt: T0 - 2 * HOUR }]);
     await runClusterJob(clusterEnv, { now: T0, embed: fakeEmbedder().embed });
     const messages = llm.sent.splice(0);
@@ -120,6 +121,7 @@ describe("synthesis", () => {
   });
 
   it("gives a two-hour-old story a slot even when bigger stories outscore it", async () => {
+    await env.DB.prepare("UPDATE settings SET value_json = 'false' WHERE key = 'llm_unlimited'").run();
     await env.DB.prepare("UPDATE llm_models SET rpd = 0").run();
     await env.DB.prepare("UPDATE llm_models SET rpd = 15 WHERE model = 'deepseek-flash'").run(); // 3 synthesis slots today
     const insert = env.DB.prepare("INSERT INTO stories (headline_vi, score, first_seen_at, last_claim_at, members_hash, alive) VALUES ('h', ?, ?, ?, ?, 1) RETURNING id");
@@ -135,6 +137,7 @@ describe("synthesis", () => {
   });
 
   it("queues nothing when the reserved share is used up, even if extraction budget remains", async () => {
+    await env.DB.prepare("UPDATE settings SET value_json = 'false' WHERE key = 'llm_unlimited'").run();
     await env.DB.prepare("INSERT INTO stories (headline_vi, score, first_seen_at, last_claim_at, members_hash, alive) VALUES ('h', 80, ?, ?, 'x', 1)").bind(T0, T0).run();
     await env.DB.prepare("UPDATE llm_models SET rpd = 0").run();
     await env.DB.prepare("UPDATE llm_models SET rpd = 10 WHERE model = 'deepseek-flash'").run(); // reserved share: 2

@@ -77,6 +77,7 @@ describe("editorial pages", () => {
       expect(screen.getByRole("status").textContent).toContain("Crawl #8 · running");
       const details = screen.getByText("crawl #8").closest("details")!;
       expect(details.open).toBe(true);
+      expect(screen.getByRole("button", { name: /Stop/ })).toBeTruthy();
       await act(async () => { await vi.advanceTimersByTimeAsync(1); });
       const log = screen.getByRole("region", { name: "Crawl #8 log" });
       expect(log.textContent).toContain("Polling Example feed");
@@ -86,6 +87,7 @@ describe("editorial pages", () => {
       await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
       expect(screen.getByRole("status").textContent).toContain("Crawl #8 · partial");
       expect(screen.getByRole("progressbar").getAttribute("value")).toBe("2");
+      expect(screen.queryByRole("button", { name: /Stop/ })).toBeNull();
       const lines = within(log).getAllByRole("listitem");
       expect(lines.map((line) => line.textContent?.split(" · ").at(-1))).toEqual(["partial", "12 new items", "not_found:http_404", "manual"]);
       expect(lines[1]?.querySelector("time")?.dateTime).toBe(new Date(1790000003000).toISOString());

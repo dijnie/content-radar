@@ -1,3 +1,4 @@
+import { handleAiControl } from "./ai-control-route";
 import type { Env } from "../env";
 import { handleAiSettings } from "./ai-settings-route";
 import { handleBackfill } from "./admin-backfill";
@@ -7,7 +8,7 @@ import { handleLlmCalls } from "./llm-calls-route";
 import { handleStatus } from "./status-route";
 import { handleStoryAction, handleStoryDetail, handleStoryList } from "./stories-routes";
 import { handleFeed, handleFeedDetail, handleFeedRead } from "./feeds-routes";
-import { handleFeedSchedule, handleJobDetail, handleJobs, handleStartCrawl, handleStartFeed } from "./jobs-routes";
+import { handleStopJob, handleFeedSchedule, handleJobDetail, handleJobs, handleStartCrawl, handleStartFeed } from "./jobs-routes";
 
 type Handler = (request: Request, env: Env, params: Record<string, string>) => Promise<Response>;
 
@@ -24,6 +25,7 @@ interface Route {
 export const ROUTES: readonly Route[] = [
   { method: "GET", pattern: /^\/api\/settings\/ai$/, handler: handleAiSettings },
   { method: "POST", pattern: /^\/api\/settings\/ai$/, handler: handleAiSettings },
+  { method: "POST", pattern: /^\/api\/jobs\/(?<kind>crawl|news|hands-on|deep-dives)\/(?<id>\d+)\/stop$/, handler: (req, env, p) => handleStopJob(req, env, p.kind!, Number(p.id)) },
   { method: "GET", pattern: /^\/api\/jobs$/, handler: (request, env) => handleJobs(request, env) },
   { method: "GET", pattern: /^\/api\/jobs\/(?<kind>crawl|news|hands-on|deep-dives)\/(?<id>\d{1,15})$/, handler: (_request, env, params) => handleJobDetail(env, params.kind!, Number(params.id)) },
   { method: "POST", pattern: /^\/api\/jobs\/crawls$/, handler: (_request, env) => handleStartCrawl(env) },
@@ -35,6 +37,7 @@ export const ROUTES: readonly Route[] = [
   { method: "GET", pattern: /^\/api\/stories$/, handler: (request, env) => handleStoryList(request, env) },
   { method: "GET", pattern: /^\/api\/stories\/(?<id>\d{1,15})$/, handler: (_request, env, params) => handleStoryDetail(env, Number(params.id)) },
   { method: "POST", pattern: /^\/api\/stories\/(?<id>\d{1,15})\/action$/, handler: (request, env, params) => handleStoryAction(request, env, Number(params.id)) },
+  { method: "POST", pattern: /^\/api\/status\/ai-control$/, handler: (req, env) => handleAiControl(req, env) },
   { method: "GET", pattern: /^\/api\/status\/llm-calls$/, handler: (request, env) => handleLlmCalls(request, env) },
   { method: "GET", pattern: /^\/api\/status$/, handler: (_request, env) => handleStatus(env) },
   { method: "GET", pattern: /^\/api\/admin\/probe$/, handler: (request, env) => handleProbe(request, env) },

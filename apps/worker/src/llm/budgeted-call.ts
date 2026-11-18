@@ -1,5 +1,5 @@
 import { getAiSettings, selectedChatModel } from "../db/ai-settings";
-import { insertLlmCall, type LlmCallInput, type LlmKind } from "../db/llm-repo";
+import { finishLlmCall, insertLlmCall, type LlmCallInput, type LlmKind } from "../db/llm-repo";
 import type { Env } from "../env";
 import { commit, markRateLimited, release, restOverloaded } from "./budget-ledger";
 import { circuitOpenUntil, pauseCircuit, recordFailure, recordSuccess } from "./circuit-breaker";
@@ -24,7 +24,7 @@ export interface BudgetedRequest {
 }
 
 export type BudgetedResult =
-  | { status: "ok"; data: unknown; model: string; log: LlmCallInput }
+  | { status: "ok"; data: unknown; model: string; logId: number; log: LlmCallInput }
   /** Short wait: a per-minute limit or a transient failure. */
   | { status: "retry"; delaySeconds: number }
   /** Leave work in D1 for the next scheduler run: no budget, open circuit or prolonged unavailability. */
@@ -42,8 +42,8 @@ const MAX_AVAILABILITY_RETRIES = 4;
  * Actual paid usage is recorded separately in token counts returned by the provider.
  */
 export async function budgetedCall(env: LlmEnv, request: BudgetedRequest, deps: LlmDeps = {}, attempt = 0): Promise<BudgetedResult> {
-  const now = deps.now ?? Math.floor(Date.now() / 1000);
-  if ((await circuitOpenUntil(env.DB, now)) !== null) return { status: "park" };
+  const clock = () => deps.now ?? Math.floor(Date.now() / 1000);
+  if ((await circuitOpenUntil(env.DB, clock())) !== null) return { status: "park" };
   const settings = await loadBudgetSettings(env.DB);
   const provider = await getAiSettings(env.DB);
   const modelSelection = selectedChatModel(provider);
@@ -56,6 +56,7 @@ export async function budgetedCall(env: LlmEnv, request: BudgetedRequest, deps: 
   const parkForAvailability = attempt >= MAX_AVAILABILITY_RETRIES;
 
   for (;;) {
+    const now = clock();
     const chain = await reserveOnChain(env.DB, request.kind, now, settings, tried, modelSelection);
     if (!chain.ok) {
       // Only on the call that saw the errors itself. A later call that merely finds the models resting waits quietly.
@@ -68,20 +69,28 @@ export async function budgetedCall(env: LlmEnv, request: BudgetedRequest, deps: 
     }
     const { model, reservation } = chain;
 
+    const started: LlmCallInput = { at: now, model: model.model, kind: request.kind, promptVersion: request.promptVersion, status: "running", itemIds: request.subjectIds };
+    let logId: number;
+    try {
+      logId = await insertLlmCall(env.DB, started);
+    } catch (error) {
+      await release(env.DB, reservation);
+      throw error;
+    }
     const result = await generateJson({
       apiKey: provider.chat_key, endpoint: provider.chat_endpoint, model: model.model, system: request.system, user: request.user, schema: request.schema,
       ...(deps.fetcher ? { fetcher: deps.fetcher } : {}),
     });
-    const log: LlmCallInput = { at: now, model: model.model, kind: request.kind, promptVersion: request.promptVersion, status: "ok", httpStatus: result.httpStatus, latencyMs: result.latencyMs, itemIds: request.subjectIds };
+    const log: LlmCallInput = { ...started, status: "ok", httpStatus: result.httpStatus, latencyMs: result.latencyMs };
 
     if (result.ok) {
       await commit(env.DB, reservation, result.tokensIn, result.tokensOut);
       await recordSuccess(env.DB);
-      return { status: "ok", data: result.data, model: model.model, log: { ...log, tokensIn: result.tokensIn, tokensOut: result.tokensOut } };
+      return { status: "ok", data: result.data, model: model.model, logId, log: { ...log, tokensIn: result.tokensIn, tokensOut: result.tokensOut } };
     }
 
     await (result.reached ? commit(env.DB, reservation, result.tokensIn, result.tokensOut) : release(env.DB, reservation));
-    await insertLlmCall(env.DB, { ...log, status: result.kind, error: result.message, tokensIn: result.tokensIn, tokensOut: result.tokensOut });
+    await finishLlmCall(env.DB, logId, { ...log, status: result.kind, error: result.message, tokensIn: result.tokensIn, tokensOut: result.tokensOut });
     if (result.kind === "configuration_error" || result.kind === "insufficient_balance") {
       await pauseCircuit(env.DB, result.kind, now);
       return { status: "park" };

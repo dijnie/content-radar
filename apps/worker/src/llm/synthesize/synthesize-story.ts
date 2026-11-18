@@ -1,7 +1,7 @@
 import { resolveParams, scoreFromSubscores, type Subscores } from "@radar/core";
 import { membersHash } from "../../cluster/lineage-step";
 import { chunkedBatch } from "../../db/batch";
-import { insertLlmCall } from "../../db/llm-repo";
+import { finishLlmCall } from "../../db/llm-repo";
 import { getSetting } from "../../db/settings-repo";
 import { budgetedCall, type BudgetedResult, type LlmDeps, type LlmEnv } from "../budgeted-call";
 import { SYNTHESIZE_PROMPT_VERSION, SYNTHESIZE_SYSTEM_PROMPT, synthesizeUserPrompt, type SynthesisClaim } from "./synthesize-prompt";
@@ -43,16 +43,16 @@ export async function synthesizeStory(env: LlmEnv, storyId: number, deps: LlmDep
   const call = await budgetedCall(
     env,
     { kind: "synthesize", promptVersion: SYNTHESIZE_PROMPT_VERSION, system: SYNTHESIZE_SYSTEM_PROMPT, user: synthesizeUserPrompt(sent), schema: SYNTHESIZE_JSON_SCHEMA, subjectIds: [storyId] },
-    { ...deps, now },
+    deps,
     attempt,
   );
   if (call.status !== "ok") return call;
   const parsed = synthesizeResponseSchema.safeParse(call.data);
   if (!parsed.success) {
-    await insertLlmCall(db, { ...call.log, status: "invalid_output", error: "response did not match the schema" });
+    await finishLlmCall(db, call.logId, { ...call.log, status: "invalid_output", error: "response did not match the schema" });
     return { status: "rejected" };
   }
-  await insertLlmCall(db, call.log);
+  await finishLlmCall(db, call.logId, call.log);
 
   // Roles apply only to claims that were sent; an id the model invented is ignored, not fatal.
   const sentIds = new Set(sent.map((claim) => claim.claimId));

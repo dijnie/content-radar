@@ -2,7 +2,7 @@ import { normalizeEntity } from "@radar/core";
 import { insertClaim, insertMentions, type ClaimInput, type MentionInput } from "../../db/claims-repo";
 import { chunkedBatch } from "../../db/batch";
 import { type ItemRow } from "../../db/items-repo";
-import { insertLlmCall, type LlmKind } from "../../db/llm-repo";
+import { finishLlmCall, type LlmKind } from "../../db/llm-repo";
 import { TEXT_EXCERPT_MAX } from "../../sources/source-adapter";
 import { sha256Hex } from "../../util/hash";
 import { budgetedCall, type LlmDeps, type LlmEnv } from "../budgeted-call";
@@ -110,7 +110,7 @@ export async function extractBatch(env: LlmEnv, items: ItemRow[], kind: Extract<
   const call = await budgetedCall(
     env,
     { kind, promptVersion: EXTRACT_PROMPT_VERSION, system: extractSystemPrompt(topics), user: extractUserPrompt(promptItems), schema: EXTRACT_JSON_SCHEMA, subjectIds: itemIds },
-    { ...deps, now },
+    deps,
     attempt,
   );
   // Only a call that reached LLM counts against the item; a parked or postponed batch costs it nothing.
@@ -122,7 +122,7 @@ export async function extractBatch(env: LlmEnv, items: ItemRow[], kind: Extract<
 
   const parsed = extractResponseSchema.safeParse(call.data);
   if (!parsed.success) {
-    await insertLlmCall(env.DB, { ...call.log, status: "invalid_output", error: "response did not match the schema" });
+    await finishLlmCall(env.DB, call.logId, { ...call.log, status: "invalid_output", error: "response did not match the schema" });
     return splitAndRetry(env, prepared, kind, deps, attempt);
   }
   const byId = new Map(prepared.map((entry) => [entry.item.id, entry]));
@@ -143,7 +143,7 @@ export async function extractBatch(env: LlmEnv, items: ItemRow[], kind: Extract<
 
   const returned = outcomes.reduce((sum, outcome) => sum + outcome.returned, 0);
   const acceptedCount = outcomes.reduce((sum, outcome) => sum + outcome.accepted.length, 0);
-  const llmCallId = await insertLlmCall(env.DB, { ...call.log, claimsReturned: returned, claimsAccepted: acceptedCount, rejectReasons: rejected });
+  await finishLlmCall(env.DB, call.logId, { ...call.log, claimsReturned: returned, claimsAccepted: acceptedCount, rejectReasons: rejected });
 
   const done: number[] = [];
   // One db.batch per item, on purpose: insertMentions dedupes by counting the claim's mentions, which is only
@@ -151,7 +151,7 @@ export async function extractBatch(env: LlmEnv, items: ItemRow[], kind: Extract<
   for (const outcome of outcomes) {
     const { item } = outcome.prepared;
     await env.DB.batch([
-      ...outcome.accepted.flatMap(({ claim, mentions }) => [insertClaim(env.DB, { ...claim, llmCallId }, item.content_hash), ...insertMentions(env.DB, item.id, claim.contentHash, mentions, item.content_hash)]),
+      ...outcome.accepted.flatMap(({ claim, mentions }) => [insertClaim(env.DB, { ...claim, llmCallId: call.logId }, item.content_hash), ...insertMentions(env.DB, item.id, claim.contentHash, mentions, item.content_hash)]),
       ...(outcome.editorial ? [env.DB.prepare(`INSERT INTO item_editorial (item_id, content_hash, category, pillar, summary_vi, question_vi, model, updated_at)
         SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8 FROM items WHERE id = ?1 AND content_hash = ?2
         ON CONFLICT(item_id) DO UPDATE SET content_hash = excluded.content_hash,

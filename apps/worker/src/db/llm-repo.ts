@@ -63,3 +63,12 @@ export async function insertLlmCall(db: D1Database, call: LlmCallInput): Promise
   if (!row) throw new Error("could not record llm call");
   return row.id;
 }
+
+/** Finalize the same attempt that was visible while the provider was running. */
+export async function finishLlmCall(db: D1Database, id: number, call: LlmCallInput): Promise<void> {
+  await db.prepare(`UPDATE llm_calls SET status = ?, http_status = ?, latency_ms = ?, tokens_in = ?, tokens_out = ?,
+    claims_returned = ?, claims_accepted = ?, reject_reasons_json = ?, error = ? WHERE id = ?`)
+    .bind(call.status, call.httpStatus ?? null, call.latencyMs ?? null, call.tokensIn ?? null, call.tokensOut ?? null,
+      call.claimsReturned ?? null, call.claimsAccepted ?? null, call.rejectReasons ? JSON.stringify(call.rejectReasons) : null,
+      call.error ?? null, id).run();
+}

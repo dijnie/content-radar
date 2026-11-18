@@ -112,7 +112,10 @@ main:focus { outline: none; }
 .budget + .budget { margin-top: 16px; }
 .budget-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 0.93rem; }
 .budget progress { width: 100%; height: 8px; margin-top: 6px; accent-color: var(--green); }
-.budget-kinds { font: 400 0.82rem var(--mono); color: var(--text-muted); }
+.llm-call-log > summary { width: fit-content; cursor: pointer; font: 400 0.86rem var(--mono); padding: 0.3rem 0; }
+.llm-call-log .table-scroll { max-height: 22rem; margin-top: 0.4rem; }
+.llm-call-log td { white-space: nowrap; }
+.llm-call-log .text-button { margin-right: 1rem; }
 .table-scroll { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
 th, td { padding: 8px 12px 8px 0; text-align: left; vertical-align: top; border-bottom: 1px solid var(--border); }

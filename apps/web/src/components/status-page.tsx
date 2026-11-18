@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useResource } from "../hooks/use-resource";
+import { LlmCallLog } from "./llm-call-log";
 import { formatTime } from "./story-card";
 
 interface SourceRow { id: number; type: string; label: string; collection: string | null; enabled: number; lastOkAt: number | null; lastError: string | null; consecutiveFailures: number; itemsLastPoll: number }
@@ -50,7 +51,8 @@ export function StatusPage({ timeZone }: { timeZone: string }) {
                 <span>{total} / {model.rpd} requests{model.limitsAreDefaults ? " (safe default)" : ""}{model.exhaustedUntil && model.exhaustedUntil > status.now ? " · parked" : ""}</span>
               </div>
               <progress value={Math.min(total, model.rpd)} max={Math.max(1, model.rpd)} aria-label={`${model.model} requests used today`} />
-              <p className="budget-kinds">{used.length === 0 ? "no calls today" : used.map((row) => `${row.kind} ${row.requests}`).join(" · ")}</p>
+              <LlmCallLog key={status.pacificDay} model={model.model} timeZone={timeZone}
+                usage={used.length === 0 ? "0 budgeted requests" : used.map((row) => `${row.kind} ${row.requests}`).join(" · ")} />
             </div>
           );
         })}

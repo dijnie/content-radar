@@ -28,6 +28,7 @@ describe("public access without Access secrets or login", () => {
     ["GET", "/api/stories/987654", 404],
     ["POST", "/api/stories/987654/action", 400],
     ["GET", "/api/status", 200],
+    ["GET", "/api/status/llm-calls", 400],
     ["GET", "/api/admin/probe", 400],
     ["POST", "/api/admin/backfill", 400],
   ] as const;

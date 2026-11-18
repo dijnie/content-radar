@@ -1,5 +1,5 @@
 import { chunkForParams, placeholders } from "../../db/batch";
-import { insertLlmCall } from "../../db/llm-repo";
+import { finishLlmCall } from "../../db/llm-repo";
 import { budgetedCall, type BudgetedResult, type LlmDeps, type LlmEnv } from "../budgeted-call";
 import { ADJUDICATE_PROMPT_VERSION, ADJUDICATE_SYSTEM_PROMPT, adjudicateUserPrompt } from "./adjudicate-prompt";
 import { ADJUDICATE_JSON_SCHEMA, adjudicateResponseSchema } from "./adjudicate-schema";
@@ -72,7 +72,7 @@ export async function adjudicateEntities(env: LlmEnv, adjudicationIds: readonly 
     env,
     { kind: "adjudicate", promptVersion: ADJUDICATE_PROMPT_VERSION, system: ADJUDICATE_SYSTEM_PROMPT, schema: ADJUDICATE_JSON_SCHEMA, subjectIds: rows.map((row) => row.id),
       user: adjudicateUserPrompt(rows.map((row) => ({ id: row.id, mention: row.mention, candidate: row.candidate, candidateType: row.candidate_type }))) },
-    { ...deps, now },
+    deps,
     attempt,
   );
   if (call.status === "park") {
@@ -83,7 +83,7 @@ export async function adjudicateEntities(env: LlmEnv, adjudicationIds: readonly 
   if (call.status === "retry") return call;
 
   const parsed = call.status === "ok" ? adjudicateResponseSchema.safeParse(call.data) : null;
-  if (call.status === "ok") await insertLlmCall(db, { ...call.log, status: parsed?.success ? "ok" : "invalid_output" });
+  if (call.status === "ok") await finishLlmCall(db, call.logId, { ...call.log, status: parsed?.success ? "ok" : "invalid_output" });
   const verdicts = new Map((parsed?.success ? parsed.data.decisions : []).map((entry) => [entry.id, entry.decision]));
   // No usable verdict means no merge: keeping two entities apart is the reversible mistake.
   for (const row of rows) await applyDecision(db, row, verdicts.get(row.id) ?? "different", now);

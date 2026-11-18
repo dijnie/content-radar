@@ -30,6 +30,7 @@ describe("public access without Access secrets or login", () => {
     ["POST", "/api/stories/987654/action", 400],
     ["GET", "/api/status", 200],
     ["POST", "/api/status/ai-control", 401],
+    ["GET", "/api/status/llm-active", 200],
     ["GET", "/api/status/llm-calls", 400],
     ["GET", "/api/admin/probe", 400],
     ["POST", "/api/admin/backfill", 400],

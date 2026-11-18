@@ -24,6 +24,17 @@ export const STATUS_QUERIES = {
   pendingAdjudications: "SELECT status, COUNT(*) AS n FROM entity_adjudications WHERE status != 'decided' GROUP BY status",
 } as const;
 
+async function activeCalls(db: D1Database, now: number) {
+  const rows = await db.prepare(`SELECT id, at, model, kind, status,
+    CASE WHEN json_valid(item_ids_json) THEN json_array_length(item_ids_json) END AS subjects
+    FROM llm_calls WHERE at >= ? AND status IN ('running','processing') ORDER BY id DESC`).bind(now - 15 * 60).all();
+  return rows.results;
+}
+
+export async function handleActiveCalls({ DB }: Pick<Env, "DB">, now = nowSeconds()): Promise<Response> {
+  return Response.json({ now, activeCalls: await activeCalls(DB, now) }, { headers: { "Cache-Control": "no-store" } });
+}
+
 export async function handleStatus(env: Pick<Env, "DB">, now = nowSeconds()): Promise<Response> {
   const db = env.DB;
   const day = pacificDay(now);
@@ -34,11 +45,11 @@ export async function handleStatus(env: Pick<Env, "DB">, now = nowSeconds()): Pr
   }));
 
   return Response.json({
-    now, pacificDay: day,
+    now, pacificDay: day, timezone: (await getSetting<string>(db, "display_timezone")) ?? "UTC",
     sources: await all(STATUS_QUERIES.sources),
     backlog: await all(STATUS_QUERIES.backlog),
     itemsByStatus: await all(STATUS_QUERIES.itemsByStatus),
-    llm: { models, paused: (await getSetting<boolean>(db, "ai_processing_paused")) === true, unlimited: settings.unlimited, usageToday: await all(STATUS_QUERIES.usageToday, day), circuitOpenUntil: await circuitOpenUntil(db, now), reservedShare: settings.synthesisReservedShare },
+    llm: { models, activeCalls: await activeCalls(db, now), paused: (await getSetting<boolean>(db, "ai_processing_paused")) === true, unlimited: settings.unlimited, usageToday: await all(STATUS_QUERIES.usageToday, day), circuitOpenUntil: await circuitOpenUntil(db, now), reservedShare: settings.synthesisReservedShare },
     clusterRuns: await all(STATUS_QUERIES.lastRuns),
     cards: await db.prepare(STATUS_QUERIES.cards).first(),
     pendingAdjudications: await all(STATUS_QUERIES.pendingAdjudications),

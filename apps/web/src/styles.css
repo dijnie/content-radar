@@ -150,3 +150,15 @@ td { overflow-wrap: anywhere; }
 
 .operator-controls, .operator-action, .operator-action form { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
 .operator-action input { max-width: 12rem; }
+
+.operator-dialog { margin: auto; width: min(26rem, calc(100% - 2rem)); padding: 1.5rem; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius-card); box-shadow: 0 12px 48px #18231d24; }
+.operator-dialog::backdrop { background: #15201970; }
+.operator-dialog form, .operator-dialog label { display: grid; gap: 0.75rem; }
+.operator-dialog form { gap: 1rem; }
+.operator-dialog p { color: var(--text-body); }
+.operator-dialog input { font: inherit; border: 1px solid var(--border-strong); padding: 0.65rem; border-radius: 6px; width: 100%; min-width: 0; }
+.operator-dialog form > div { display: flex; justify-content: flex-end; gap: 0.6rem; }
+.operator-dialog [role="alert"] { color: var(--red); }
+.operator-receipt { position: fixed; z-index: 5; inset: auto 1rem 1rem auto; max-width: min(32rem, calc(100vw - 2rem)); background: var(--surface); border: 1px solid var(--green); color: var(--text); border-radius: 8px; padding: 0.75rem 0.875rem; box-shadow: 0 4px 16px #18231d24; display: flex; align-items: center; gap: 0.75rem; }
+.operator-receipt[role="alert"] { border-color: var(--red); }
+.operator-receipt button { color: var(--text); background: none; border: 0; font-size: 1.4rem; cursor: pointer; min-width: 2.25rem; min-height: 2.25rem; }

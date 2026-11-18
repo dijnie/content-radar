@@ -6,10 +6,11 @@ import { seedAi } from "../db/seed-ai";
 
 const model = "test/log-model";
 const now = Date.UTC(2026, 10, 1, 17, 30) / 1000; // Pacific fall-back day
-const read = async (before?: number) => {
+const read = async (before?: number, filter?: "failed" | "active") => {
   const url = new URL("https://radar.example.com/api/status/llm-calls");
   url.searchParams.set("model", model);
   if (before) url.searchParams.set("before", String(before));
+  if (filter) url.searchParams.set("filter", filter);
   return (await handleLlmCalls(new Request(url), env, now)).json() as Promise<{ calls: { id: number; status: string; httpStatus: number | null; reason: string | null }[]; nextBefore: number | null; day: string }>;
 };
 
@@ -59,5 +60,26 @@ describe("AI request log", () => {
     expect(older.calls[0]).toMatchObject({ status: "no_final_result" });
     expect(older.nextBefore).toBeNull();
     expect(JSON.stringify(older)).not.toContain("private detail");
+  });
+
+  it("filters the complete log before pagination, puts stale attempts under failed, and keeps stopped calls out", async () => {
+    const insert = (status: string, at: number) => env.DB.prepare(
+      "INSERT INTO llm_calls (at, model, kind, status, prompt_version) VALUES (?, ?, 'extract', ?, 1)"
+    ).bind(at, model, status);
+    await env.DB.batch([
+      insert("running", now - 901), insert("processing", now - 901),
+      ...Array.from({ length: 29 }, () => insert("transient", now - 30)),
+      insert("running", now - 120), insert("processing", now - 120),
+      ...Array.from({ length: 31 }, () => insert("ok", now)), insert("stopped", now),
+    ]);
+    const active = await read(undefined, "active");
+    expect(active.calls.map(call => call.status)).toEqual(["processing", "running"]);
+    expect(active.nextBefore).toBeNull();
+    const failed = await read(undefined, "failed");
+    expect(failed.calls.map(call => call.status)).toEqual([...Array<string>(29).fill("transient"), "no_final_result"]);
+    expect(failed.nextBefore).toBe(failed.calls.at(-1)?.id);
+    const older = await read(failed.nextBefore!, "failed");
+    expect(older.calls.map(call => call.status)).toEqual(["no_final_result"]);
+    expect(older.nextBefore).toBeNull();
   });
 });

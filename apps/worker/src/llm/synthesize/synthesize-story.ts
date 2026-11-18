@@ -23,7 +23,7 @@ export type SynthesisOutcome = Exclude<BudgetedResult, { status: "ok" }> | { sta
 export async function synthesizeStory(env: LlmEnv, storyId: number, deps: LlmDeps = {}, attempt = 0): Promise<SynthesisOutcome> {
   const now = deps.now ?? Math.floor(Date.now() / 1000);
   const db = env.DB;
-  const story = await db.prepare("SELECT id, alive, independent_sources, subscores_json FROM stories WHERE id = ?").bind(storyId).first<{ id: number; alive: number; independent_sources: number; subscores_json: string }>();
+  const story = await db.prepare("SELECT id, alive, independent_sources, subscores_json FROM stories WHERE id = ? AND synthesized_hash IS NOT members_hash").bind(storyId).first<{ id: number; alive: number; independent_sources: number; subscores_json: string }>();
   if (!story || story.alive !== 1) return { status: "skipped" };
 
   const { results: members } = await db

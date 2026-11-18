@@ -22,7 +22,10 @@ export function useResource<T>(path: string, pollMs = 0) {
     setState((old) => ({ ...old, loading: true, error: null }));
 
     let timer: number | undefined;
+    let reading = false;
     async function read() {
+      if (reading || controller.signal.aborted) return;
+      reading = true;
       try {
         const data = await request<T>(path, { signal: controller.signal });
         if (!controller.signal.aborted) setState({ data, loading: false, error: null });
@@ -35,11 +38,18 @@ export function useResource<T>(path: string, pollMs = 0) {
           }));
         }
       } finally {
-        if (pollMs && !controller.signal.aborted) timer = window.setTimeout(read, pollMs);
+        reading = false;
+        if (pollMs && !document.hidden && !controller.signal.aborted) timer = window.setTimeout(read, pollMs);
       }
     }
+    function visibilityChanged() {
+      window.clearTimeout(timer);
+      if (!document.hidden) void read();
+    }
+    if (pollMs) document.addEventListener("visibilitychange", visibilityChanged);
     void read();
     return () => {
+      if (pollMs) document.removeEventListener("visibilitychange", visibilityChanged);
       controller.abort();
       window.clearTimeout(timer);
     };

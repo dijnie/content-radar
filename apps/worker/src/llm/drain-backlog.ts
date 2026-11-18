@@ -21,7 +21,7 @@ const SEND_BATCH_SIZE = 100;
  * that priority, live items come before backfill, oldest first. An item is given up only after
  * 20 extraction calls really made for it, never for wake-ups that went nowhere.
  */
-export async function drainBacklog(env: Pick<Env, "DB" | "LLM_QUEUE">, now: number, manual = false, itemIds?: number[]): Promise<{ sent: number; failed: number }> {
+export async function drainBacklog(env: Pick<Env, "DB" | "LLM_QUEUE">, now: number, manual = false, itemIds?: number[], manualLimit = BATCH_SIZE): Promise<{ sent: number; failed: number; partial?: boolean }> {
   const configuredModel = selectedChatModel(await getAiSettings(env.DB));
   if (configuredModel === "" || await aiPaused(env.DB)) return { sent: 0, failed: 0 };
   const gaveUp = await env.DB
@@ -44,7 +44,7 @@ export async function drainBacklog(env: Pick<Env, "DB" | "LLM_QUEUE">, now: numb
   for (const mode of ["live", "backfill"] as const) {
     // Backfill draws on the shared extraction budget, so what live items took is no longer available to it.
     const requests = mode === "live" ? budget.extract : Math.min(budget.extract_backfill, budget.extract - Math.ceil(sent / BATCH_SIZE));
-    const limit = Math.min((manual ? BATCH_SIZE : MAX_ITEMS_PER_DRAIN) - sent, requests * BATCH_SIZE);
+    const limit = Math.min((manual ? manualLimit : MAX_ITEMS_PER_DRAIN) - sent, requests * BATCH_SIZE);
     if (limit <= 0) continue;
     // Claim each wake-up atomically so concurrent cron ticks cannot dispatch the same slice.
     const { results } = await env.DB.prepare(`UPDATE items SET queued_at = ? WHERE id IN (
@@ -58,8 +58,20 @@ export async function drainBacklog(env: Pick<Env, "DB" | "LLM_QUEUE">, now: numb
       .bind(now, mode, Number(manual), now - RESEND_AFTER_SECONDS, recentPending ? 1 : 0, since, itemIds ? JSON.stringify(itemIds) : null, itemIds ? JSON.stringify(itemIds) : null, now - 900, limit).all<{ id: number }>();
     if (!results.length) continue;
     const messages = results.map((row) => ({ body: { kind: "extract", itemId: row.id, ...(itemIds ? { operatorRetry: true } : {}), ...(mode === "backfill" ? { backfill: true } : {}) } satisfies LlmMessage }));
-    for (let start = 0; start < messages.length; start += SEND_BATCH_SIZE) await env.LLM_QUEUE.sendBatch(messages.slice(start, start + SEND_BATCH_SIZE));
-    sent += results.length;
+    for (let start = 0; start < messages.length; start += SEND_BATCH_SIZE) {
+      const chunk = messages.slice(start, start + SEND_BATCH_SIZE);
+      try {
+        await env.LLM_QUEUE.sendBatch(chunk);
+      } catch (error) {
+        // A later dispatch can pick up only the unconfirmed part of this claim.
+        const remaining = results.slice(start).map(row => row.id);
+        await env.DB.prepare(`UPDATE items SET queued_at = NULL WHERE status = 'queued' AND queued_at = ?
+          AND id IN (SELECT value FROM json_each(?))`).bind(now, JSON.stringify(remaining)).run();
+        if (manual && sent > 0) return { sent, failed, partial: true };
+        throw error;
+      }
+      sent += chunk.length;
+    }
   }
   return { sent, failed };
 }

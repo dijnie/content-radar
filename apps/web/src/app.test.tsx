@@ -84,6 +84,21 @@ describe("App", () => {
     await waitFor(() => expect(requests.at(-1)).toBe("GET /api/stories?tab=inbox&sort=newest&topic=backend"));
   });
 
+  it("opens AI controls from the main navigation without requesting the story feed", async () => {
+    window.history.replaceState(null, "", "/?view=status");
+    vi.stubGlobal("fetch", async (input: RequestInfo | URL) => {
+      const url = String(input);
+      requests.push(url);
+      if (url === "/api/status/llm-active") return Response.json({ now: 1, activeCalls: [] });
+      return Response.json({ now: 1, timezone: "UTC", pacificDay: "1970-01-01", sources: [], backlog: [],
+        itemsByStatus: [], cards: {}, clusterRuns: [], llm: { paused: false, models: [], activeCalls: [], usageToday: [] } });
+    });
+    render(<App />);
+    expect(screen.getByRole("link", { name: "Điều khiển AI" }).getAttribute("aria-current")).toBe("page");
+    await waitFor(() => expect(requests).toContain("/api/status"));
+    expect(requests.some(url => url.startsWith("/api/stories"))).toBe(false);
+  });
+
   it("round-trips filters through the URL and ignores junk", () => {
     const filters = parseFilters("?tab=saved&topic=ai&q=a%20b&sort=newest");
     expect(filters).toEqual({ tab: "saved", topic: "ai", q: "a b", sort: "newest", view: "stories" });

@@ -5,7 +5,7 @@ import { handleBackfill } from "./admin-backfill";
 import { handleProbe } from "./admin-probe";
 import { jsonError } from "./api-errors";
 import { handleLlmCalls } from "./llm-calls-route";
-import { handleStatus } from "./status-route";
+import { handleActiveCalls, handleStatus } from "./status-route";
 import { handleStoryAction, handleStoryDetail, handleStoryList } from "./stories-routes";
 import { handleFeed, handleFeedDetail, handleFeedRead } from "./feeds-routes";
 import { handleStopJob, handleFeedSchedule, handleJobDetail, handleJobs, handleStartCrawl, handleStartFeed } from "./jobs-routes";
@@ -38,6 +38,7 @@ export const ROUTES: readonly Route[] = [
   { method: "GET", pattern: /^\/api\/stories\/(?<id>\d{1,15})$/, handler: (_request, env, params) => handleStoryDetail(env, Number(params.id)) },
   { method: "POST", pattern: /^\/api\/stories\/(?<id>\d{1,15})\/action$/, handler: (request, env, params) => handleStoryAction(request, env, Number(params.id)) },
   { method: "POST", pattern: /^\/api\/status\/ai-control$/, handler: (req, env) => handleAiControl(req, env) },
+  { method: "GET", pattern: /^\/api\/status\/llm-active$/, handler: (_request, env) => handleActiveCalls(env) },
   { method: "GET", pattern: /^\/api\/status\/llm-calls$/, handler: (request, env) => handleLlmCalls(request, env) },
   { method: "GET", pattern: /^\/api\/status$/, handler: (_request, env) => handleStatus(env) },
   { method: "GET", pattern: /^\/api\/admin\/probe$/, handler: (request, env) => handleProbe(request, env) },

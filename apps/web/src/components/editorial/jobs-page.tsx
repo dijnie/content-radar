@@ -1,4 +1,4 @@
-import { OperatorAction } from "../operator-action";
+import { OperatorAction, OperatorLock } from "../operator-action";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { FeedKind, FeedSchedule, JobRow, JobsResponse } from "../../../../../packages/core/src/editorial-types";
 import { ApiError, request } from "../../api-client";
@@ -238,6 +238,7 @@ export function JobsPage() {
       <header className="jobs-header">
         <div>
           <h1 id="jobs-title">Jobs</h1>
+          <OperatorLock />
           <p>Crawling and feed building are separate jobs. A crawl stops after dedup; each feed is built from a finished crawl on its own schedule and can be re-run independently.</p>
         </div>
         <div className="jobs-filters">

@@ -1,10 +1,12 @@
 import { z } from "zod";
 import type { Env } from "../env";
 import { selectedChatModel, getAiSettings } from "../db/ai-settings";
-import { listEnabledModels } from "../db/llm-repo";
+import { listEnabledModels, type LlmKind } from "../db/llm-repo";
 import { setSetting } from "../db/settings-repo";
 import { aiPaused } from "../llm/call-control";
 import { circuitOpenUntil } from "../llm/circuit-breaker";
+import type { LlmMessage } from "../llm/messages";
+import { NEEDS_SYNTHESIS, RETRYABLE_ITEM_FAILURE } from "../llm/retry-eligibility";
 import { drainBacklog } from "../llm/drain-backlog";
 import { checkOperatorPassword } from "./operator-password";
 import { jsonError } from "./api-errors";
@@ -14,8 +16,28 @@ const actionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("pause") }),
   z.object({ action: z.literal("resume") }),
   z.object({ action: z.literal("stop_call"), id: callId }),
-  z.object({ action: z.literal("retry"), id: callId.optional(), model: z.string().max(2048).optional() }),
+  z.object({ action: z.literal("retry"), id: callId.optional(), limit: z.number().int().min(1).max(500).optional(), model: z.string().max(2048).optional() }),
 ]);
+
+async function retryLinkedTask(env: Env, kind: "synthesize" | "adjudicate", ids: number[], now: number) {
+  const db = env.DB;
+  let message: LlmMessage | undefined;
+  // The original call may have already been overtaken by a successful retry.
+  const notActive = `NOT EXISTS (SELECT 1 FROM llm_calls c, json_each(c.item_ids_json) j
+    WHERE c.kind = ? AND c.status IN ('running','processing') AND c.at >= ? AND j.value = subject.id)`;
+  if (kind === "synthesize") {
+    const story = await db.prepare(`SELECT id, members_hash FROM stories subject WHERE id = ? AND ${NEEDS_SYNTHESIS} AND ${notActive}`)
+      .bind(ids[0], kind, now - 900).first<{ id: number; members_hash: string }>();
+    if (story) message = { kind, storyId: story.id, membersHash: story.members_hash };
+  } else {
+    const pending = await db.prepare(`SELECT id FROM entity_adjudications subject WHERE id IN (SELECT value FROM json_each(?))
+      AND status != 'decided' AND ${notActive} ORDER BY id`).bind(JSON.stringify(ids), kind, now - 900).all<{ id: number }>();
+    if (pending.results.length) message = { kind, adjudicationIds: pending.results.map(row => row.id) };
+  }
+  if (!message) return Response.json({ status: "no_eligible_items", sent: 0 });
+  await env.LLM_QUEUE.sendBatch([{ body: message }]);
+  return Response.json({ status: "queued", kind, sent: message.kind === "adjudicate" ? message.adjudicationIds.length : 1 }, { status: 202 });
+}
 
 export async function handleAiControl(request: Request, env: Env, now = Math.floor(Date.now() / 1000)) {
   const denied = await checkOperatorPassword(request, env.PASSWORD);
@@ -46,25 +68,32 @@ export async function handleAiControl(request: Request, env: Env, now = Math.flo
     return Response.json({ status: "cooldown", until: until ?? models[0]?.exhausted_until });
   }
   let ids: number[] | undefined;
+  let kind: LlmKind | undefined;
   if (action.action === "retry" && action.id) {
-    const call = await db.prepare(`SELECT item_ids_json FROM llm_calls WHERE id = ? AND kind IN ('extract','extract_backfill')
-      AND status != 'ok' AND (status NOT IN ('running','processing') OR at < ?)`).bind(action.id, now - 900).first<{ item_ids_json: string | null }>();
+    const call = await db.prepare(`SELECT item_ids_json, kind FROM llm_calls WHERE id = ? AND json_valid(item_ids_json)
+      AND status != 'ok' AND (status NOT IN ('running','processing') OR at < ?)`).bind(action.id, now - 900).first<{ item_ids_json: string | null; kind: LlmKind }>();
     if (!call) return jsonError(409, "call_not_retryable");
     const items = z.array(callId).safeParse(JSON.parse(call.item_ids_json ?? "[]"));
     if (!items.success || !items.data.length) return jsonError(409, "call_not_retryable");
     ids = items.data;
+    kind = call.kind;
   }
-  const lock = await db.prepare(`INSERT INTO settings (key,value_json) VALUES ('ai_manual_retry',?)
+  const lockKey = action.action === "retry" && action.id ? `ai_manual_retry:${action.id}` : "ai_manual_retry";
+  if (ids) await db.prepare("DELETE FROM settings WHERE key GLOB 'ai_manual_retry:*' AND CAST(value_json AS INTEGER) <= ?").bind(now).run();
+  const lock = await db.prepare(`INSERT INTO settings (key,value_json) VALUES (?,?)
     ON CONFLICT(key) DO UPDATE SET value_json = excluded.value_json WHERE CAST(settings.value_json AS INTEGER) <= ?
-    RETURNING key`).bind(String(now + 15), now).first();
+    RETURNING key`).bind(lockKey, String(now + 15), now).first();
   if (!lock) return Response.json({ status: "already_requested" });
   try {
+    if (ids && (kind === "synthesize" || kind === "adjudicate")) {
+      return await retryLinkedTask(env, kind, ids, now);
+    }
     if (ids) await db.prepare(`UPDATE items SET status = 'queued', enqueue_attempts = 0, filter_reason = NULL WHERE status = 'failed'
-      AND filter_reason IN ('dead_letter','llm_rejected','enqueue_attempts_exceeded') AND id IN (SELECT value FROM json_each(?))`).bind(JSON.stringify(ids)).run();
-    const { sent } = await drainBacklog(env, now, true, ids);
-    return Response.json({ status: sent ? "queued" : "no_eligible_items", sent }, { status: sent ? 202 : 200 });
+      AND ${RETRYABLE_ITEM_FAILURE} AND id IN (SELECT value FROM json_each(?))`).bind(JSON.stringify(ids)).run();
+    const { sent, partial } = await drainBacklog(env, now, true, ids, action.action === "retry" && !ids ? action.limit : undefined);
+    return Response.json({ status: partial ? "partially_queued" : sent ? "queued" : "no_eligible_items", sent }, { status: sent ? 202 : 200 });
   } catch (error) {
-    await db.prepare("DELETE FROM settings WHERE key = 'ai_manual_retry' AND value_json = ?").bind(String(now + 15)).run();
+    await db.prepare("DELETE FROM settings WHERE key = ? AND value_json = ?").bind(lockKey, String(now + 15)).run();
     throw error;
   }
 }

@@ -17,8 +17,20 @@ describe("Jobs API", () => {
     const result = await handleJobs(new Request("https://radar.example.com/api/jobs?failures=1&days=7"), env, NOW + 2);
     const body = await result.json() as JobsResponse;
     expect(body.total).toBe(1);
-    expect(body.crawls[0]).toMatchObject({ id: run, sources: 1, failures: 1, status: "partial" });
+    expect(body.crawls[0]).toMatchObject({ id: run, sources: 1, sourcesProcessed: 1, sourcesRunning: 0, failures: 1, status: "partial" });
     expect(await (await handleJobDetail(env, "crawl", run)).json()).toMatchObject({ sources: [{ label: "Test source", error: "upstream timeout" }] });
+  });
+  it("counts active crawl members and distinguishes staged entries from published entries", async () => {
+    const crawl = (await env.DB.prepare("INSERT INTO crawl_runs (trigger, started_at) VALUES ('manual', ?) RETURNING id").bind(NOW).first<{ id: number }>())!.id;
+    for (const status of ["queued", "running", "failed", "ok"]) {
+      const source = (await env.DB.prepare("INSERT INTO sources (type, key, label) VALUES ('rss', ?, ?) RETURNING id").bind(status, status).first<{ id: number }>())!.id;
+      await env.DB.prepare("INSERT INTO crawl_sources (crawl_id, source_id, status) VALUES (?, ?, ?)").bind(crawl, source, status).run();
+    }
+    const feed = (await env.DB.prepare("INSERT INTO feed_runs (feed, crawl_id, trigger, started_at, status) VALUES ('news', ?, 'manual', ?, 'running') RETURNING id").bind(crawl, NOW).first<{ id: number }>())!.id;
+    await env.DB.prepare("INSERT INTO feed_entries VALUES (?, 'story:1', 'news', '', 60, ?, '', '{}')").bind(feed, NOW).run();
+    const body = await (await handleJobs(new Request("https://radar.example.com/api/jobs"), env, NOW)).json() as JobsResponse;
+    expect(body.crawls[0]).toMatchObject({ sources: 4, sourcesProcessed: 2, sourcesRunning: 1, failures: 1, stagedEntries: 0 });
+    expect(body.builds[0]).toMatchObject({ sources: 0, sourcesProcessed: 0, entries: 0, stagedEntries: 1 });
   });
   it("validates schedules and persists independent intervals", async () => {
     expect((await handleFeedSchedule(post({ enabled: true, intervalMinutes: 29 }), env, "news", NOW)).status).toBe(400);

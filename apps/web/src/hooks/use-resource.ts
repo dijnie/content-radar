@@ -21,31 +21,29 @@ export function useResource<T>(path: string, pollMs = 0) {
     const controller = new AbortController();
     setState((old) => ({ ...old, loading: true, error: null }));
 
-    request<T>(path, { signal: controller.signal })
-      .then((data) => {
+    let timer: number | undefined;
+    async function read() {
+      try {
+        const data = await request<T>(path, { signal: controller.signal });
+        if (!controller.signal.aborted) setState({ data, loading: false, error: null });
+      } catch (error) {
         if (!controller.signal.aborted) {
-          setState({ data, loading: false, error: null });
-        }
-      })
-      .catch((error: unknown) => {
-        if (!controller.signal.aborted) {
-          setState({
-            data: null,
+          setState((old) => ({
+            data: pollMs ? old.data : null,
             loading: false,
             error: error instanceof Error ? error.message : "Request failed",
-          });
+          }));
         }
-      });
-
-    return () => controller.abort();
-  }, [path, version]);
-
-  useEffect(() => {
-    if (!pollMs) return;
-
-    const timer = window.setInterval(reload, pollMs);
-    return () => window.clearInterval(timer);
-  }, [pollMs, reload]);
+      } finally {
+        if (pollMs && !controller.signal.aborted) timer = window.setTimeout(read, pollMs);
+      }
+    }
+    void read();
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [path, version, pollMs]);
 
   return { ...state, reload };
 }

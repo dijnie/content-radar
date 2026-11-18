@@ -27,5 +27,3 @@ export function postAction(storyId: number, action: StoryAction): Promise<{ id: 
   // JSON plus a same-origin request is exactly what the Worker's CSRF guard requires.
   return request(`/api/stories/${storyId}/action`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }) });
 }
-
-export const fetchStatus = (signal: AbortSignal): Promise<Record<string, unknown>> => request("/api/status", { signal });

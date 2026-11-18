@@ -11,24 +11,43 @@ const paramsSchema = z.object({
   failures: z.enum(["0", "1"]).default("0"),
   page: z.coerce.number().int().min(1).max(100000).default(1),
 });
-const JOBS_SQL = `SELECT r.id, 'crawl' AS kind, r.status, r.trigger, r.started_at AS startedAt, r.finished_at AS finishedAt,
-  NULL AS crawlId, (SELECT COUNT(*) FROM crawl_sources WHERE crawl_id = r.id) AS sources,
-  (SELECT COUNT(*) FROM crawl_sources WHERE crawl_id = r.id AND status = 'failed') AS failures,
-  (SELECT COUNT(*) FROM crawl_items WHERE crawl_id = r.id AND json_extract(snapshot_json, '$.kind') != 'article') AS posts,
-  (SELECT COUNT(*) FROM crawl_items WHERE crawl_id = r.id AND json_extract(snapshot_json, '$.kind') = 'article') AS articles,
-  COALESCE((SELECT SUM(items_new) FROM crawl_sources WHERE crawl_id = r.id), 0) AS itemsNew, 0 AS entries, NULL AS error FROM crawl_runs r
-  UNION ALL SELECT id, feed, status, trigger, started_at, finished_at, crawl_id, 0, 0, 0, 0, 0, item_count, error FROM feed_runs`;
+const FILTERED_JOBS = `SELECT * FROM (
+  SELECT id, 'crawl' AS kind, status, trigger, started_at AS startedAt, finished_at AS finishedAt,
+    NULL AS crawlId, 0 AS entries, NULL AS error FROM crawl_runs
+  UNION ALL
+  SELECT id, feed, status, trigger, started_at, finished_at, crawl_id, item_count, error FROM feed_runs
+) WHERE startedAt >= ? AND (? = 0 OR status IN ('partial', 'failed'))`;
+
+const PAGE_SQL = `WITH page AS (
+    ${FILTERED_JOBS} ORDER BY startedAt DESC, kind, id DESC LIMIT ? OFFSET ?
+  ), source_counts AS (
+    SELECT crawl_id, COUNT(*) AS sources, SUM(status IN ('ok', 'failed')) AS processed,
+      SUM(status = 'running') AS running, SUM(status = 'failed') AS failures, SUM(items_new) AS itemsNew
+    FROM crawl_sources WHERE crawl_id IN (SELECT id FROM page WHERE kind = 'crawl') GROUP BY crawl_id
+  ), item_counts AS (
+    SELECT crawl_id, SUM(json_extract(snapshot_json, '$.kind') != 'article') AS posts,
+      SUM(json_extract(snapshot_json, '$.kind') = 'article') AS articles
+    FROM crawl_items WHERE crawl_id IN (SELECT id FROM page WHERE kind = 'crawl') GROUP BY crawl_id
+  )
+  SELECT p.*, COALESCE(s.sources, 0) AS sources, COALESCE(s.processed, 0) AS sourcesProcessed,
+    COALESCE(s.running, 0) AS sourcesRunning, COALESCE(s.failures, 0) AS failures, COALESCE(s.itemsNew, 0) AS itemsNew,
+    COALESCE(i.posts, 0) AS posts, COALESCE(i.articles, 0) AS articles,
+    CASE WHEN p.kind != 'crawl' AND p.status = 'running' THEN (SELECT COUNT(*) FROM feed_entries WHERE run_id = p.id)
+      ELSE 0 END AS stagedEntries
+  FROM page p
+  LEFT JOIN source_counts s ON p.kind = 'crawl' AND s.crawl_id = p.id
+  LEFT JOIN item_counts i ON p.kind = 'crawl' AND i.crawl_id = p.id
+  ORDER BY p.startedAt DESC, p.kind, p.id DESC`;
 
 export async function handleJobs(request: Request, env: Env, now = Math.floor(Date.now() / 1000)): Promise<Response> {
   const parsed = paramsSchema.safeParse(Object.fromEntries(new URL(request.url).searchParams));
   if (!parsed.success) return jsonError(400, "invalid_job_filters");
   const { days, failures, page } = parsed.data;
   const pageSize = 30;
-  const where = "startedAt >= ? AND (? = 0 OR status IN ('partial', 'failed'))";
   const bindings = [now - days * 86400, Number(failures)];
   const [list, total, schedules, timezone] = await Promise.all([
-    env.DB.prepare(`SELECT * FROM (${JOBS_SQL}) WHERE ${where} ORDER BY startedAt DESC, kind, id DESC LIMIT ? OFFSET ?`).bind(...bindings, pageSize, (page - 1) * pageSize).all<JobRow>(),
-    env.DB.prepare(`SELECT COUNT(*) AS n FROM (${JOBS_SQL}) WHERE ${where}`).bind(...bindings).first<{ n: number }>(),
+    env.DB.prepare(PAGE_SQL).bind(...bindings, pageSize, (page - 1) * pageSize).all<JobRow>(),
+    env.DB.prepare(`SELECT COUNT(*) AS n FROM (${FILTERED_JOBS})`).bind(...bindings).first<{ n: number }>(),
     env.DB.prepare("SELECT feed, enabled, interval_minutes AS intervalMinutes, next_run_at AS nextRunAt FROM feed_schedules ORDER BY feed").all<{ feed: FeedKind; enabled: number; intervalMinutes: number; nextRunAt: number }>(),
     getSetting<string>(env.DB, "display_timezone"),
   ]);
@@ -43,11 +62,11 @@ export async function handleJobDetail(env: Env, kind: string, id: number): Promi
     if (!run) return jsonError(404, "job_not_found");
     const sources = await env.DB.prepare(`SELECT s.label, s.type, cs.status, cs.items_new AS itemsNew,
       cs.error, cs.attempts FROM crawl_sources cs JOIN sources s ON s.id = cs.source_id
-      WHERE cs.crawl_id = ? ORDER BY CASE WHEN cs.status = 'failed' THEN 0 ELSE 1 END, s.label`).bind(id).all();
+      WHERE cs.crawl_id = ? ORDER BY CASE cs.status WHEN 'running' THEN 0 WHEN 'failed' THEN 1 WHEN 'ok' THEN 2 ELSE 3 END, s.label`).bind(id).all();
     return Response.json({ run, sources: sources.results });
   }
   if (!isFeed(kind)) return jsonError(400, "invalid_feed");
-  const run = await env.DB.prepare("SELECT id, feed, crawl_id AS crawlId, status, started_at AS startedAt, finished_at AS finishedAt, error, item_count AS entries, metadata_json AS metadata FROM feed_runs WHERE id = ? AND feed = ?").bind(id, kind).first();
+  const run = await env.DB.prepare("SELECT id, feed, crawl_id AS crawlId, status, started_at AS startedAt, finished_at AS finishedAt, error, item_count AS entries, metadata_json AS metadata, json_extract(metadata_json, '$.awaitingEditorial') AS awaitingEditorial, json_extract(metadata_json, '$.candidates') AS candidates FROM feed_runs WHERE id = ? AND feed = ?").bind(id, kind).first();
   return run ? Response.json({ run }) : jsonError(404, "job_not_found");
 }
 

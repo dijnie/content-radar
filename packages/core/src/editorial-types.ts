@@ -38,8 +38,8 @@ export interface FeedSchedule {
 export interface JobRow {
   id: number; kind: "crawl" | FeedKind; status: string; trigger: string;
   startedAt: number; finishedAt: number | null; crawlId: number | null;
-  sources: number; failures: number; posts: number; articles: number;
-  itemsNew: number; entries: number; error: string | null;
+  sources: number; sourcesProcessed: number; sourcesRunning: number; failures: number; posts: number; articles: number;
+  itemsNew: number; entries: number; stagedEntries: number; error: string | null;
 }
 export interface JobsResponse {
   crawls: JobRow[]; builds: JobRow[]; schedules: FeedSchedule[];

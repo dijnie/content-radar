@@ -5,6 +5,7 @@ import { useResource, useSectionQuery } from "../../hooks/use-resource";
 import { dateTime, FEED_LABEL, Pagination, ResourceState } from "./shared";
 
 const defaults = { days: "7", failures: "0", page: "1" };
+const JOB_POLL_MS = 5000;
 const FEEDS: FeedKind[] = ["news", "hands-on", "deep-dives"];
 
 type JobDetailResponse = {
@@ -16,7 +17,7 @@ type JobDetailResponse = {
     error: string | null;
     attempts: number;
   }[];
-  run: { error?: string | null };
+  run: { error?: string | null; awaitingEditorial?: number | null; candidates?: number | null };
 };
 
 const duration = (job: JobRow) => {
@@ -32,11 +33,22 @@ const post = <T,>(path: string, body: unknown = {}) =>
     body: JSON.stringify(body),
   });
 
+function feedProgress(job: JobRow) {
+  switch (job.status) {
+    case "queued": return "Waiting for a worker on the shared crawl and feed queue";
+    case "running": return `Building · ${job.stagedEntries} entries staged`;
+    case "done": return `${job.entries} entries published`;
+    default: return job.error ?? job.status;
+  }
+}
+
 function JobDetail({ job }: { job: JobRow }) {
-  const resource = useResource<JobDetailResponse>(`/api/jobs/${job.kind}/${job.id}`);
+  const active = job.status === "running" || job.status === "queued";
+  const resource = useResource<JobDetailResponse>(`/api/jobs/${job.kind}/${job.id}`, active ? JOB_POLL_MS : 0);
+  const run = resource.data?.run;
 
   return (
-    <ResourceState loading={resource.loading} error={resource.error} empty={false} reload={resource.reload}>
+    <ResourceState loading={resource.loading && !resource.data} error={resource.error} empty={false} reload={resource.reload}>
       <div className="job-detail">
         {resource.data?.sources ? (
           <div className="table-scroll">
@@ -58,7 +70,11 @@ function JobDetail({ job }: { job: JobRow }) {
             </table>
           </div>
         ) : (
-          <p>{resource.data?.run.error ?? `Built from crawl #${job.crawlId}. ${job.entries} entries.`}</p>
+          <p>
+            Source crawl #{job.crawlId}. {run?.error ?? feedProgress(job)}.
+            {job.status === "done" && !!run?.awaitingEditorial && ` ${run.awaitingEditorial} items were awaiting AI classification at build time.`}
+            {job.kind === "news" && run?.candidates === 0 && " No candidate stories were available at build time."}
+          </p>
         )}
       </div>
     </ResourceState>
@@ -86,21 +102,27 @@ function Job({ job, timezone, onBuild, pending }: JobProps) {
           <strong>{jobLabel} #{job.id}</strong>
           <time>{dateTime(job.startedAt, timezone)}</time>
           <span className={`state state--${job.status}`}>
-            {job.status}{job.failures ? ` · ${job.failures} sources` : ""}
+            {job.status}
           </span>
           {isCrawl ? (
             <div className="job-stats">
-              <span><b>{job.sources}</b> Sources</span>
+              <span><b>{job.sourcesProcessed}/{job.sources}</b> sources processed</span>
               <span><b>{job.posts}</b> Posts</span>
               <span><b>{job.articles}</b> Articles</span>
             </div>
           ) : (
             <div className="job-stats">
               <span>crawl <b>#{job.crawlId}</b></span>
-              <span><b>{job.entries}</b> Entries</span>
+              <span>{feedProgress(job)}</span>
             </div>
           )}
           <span className="job-duration">{duration(job)}</span>
+          {isCrawl && (
+            <div className="job-progress">
+              {job.sources > 0 && <progress value={job.sourcesProcessed} max={job.sources} aria-label={`Crawl #${job.id} sources processed`} />}
+              <span>{job.sourcesProcessed - job.failures} succeeded · {job.failures} failed{job.status === "running" && ` · ${job.sourcesRunning} running · ${job.sources - job.sourcesProcessed - job.sourcesRunning} queued`}</span>
+            </div>
+          )}
         </summary>
         {open && <JobDetail job={job} />}
       </details>
@@ -169,24 +191,22 @@ function Schedule({ schedule, onSaved }: { schedule: FeedSchedule; onSaved: () =
 
 export function JobsPage() {
   const [query, update] = useSectionQuery(defaults);
-  const resource = useResource<JobsResponse>(`/api/jobs?${new URLSearchParams(query)}`, 5000);
+  const resource = useResource<JobsResponse>(`/api/jobs?${new URLSearchParams(query)}`, JOB_POLL_MS);
   const [pending, setPending] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState<{ kind: JobRow["kind"]; id: number; created: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [crawlId, setCrawlId] = useState("");
 
   const run = async (feed?: FeedKind, selected?: number) => {
     setPending(true);
     setError(null);
-    setMessage(null);
+    setSubmitted(null);
     const path = feed ? `/api/jobs/feeds/${feed}` : "/api/jobs/crawls";
     const body = feed ? { crawlId: selected ?? (crawlId ? Number(crawlId) : null) } : {};
 
     try {
       const result = await post<{ id: number; created: boolean }>(path, body);
-      const jobName = feed ? FEED_LABEL[feed] : "Crawl";
-      const status = result.created ? "queued" : "already in progress";
-      setMessage(`${jobName} #${result.id} ${status}.`);
+      setSubmitted({ kind: feed ?? "crawl", id: result.id, created: result.created });
       resource.reload();
     } catch (reason) {
       const completedCrawlRequired = reason instanceof ApiError && reason.code === "completed_crawl_required";
@@ -199,6 +219,7 @@ export function JobsPage() {
   };
 
   const data = resource.data;
+  const submittedJob = submitted && data && [...data.crawls, ...data.builds].find((job) => job.kind === submitted.kind && job.id === submitted.id);
   const finishedCrawls = data?.crawls.filter((job) => ["ok", "partial"].includes(job.status));
 
   return (
@@ -222,11 +243,13 @@ export function JobsPage() {
           >
             Failures only
           </button>
-          <span className="caption">{data?.total ?? 0} jobs</span>
+          <span className="caption">{data?.total ?? 0} jobs · Refreshes every 5s</span>
         </div>
       </header>
 
-      {message && <p className="notice" role="status">{message}</p>}
+      {submitted && <p className="notice" role="status">
+        {submitted.kind === "crawl" ? "Crawl" : FEED_LABEL[submitted.kind]} #{submitted.id} · {submittedJob?.status ?? (submitted.created ? "request accepted" : "existing job found")}.
+      </p>}
       {error && <p className="notice notice--error" role="alert">{error}</p>}
 
       <div className="editorial-section-heading">

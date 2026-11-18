@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { fetchStatus } from "../api-client";
+import { useState } from "react";
+import { useResource } from "../hooks/use-resource";
 import { formatTime } from "./story-card";
 
 interface SourceRow { id: number; type: string; label: string; collection: string | null; enabled: number; lastOkAt: number | null; lastError: string | null; consecutiveFailures: number; itemsLastPoll: number }
@@ -8,6 +8,7 @@ interface UsageRow { model: string; kind: string; requests: number }
 interface RunRow { id: number; startedAt: number; status: string; stage: string | null; claims: number | null; communities: number | null; error: string | null }
 interface BacklogRow { ingestMode: string; queued: number; oldestQueuedAt: number | null; maxAttempts: number }
 interface Status {
+  itemsByStatus: { status: string; n: number }[];
   now: number; pacificDay: string; sources: SourceRow[]; backlog: BacklogRow[];
   llm: { models: ModelRow[]; usageToday: UsageRow[]; circuitOpenUntil: number | null };
   clusterRuns: RunRow[]; cards: { alive: number; fallbackHeadlines: number | null; ready: number | null; lead: number | null };
@@ -16,25 +17,21 @@ interface Status {
 const ago = (now: number, at: number | null) => (at === null ? "never" : now - at < 3600 ? `${Math.max(1, Math.round((now - at) / 60))} min ago` : now - at < 86_400 ? `${Math.round((now - at) / 3600)} h ago` : `${Math.round((now - at) / 86_400)} d ago`);
 
 export function StatusPage({ timeZone }: { timeZone: string }) {
-  const [status, setStatus] = useState<Status | null>(null);
+  const { data: status, error } = useResource<Status>("/api/status", 15000);
   const [collection, setCollection] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchStatus(controller.signal).then((body) => setStatus(body as unknown as Status)).catch((err: unknown) => !controller.signal.aborted && setError(err instanceof Error ? err.message : "request failed"));
-    return () => controller.abort();
-  }, []);
-
   if (error) return <p className="notice notice--error" role="alert">Could not load the system status: {error}</p>;
   if (!status) return <p className="notice" role="status">Loading system status…</p>;
   const failing = status.sources.filter((source) => source.enabled === 1 && source.consecutiveFailures > 0);
 
+  const counts = new Map(status.itemsByStatus.map((row) => [row.status, row.n]));
   return (
     <div className="status-page">
       <section className="panel">
         <h2>Pipeline</h2>
+        <p className="caption">Updated {formatTime(status.now, timeZone)} · Refreshes every 15s · <a href="?view=jobs">View crawl and feed jobs</a></p>
         <dl className="facts">
-          <div><dt>Backlog</dt><dd>{status.backlog.length === 0 ? "empty" : status.backlog.map((row) => `${row.queued} ${row.ingestMode} (oldest ${ago(status.now, row.oldestQueuedAt)})`).join(", ")}</dd></div>
+          <div><dt>AI extraction queue</dt><dd>{status.backlog.length === 0 ? "empty" : status.backlog.map((row) => `${row.queued} ${row.ingestMode} (oldest ${ago(status.now, row.oldestQueuedAt)})`).join(", ")}</dd></div>
+          <div><dt>Extraction results</dt><dd>{counts.get("extracted") ?? 0} extracted · {counts.get("irrelevant") ?? 0} irrelevant · {counts.get("failed") ?? 0} failed</dd></div>
           <div><dt>LLM circuit</dt><dd>{status.llm.circuitOpenUntil ? `open until ${formatTime(status.llm.circuitOpenUntil, timeZone)}` : "closed"}</dd></div>
           <div><dt>Cards</dt><dd>{status.cards.alive} alive · {status.cards.ready ?? 0} ready · {status.cards.lead ?? 0} lead · {status.cards.fallbackHeadlines ?? 0} on fallback headline</dd></div>
           <div><dt>Sources</dt><dd>{status.sources.filter((source) => source.enabled === 1).length} enabled · {failing.length} failing</dd></div>

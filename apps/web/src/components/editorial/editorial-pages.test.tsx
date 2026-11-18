@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { EditorialEntry, EditorialFeedResponse, JobsResponse } from "../../../../../packages/core/src/editorial-types";
@@ -57,9 +57,40 @@ describe("editorial pages", () => {
     await user.click(screen.getByRole("button", { name: /Last 3 months/ }));
     await waitFor(() => expect(calls.at(-1)!.path).toContain("months=3"));
   });
+  it("refreshes an open crawl and replaces the Run confirmation with its current state", async () => {
+    window.history.replaceState(null, "", "/?view=jobs");
+    vi.useFakeTimers();
+    let complete = false;
+    vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (init?.method === "POST") return Response.json({ id: 8, created: true });
+      if (String(input).endsWith("/crawl/8")) return Response.json({ run: {}, sources: [
+        { label: "Example feed", type: "rss", status: complete ? "ok" : "running", itemsNew: complete ? 12 : 0, attempts: 1, error: null },
+      ] });
+      return Response.json({ crawls: [{ id: 8, kind: "crawl", status: complete ? "ok" : "running", startedAt: 1790000000,
+        sources: 2, sourcesProcessed: complete ? 2 : 1, sourcesRunning: complete ? 0 : 1, failures: 0, posts: 0, articles: 0 }],
+        builds: [], schedules: [], total: 1, page: 1, pageSize: 30, timezone: "UTC" });
+    });
+    try {
+      await act(async () => { render(<App />); });
+      await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Run" })); });
+      expect(screen.getByRole("status").textContent).toContain("Crawl #8 · running");
+      const details = screen.getByText("crawl #8").closest("details")!;
+      await act(async () => { details.open = true; fireEvent(details, new Event("toggle")); });
+      expect(screen.getByRole("cell", { name: "running" })).toBeTruthy();
+      expect(screen.getByRole("progressbar").getAttribute("value")).toBe("1");
+      complete = true;
+      await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+      expect(screen.getByRole("status").textContent).toContain("Crawl #8 · ok");
+      expect(screen.getByRole("progressbar").getAttribute("value")).toBe("2");
+      expect(screen.getByRole("cell", { name: "12" })).toBeTruthy();
+    } finally {
+      cleanup();
+      vi.useRealTimers();
+    }
+  });
   it("starts a real Jobs request and independently builds a feed from the selected crawl", async () => {
     window.history.replaceState(null, "", "/?view=jobs");
-    const jobs: JobsResponse = { crawls: [{ id: 4, kind: "crawl", status: "ok", trigger: "manual", startedAt: 1790000000, finishedAt: 1790000060, crawlId: null, sources: 2, failures: 0, posts: 8, articles: 3, itemsNew: 5, entries: 0, error: null }], builds: [], schedules: [], total: 1, page: 1, pageSize: 30, timezone: "UTC" };
+    const jobs: JobsResponse = { crawls: [{ id: 4, kind: "crawl", status: "ok", trigger: "manual", startedAt: 1790000000, finishedAt: 1790000060, crawlId: null, sources: 2, sourcesProcessed: 2, sourcesRunning: 0, failures: 0, posts: 8, articles: 3, itemsNew: 5, entries: 0, stagedEntries: 0, error: null }], builds: [], schedules: [], total: 1, page: 1, pageSize: 30, timezone: "UTC" };
     vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => { calls.push({ path: String(input), body: init?.body ? JSON.parse(String(init.body)) : null }); return Response.json(init?.method === "POST" ? { id: 5, created: true } : jobs); });
     const user = userEvent.setup(); render(<App />);
     await screen.findByText("crawl #4");

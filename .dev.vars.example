@@ -1,12 +1,7 @@
-# Copy to apps/worker/.dev.vars for local development. Never commit real values.
-# OpenAI-compatible API base URL (e.g. https://your-provider.example/v1)
-# or full chat/completions URL. Chat and embeddings share this endpoint and API key.
-LLM_ENDPOINT=
-LLM_API_KEY=
-LLM_MODEL=
-# Set to the embedding model served by this provider, e.g. text-embedding-3-small.
-EMBEDDING_MODEL=
-GITHUB_TOKEN=
+# Choose a random secret to unlock Settings. Configure AI providers in Radar.
+OWNER_TOKEN=
+# Optional: uncomment to use a GitHub PAT for higher rate limits.
+# GITHUB_TOKEN=
 # Optional: exclude the app's own hostname from background ingest.
 # Browsing and interactions work without this value; no sign-in is required.
-APP_ORIGIN=
+# APP_ORIGIN=

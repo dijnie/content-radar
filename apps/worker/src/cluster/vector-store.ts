@@ -2,7 +2,6 @@ import type { VectorMatrix } from "@radar/core";
 import { windowStart, type JobContext } from "./job-context";
 import { chunkedBatch, placeholders } from "../db/batch";
 
-export const DEFAULT_EMBEDDING_MODEL = "text-embedding-3-small";
 export const EMBEDDING_DIMS = 1024;
 /** Measured in the phase 1 spike: D1 returns BLOBs as number arrays, so rows are loaded 500 at a time. */
 const LOAD_CHUNK = 500;

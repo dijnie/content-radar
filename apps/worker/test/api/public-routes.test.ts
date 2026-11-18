@@ -1,3 +1,4 @@
+import { seedAi } from "../db/seed-ai";
 import { env } from "cloudflare:workers";
 import { describe, expect, it, vi } from "vitest";
 import { ROUTES } from "../../src/api/router";
@@ -13,6 +14,8 @@ function pathFor(pattern: RegExp): string {
 
 describe("public access without Access secrets or login", () => {
   const cases = [
+    ["GET", "/api/settings/ai", 401],
+    ["POST", "/api/settings/ai", 401],
     ["GET", "/api/jobs", 200],
     ["GET", "/api/jobs/crawl/987654", 404],
     ["POST", "/api/jobs/crawls", 409],
@@ -90,7 +93,8 @@ describe("public access without Access secrets or login", () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ choices: [{ finish_reason: "stop", message: { content: '{"ok":true}' } }], usage: { prompt_tokens: 5, completion_tokens: 4 } }));
     vi.stubGlobal("fetch", fetcher);
     try {
-      const response = await worker.fetch(new Request(`${ORIGIN}/api/admin/probe?target=llm`), { ...env, LLM_ENDPOINT: "https://custom.example/v1", LLM_API_KEY: "probe-key", LLM_MODEL: "vendor/probe-model" });
+      await seedAi(env.DB, { endpoint: "https://custom.example/v1", model: "vendor/probe-model", apiKey: "probe-key" });
+      const response = await worker.fetch(new Request(`${ORIGIN}/api/admin/probe?target=llm`), env);
       const body = await response.json();
       expect(body).toMatchObject({ target: "llm", status: 200, length: 11 });
       expect(JSON.stringify(body)).not.toContain("probe-key");

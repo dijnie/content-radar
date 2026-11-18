@@ -1,9 +1,11 @@
+import { getAiSettings, selectedChatModel } from "../db/ai-settings";
 import type { Env } from "../env";
 import type { LlmMessage } from "./messages";
 import { CRAWL_FINISHED_SQL } from "./extraction-priority";
 
 /** Upgrade older extracted items without resetting their story/user state or increasing the AI budget. */
 export async function drainEditorial(env: Pick<Env, "DB" | "LLM_QUEUE">, now: number): Promise<number> {
+  if (selectedChatModel(await getAiSettings(env.DB)) === "") return 0;
   // Ordinary extraction owns the budget first. Metadata enrichment must not starve fresh content.
   const pending = await env.DB.prepare(`SELECT 1 FROM items WHERE status = 'queued' AND ${CRAWL_FINISHED_SQL} LIMIT 1`).first();
   if (pending) return 0;

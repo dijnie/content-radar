@@ -23,12 +23,12 @@ export const STATUS_QUERIES = {
   pendingAdjudications: "SELECT status, COUNT(*) AS n FROM entity_adjudications WHERE status != 'decided' GROUP BY status",
 } as const;
 
-export async function handleStatus(env: Pick<Env, "DB" | "LLM_MODEL">, now = nowSeconds()): Promise<Response> {
+export async function handleStatus(env: Pick<Env, "DB">, now = nowSeconds()): Promise<Response> {
   const db = env.DB;
   const day = pacificDay(now);
   const all = async <T>(sql: string, ...binds: unknown[]) => (await db.prepare(sql).bind(...binds).all<T>()).results;
   const settings = await loadBudgetSettings(db);
-  const models = (await listEnabledModels(db, env.LLM_MODEL)).map((model) => ({
+  const models = (await listEnabledModels(db)).map((model) => ({
     model: model.model, priority: model.priority, ...limitsOf(model, settings), limitsAreDefaults: model.rpd === null, exhaustedUntil: model.exhausted_until,
   }));
 

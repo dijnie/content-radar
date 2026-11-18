@@ -1,3 +1,5 @@
+import { getAiSettings, selectedChatModel } from "./ai-settings";
+
 export type LlmKind = "extract" | "extract_backfill" | "synthesize" | "adjudicate";
 
 export interface LlmModelRow {
@@ -31,9 +33,10 @@ export interface LlmCallInput {
  * New custom models keep the existing 5/minute, 100/day application caps.
  * Existing limits, disabled state, cooldowns and historical usage are preserved.
  */
-export async function listEnabledModels(db: D1Database, configuredModel?: string): Promise<LlmModelRow[]> {
-  if (configuredModel !== undefined) {
-    const model = configuredModel.trim();
+export async function listEnabledModels(db: D1Database, configuredModel?: string | null): Promise<LlmModelRow[]> {
+  const selection = configuredModel === undefined ? selectedChatModel(await getAiSettings(db)) : configuredModel;
+  if (selection !== null) {
+    const model = selection.trim();
     if (!model) return [];
     await db.prepare("INSERT INTO llm_models (model, priority, rpm, rpd) VALUES (?, 1, 5, 100) ON CONFLICT(model) DO NOTHING").bind(model).run();
     const row = await db.prepare("SELECT * FROM llm_models WHERE enabled = 1 AND model = ?").bind(model).first<LlmModelRow>();

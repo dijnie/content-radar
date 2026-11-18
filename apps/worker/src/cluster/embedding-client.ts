@@ -1,14 +1,7 @@
-import type { Env } from "../env";
 import { providerUrl } from "../llm/api-url";
-import { EMBEDDING_DIMS, DEFAULT_EMBEDDING_MODEL } from "./vector-store";
+import { EMBEDDING_DIMS } from "./vector-store";
 
 export type EmbedFn = (texts: readonly string[]) => Promise<Float32Array[]>;
-type EmbeddingEnv = Pick<Env, "LLM_ENDPOINT" | "LLM_API_KEY" | "EMBEDDING_MODEL">;
-
-export function embeddingModel(env: EmbeddingEnv): string {
-  return env.EMBEDDING_MODEL?.trim() || DEFAULT_EMBEDDING_MODEL;
-}
-
 export class EmbeddingHttpError extends Error {
   constructor(readonly status: number) { super(`embedding_http_${status}`); }
 }
@@ -29,13 +22,13 @@ function readVectors(data: unknown, count: number): Float32Array[] {
   return vectors;
 }
 
-export function openAiEmbedder(env: EmbeddingEnv, onTokens?: (tokens: number) => void, timeoutMs = 60_000): EmbedFn {
+export function openAiEmbedder(provider: { endpoint: string; model: string; apiKey: string }, onTokens?: (tokens: number) => void, timeoutMs = 60_000): EmbedFn {
   return async (texts) => {
     if (!texts.length) return [];
-    if (!env.LLM_ENDPOINT?.trim()) throw new Error("llm_endpoint_missing");
-    if (!env.LLM_API_KEY?.trim()) throw new Error("llm_api_key_missing");
-    const url = providerUrl(env.LLM_ENDPOINT, "embeddings");
-    const model = embeddingModel(env);
+    if (!provider.endpoint?.trim()) throw new Error("llm_endpoint_missing");
+    if (!provider.apiKey?.trim()) throw new Error("llm_api_key_missing");
+    const url = providerUrl(provider.endpoint, "embeddings");
+    const model = provider.model;
     const vectors: Float32Array[] = [];
     for (let start = 0; start < texts.length; start += 50) {
       const input = texts.slice(start, start + 50);
@@ -47,7 +40,7 @@ export function openAiEmbedder(env: EmbeddingEnv, onTokens?: (tokens: number) =>
         let output;
         try {
           response = await fetch(url.toString(), {
-            method: "POST", headers: { Authorization: `Bearer ${env.LLM_API_KEY.trim()}`, "Content-Type": "application/json" },
+            method: "POST", headers: { Authorization: `Bearer ${provider.apiKey.trim()}`, "Content-Type": "application/json" },
             body, signal: AbortSignal.timeout(timeoutMs), redirect: "manual",
           });
           if (!response.ok) {

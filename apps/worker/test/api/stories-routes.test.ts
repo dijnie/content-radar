@@ -1,3 +1,4 @@
+import { seedAi } from "../db/seed-ai";
 import { env } from "cloudflare:workers";
 import { beforeAll, describe, expect, it } from "vitest";
 import { handleStatus } from "../../src/api/status-route";
@@ -139,8 +140,8 @@ describe("GET /api/status", () => {
   });
 
   it("reports the configured model and its budget without exposing the endpoint or key", async () => {
-    const customEnv = { ...env, LLM_MODEL: "vendor/status-model", LLM_API_KEY: "private-status-key", LLM_ENDPOINT: "https://private.example/v1" };
-    const response = await handleStatus(customEnv, NOW);
+    await seedAi(env.DB, { endpoint: "https://private.example/v1", model: "vendor/status-model", apiKey: "private-status-key" });
+    const response = await handleStatus(env, NOW);
     const body = await response.json() as { llm: { models: { model: string; rpm: number; rpd: number }[] } };
     expect(body.llm.models).toEqual([expect.objectContaining({ model: "vendor/status-model", rpm: 5, rpd: 100 })]);
     expect(JSON.stringify(body)).not.toContain("private-status-key");

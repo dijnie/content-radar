@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { Filters, Sort, Tab } from "../types";
 
 const TABS: readonly Tab[] = ["inbox", "saved", "dismissed"];
-const VIEWS: readonly Filters["view"][] = ["stories", "status", "news", "hands-on", "deep-dives", "jobs"];
+const VIEWS: readonly Filters["view"][] = ["stories", "status", "news", "hands-on", "deep-dives", "jobs", "settings"];
 
 export function parseFilters(search: string): Filters {
   const params = new URLSearchParams(search);

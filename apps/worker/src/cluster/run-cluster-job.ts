@@ -1,10 +1,13 @@
+import { getAiSettings, embeddingProvider } from "../db/ai-settings";
+import { providerUrl } from "../llm/api-url";
+import { sha256Hex } from "../util/hash";
 import { PARAMS_VERSION, resolveParams } from "@radar/core";
 import { getSetting } from "../db/settings-repo";
 import { clusterStep } from "./cluster-step";
 import { cosineEdgesStep } from "./cosine-edges-step";
 import { deriveRelationsStep } from "./derive-relations-step";
 import { embedClaimsStep } from "./embed-claims-step";
-import { embeddingModel, openAiEmbedder, type EmbedFn } from "./embedding-client";
+import { openAiEmbedder, type EmbedFn } from "./embedding-client";
 import { enqueueSynthesisStep } from "./enqueue-synthesis-step";
 import { finalizeStep } from "./finalize-step";
 import type { ClusterEnv, JobContext } from "./job-context";
@@ -21,7 +24,7 @@ export interface ClusterJobDeps {
   onStage?: (stage: string) => void | Promise<void>;
 }
 
-export type ClusterJobResult = { status: "skipped"; reason: "lease_held" } | { status: "done"; runId: number; communities: number; synthesisQueued: number };
+export type ClusterJobResult = { status: "skipped"; reason: "lease_held" | "ai_not_configured" } | { status: "done"; runId: number; communities: number; synthesisQueued: number };
 
 class LeaseLost extends Error {}
 
@@ -34,6 +37,10 @@ class LeaseLost extends Error {}
 export async function runClusterJob(env: ClusterEnv, deps: ClusterJobDeps = {}): Promise<ClusterJobResult> {
   const db = env.DB;
   const now = deps.now ?? Math.floor(Date.now() / 1000);
+  const settings = await getAiSettings(db);
+  const provider = embeddingProvider(settings);
+  if (!settings.enabled || !provider.endpoint || !provider.model || !provider.apiKey) return { status: "skipped", reason: "ai_not_configured" };
+  const cacheId = provider.model + "@" + await sha256Hex(providerUrl(provider.endpoint, "embeddings").href);
   const holder = crypto.randomUUID();
   // `now` is the logical time of the run. The lease and the heartbeat follow the wall clock,
   // otherwise a renewal rewrites the expiry it already had and a long run loses its own lease.
@@ -53,8 +60,8 @@ export async function runClusterJob(env: ClusterEnv, deps: ClusterJobDeps = {}):
   let tokens = 0;
   const ctx: JobContext = {
     env, db, runId: run!.id, holder, now, params, lastDoneRunStartedAt: lastDone?.at ?? 0,
-    embeddingModel: embeddingModel(env),
-    embed: deps.embed ?? openAiEmbedder(env, (count) => void (tokens += count)),
+    embeddingModel: cacheId,
+    embed: deps.embed ?? openAiEmbedder(provider, (count) => void (tokens += count)),
   };
   const holdLease = async (where: string) => {
     if (!(await renewLease(db, CLUSTER_LEASE, holder, clock()))) throw new LeaseLost(`lease lost ${where}`);

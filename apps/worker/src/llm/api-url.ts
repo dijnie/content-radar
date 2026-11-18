@@ -4,7 +4,7 @@ export function providerUrl(value: string, resource: "chat/completions" | "embed
   if (!["https:", "http:"].includes(url.protocol) || url.username || url.password || url.hash) {
     throw new Error("invalid provider URL");
   }
-  const base = url.pathname.replace(/\/+$/, "").replace(/\/chat\/completions$/, "");
+  const base = url.pathname.replace(/\/+$/, "").replace(/\/(?:chat\/completions|embeddings)$/, "");
   url.pathname = `${base}/${resource}`;
   return url;
 }

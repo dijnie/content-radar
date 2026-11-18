@@ -1,3 +1,4 @@
+import { SettingsPage } from "./components/settings-page";
 import { EmptyState } from "./components/empty-state";
 import { StatusPage } from "./components/status-page";
 import { StoryGrid } from "./components/story-grid";
@@ -11,12 +12,33 @@ import "./editorial.css";
 
 const NAVIGATION = [
   { view: "stories", label: "Stories" }, { view: "news", label: "News" }, { view: "hands-on", label: "Hands-on" },
-  { view: "deep-dives", label: "Deep dives" }, { view: "jobs", label: "Jobs" },
+  { view: "deep-dives", label: "Deep dives" }, { view: "jobs", label: "Jobs" }, { view: "settings", label: "Settings" },
 ] as const;
 
 export function App() {
   const [filters, setFilters] = useUrlState();
-  return <div className="page"><nav className="app-navigation" aria-label="Content Radar">{NAVIGATION.map(({ view, label }) => <a key={view} href={view === "stories" ? "?" : `?view=${view}`} aria-current={filters.view === view ? "page" : undefined}>{label}</a>)}</nav>{filters.view === "news" || filters.view === "hands-on" || filters.view === "deep-dives" ? <main><FeedPage key={filters.view} feed={filters.view} /></main> : filters.view === "jobs" ? <main><JobsPage /></main> : <StoryViews filters={filters} setFilters={setFilters} />}</div>;
+  let content;
+  switch (filters.view) {
+    case "news":
+    case "hands-on":
+    case "deep-dives":
+      content = <main><FeedPage key={filters.view} feed={filters.view} /></main>;
+      break;
+    case "jobs":
+      content = <main><JobsPage /></main>;
+      break;
+    case "settings":
+      content = <main><SettingsPage /></main>;
+      break;
+    default:
+      content = <StoryViews filters={filters} setFilters={setFilters} />;
+  }
+  return <div className="page">
+    <nav className="app-navigation" aria-label="Content Radar">{NAVIGATION.map(({ view, label }) =>
+      <a key={view} href={view === "stories" ? "?" : `?view=${view}`} aria-current={filters.view === view ? "page" : undefined}>{label}</a>
+    )}</nav>
+    {content}
+  </div>;
 }
 
 function StoryViews({ filters, setFilters }: { filters: Filters; setFilters: (patch: Partial<Filters>) => void }) {

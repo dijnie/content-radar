@@ -1,3 +1,4 @@
+import { seedAi } from "../db/seed-ai";
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { upsertItem } from "../../src/db/items-repo";
@@ -12,6 +13,7 @@ const NOW = Date.UTC(2026, 8, 21, 6, 0, 0) / 1000;
 
 describe("historical extraction content recorded from Gemini", () => {
   it("remains valid through the DeepSeek consumer transport without inventing a live DeepSeek recording", async () => {
+    await seedAi(env.DB);
     await env.DB.batch([
       env.DB.prepare("DELETE FROM llm_usage"), env.DB.prepare("DELETE FROM llm_calls"), env.DB.prepare("DELETE FROM settings WHERE key = 'llm_circuit'"),
       env.DB.prepare("UPDATE llm_models SET exhausted_until = NULL, rpm = 1000, rpd = 1000, enabled = CASE WHEN model = 'deepseek-flash' THEN 1 ELSE 0 END"),
@@ -40,7 +42,7 @@ describe("historical extraction content recorded from Gemini", () => {
 
     const outcomes: string[] = [];
     const batch = { queue: "radar-llm", messages: [...idOf.values()].map((itemId) => ({ body: { kind: "extract", itemId }, attempts: 1, ack: () => outcomes.push("ack"), retry: () => outcomes.push("retry") })) } as unknown as MessageBatch<LlmMessage>;
-    const testEnv: LlmEnv = { DB: env.DB, RAW: env.RAW, LLM_ENDPOINT: "https://llm.example/v1", LLM_API_KEY: "test-key", LLM_QUEUE: { sendBatch: async () => {} } as unknown as Queue<LlmMessage> };
+    const testEnv: LlmEnv = { DB: env.DB, RAW: env.RAW, LLM_QUEUE: { sendBatch: async () => {} } as unknown as Queue<LlmMessage> };
     await consumeLlmBatch(batch, testEnv, { now: NOW, fetcher });
 
     expect(models).toEqual(["deepseek-flash"]);

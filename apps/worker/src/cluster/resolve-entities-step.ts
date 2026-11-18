@@ -95,7 +95,7 @@ export async function resolveEntitiesStep(ctx: JobContext): Promise<{ resolved: 
   // What does not fit today stays `pending` and is picked up by a later run.
   const settings = await loadBudgetSettings(db);
   let calls = 0;
-  for (const model of await listEnabledModels(db, ctx.env.LLM_MODEL)) calls += await reservedRemainingToday(db, model, now, settings);
+  for (const model of await listEnabledModels(db)) calls += await reservedRemainingToday(db, model, now, settings);
   const { results: pending } = await db
     .prepare("SELECT id FROM entity_adjudications WHERE status = 'pending' ORDER BY id LIMIT ?")
     .bind(Math.max(0, calls) * ADJUDICATIONS_PER_MESSAGE)

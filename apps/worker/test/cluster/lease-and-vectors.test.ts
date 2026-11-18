@@ -56,7 +56,7 @@ describe("vector store", () => {
 });
 
 describe("openAiEmbedder", () => {
-  const config = { LLM_ENDPOINT: "https://provider.example/v1/chat/completions/?version=1", LLM_API_KEY: "key", EMBEDDING_MODEL: "text-embedding-3-small" };
+  const config = { endpoint: "https://provider.example/v1/chat/completions/?version=1", apiKey: "key", model: "text-embedding-3-small" };
   afterEach(() => { vi.unstubAllGlobals(); });
 
   it("uses the embedding route, retries a failed batch and restores input order", async () => {
@@ -65,7 +65,7 @@ describe("openAiEmbedder", () => {
       expect(url).toBe("https://provider.example/v1/embeddings?version=1");
       expect(init).toMatchObject({ method: "POST", headers: { Authorization: "Bearer key" }, redirect: "manual" });
       const body = JSON.parse(String(init!.body));
-      expect(body).toMatchObject({ model: config.EMBEDDING_MODEL, dimensions: 1024, encoding_format: "float" });
+      expect(body).toMatchObject({ model: config.model, dimensions: 1024, encoding_format: "float" });
       const input = body.input as string[];
       calls.push(input.length);
       if (calls.length === 1) return new Response(null, { status: 503 });
@@ -94,7 +94,7 @@ describe("openAiEmbedder", () => {
   it("does not retry invalid credentials or send a request without a key", async () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 401 }));
     vi.stubGlobal("fetch", fetcher);
-    await expect(openAiEmbedder({ ...config, LLM_API_KEY: "" })(["x"])).rejects.toThrow("llm_api_key_missing");
+    await expect(openAiEmbedder({ ...config, apiKey: "" })(["x"])).rejects.toThrow("llm_api_key_missing");
     await expect(openAiEmbedder(config)(["x"])).rejects.toThrow("embedding_http_401");
     expect(fetcher).toHaveBeenCalledTimes(1);
   });

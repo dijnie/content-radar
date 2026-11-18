@@ -1,4 +1,5 @@
 import type { Env } from "../env";
+import { handleAiSettings } from "./ai-settings-route";
 import { handleBackfill } from "./admin-backfill";
 import { handleProbe } from "./admin-probe";
 import { jsonError } from "./api-errors";
@@ -20,6 +21,8 @@ interface Route {
  * Route handlers validate input and enforce the existing job and usage limits.
  */
 export const ROUTES: readonly Route[] = [
+  { method: "GET", pattern: /^\/api\/settings\/ai$/, handler: handleAiSettings },
+  { method: "POST", pattern: /^\/api\/settings\/ai$/, handler: handleAiSettings },
   { method: "GET", pattern: /^\/api\/jobs$/, handler: (request, env) => handleJobs(request, env) },
   { method: "GET", pattern: /^\/api\/jobs\/(?<kind>crawl|news|hands-on|deep-dives)\/(?<id>\d{1,15})$/, handler: (_request, env, params) => handleJobDetail(env, params.kind!, Number(params.id)) },
   { method: "POST", pattern: /^\/api\/jobs\/crawls$/, handler: (_request, env) => handleStartCrawl(env) },

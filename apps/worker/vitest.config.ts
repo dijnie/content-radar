@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { cloudflareTest, readD1Migrations } from "@cloudflare/vitest-plugin";
 import { defineConfig } from "vitest/config";
 
@@ -11,8 +12,7 @@ export default defineConfig(async () => {
         remoteBindings: false,
         miniflare: {
           bindings: {
-            LLM_ENDPOINT: "https://llm.example/v1",
-            LLM_MODEL: "deepseek-flash",
+            OWNER_TOKEN: randomUUID(),
             TEST_MIGRATIONS: migrations,
           },
         },

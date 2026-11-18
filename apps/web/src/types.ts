@@ -58,7 +58,7 @@ export interface Filters {
   topic: string | null;
   q: string;
   sort: Sort;
-  view: "stories" | "status" | "news" | "hands-on" | "deep-dives" | "jobs";
+  view: "stories" | "status" | "news" | "hands-on" | "deep-dives" | "jobs" | "settings";
 }
 
 export const STATE_AFTER: Record<StoryAction, UserState> = { save: "saved", dismiss: "dismissed", written: "written", restore: "inbox" };

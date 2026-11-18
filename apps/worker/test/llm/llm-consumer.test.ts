@@ -74,7 +74,7 @@ let testEnv: LlmEnv;
 beforeEach(async () => {
   sent = [];
   testEnv = {
-    DB: env.DB, RAW: env.RAW, LLM_ENDPOINT: "https://llm.example/v1", LLM_API_KEY: "test-key",
+    DB: env.DB, RAW: env.RAW,
     LLM_QUEUE: { sendBatch: async (messages: Iterable<{ body: LlmMessage }>) => void sent.push(...[...messages].map((message) => message.body)) } as unknown as Queue<LlmMessage>,
   };
   await env.DB.batch([
@@ -90,6 +90,22 @@ beforeEach(async () => {
 });
 
 describe("consumeLlmBatch", () => {
+  it("keeps the richer version queued if an old teaser finishes extraction after enrichment", async () => {
+    const [id] = await seedItems(1);
+    const deepseek = fakeDeepSeek();
+    const fetcher: typeof fetch = async (input, init) => {
+      const reply = await deepseek.fetcher(input, init);
+      await env.DB.prepare("UPDATE items SET content_hash = 'enriched' WHERE id = ?").bind(id!).run();
+      return reply;
+    };
+    await consumeLlmBatch(fakeBatch([{ kind: "extract", itemId: id! }]).batch, testEnv, { now: NOW, fetcher });
+    expect(await statuses([id!])).toEqual({ queued: 1 });
+    expect(await claimCount([id!])).toBe(0);
+    expect(await env.DB.prepare("SELECT item_id FROM item_editorial WHERE item_id = ?").bind(id!).first()).toBeNull();
+    expect(await env.DB.prepare("SELECT enqueue_attempts, editorial_attempts FROM items WHERE id = ?").bind(id!).first())
+      .toEqual({ enqueue_attempts: 0, editorial_attempts: 0 });
+  });
+
   it("splits an output-limited batch and stores complete claims within the request budget", async () => {
     const ids = await seedItems(6);
     const deepseek = fakeDeepSeek((_call, _model, itemIds) => itemIds.length > 3 ? {
@@ -458,6 +474,14 @@ describe("extraction attempts", () => {
 });
 
 describe("drainBacklog", () => {
+  it("preserves queued items while AI processing is paused", async () => {
+    const ids = await seedItems(1);
+    await env.DB.prepare("UPDATE items SET enqueue_attempts = 20 WHERE id = ?").bind(ids[0]).run();
+    await env.DB.prepare("UPDATE ai_settings SET enabled = 0").run();
+    expect(await drainBacklog(testEnv, NOW)).toEqual({ sent: 0, failed: 0 });
+    expect(await statuses(ids)).toEqual({ queued: 1 });
+  });
+
   it("reserves scarce extraction capacity for recent items even when old items arrived first", async () => {
     const old = await seedItems(20);
     const recent = await seedItems(10);

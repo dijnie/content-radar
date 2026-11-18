@@ -161,3 +161,15 @@
   .entry-details summary, .scoring-legend summary { min-height: 44px; display: flex; align-items: center; }
   .editorial-controls select, .jobs-page select, .schedule-row input[type="number"] { min-height: 44px; }
 }
+
+.settings-page { max-width: 40rem; }
+.settings-page form, .settings-page fieldset { display: grid; gap: 0.9rem; }
+.settings-page fieldset { min-width: 0; margin: 0; }
+.settings-page legend { padding: 0 0.35rem; font-size: 1.1rem; font-weight: 600; }
+.settings-page label { display: grid; gap: 0.25rem; }
+.settings-page input:not([type="checkbox"]) { width: 100%; padding: 0.6rem 0.75rem; background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-control); }
+.settings-page .settings-check, .settings-actions { display: flex; align-items: center; gap: 0.6rem; }
+.settings-page button { justify-self: start; }
+.settings-page details { color: var(--text-body); font-size: 0.9rem; }
+.settings-page details p { margin: 0.5rem 0; }
+.settings-page code { overflow-wrap: anywhere; }

@@ -21,7 +21,7 @@ export type ChainResult = { ok: true; model: LlmModelRow; reservation: Reservati
 const SEVERITY: Record<ReserveFailure, number> = { rpm_exhausted: 0, kind_cap_reached: 1, rpd_exhausted: 2 };
 
 /** First model by priority that is not parked and still has budget for this kind. `skip` holds models already tried for this call. */
-export async function reserveOnChain(db: D1Database, kind: LlmKind, now: number, settings: BudgetSettings, skip: ReadonlySet<string> = new Set(), configuredModel?: string): Promise<ChainResult> {
+export async function reserveOnChain(db: D1Database, kind: LlmKind, now: number, settings: BudgetSettings, skip: ReadonlySet<string> = new Set(), configuredModel?: string | null): Promise<ChainResult> {
   let mildest: ReserveFailure = "rpd_exhausted";
   for (const model of await listEnabledModels(db, configuredModel)) {
     // Checked before `skip`: a model tried a moment ago in this very call may have just been parked for seconds.

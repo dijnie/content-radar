@@ -1,3 +1,4 @@
+import { getAiSettings, embeddingProvider, selectedChatModel } from "../db/ai-settings";
 import { EmbeddingHttpError, openAiEmbedder } from "../cluster/embedding-client";
 import type { Env } from "../env";
 import { generateJson } from "../llm/custom-client";
@@ -87,9 +88,10 @@ export async function runProbe(target: ProbeTarget, env: Env, colo: string | nul
   const base = { target, colo };
   try {
     if (target === "llm") {
+      const settings = await getAiSettings(env.DB);
       const result = await generateJson({
-        apiKey: env.LLM_API_KEY ?? "", endpoint: env.LLM_ENDPOINT ?? "",
-        model: (await listEnabledModels(env.DB, env.LLM_MODEL))[0]?.model ?? "",
+        apiKey: settings.chat_key, endpoint: settings.chat_endpoint,
+        model: (await listEnabledModels(env.DB, selectedChatModel(settings)))[0]?.model ?? "",
         system: 'Return JSON only. Example: {"ok":true}', user: 'Reply with {"ok":true}.',
         schema: { type: "object", properties: { ok: { type: "boolean" } }, required: ["ok"] },
         timeoutMs: PROBE_TIMEOUT_MS,
@@ -98,7 +100,9 @@ export async function runProbe(target: ProbeTarget, env: Env, colo: string | nul
     }
     const request = httpRequestFor(target, env);
     if (request === null) {
-      const [vector] = await openAiEmbedder(env, undefined, PROBE_TIMEOUT_MS)(["content radar probe"]);
+      const settings = await getAiSettings(env.DB);
+      if (!settings.enabled) return { ...base, status: 0, ms: Date.now() - started, length: 0, error: "ai_not_configured" };
+      const [vector] = await openAiEmbedder(embeddingProvider(settings), undefined, PROBE_TIMEOUT_MS)(["content radar probe"]);
       return { ...base, status: 200, ms: Date.now() - started, length: vector!.byteLength };
     }
     const response = await fetch(request, { signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) });

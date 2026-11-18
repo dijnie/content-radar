@@ -81,11 +81,11 @@ Thiếu số liệu nhận 0 điểm ở thành phần đó và vẫn giữ giá
 
 ## Ngân sách AI
 
-`LLM_ENDPOINT`, `LLM_API_KEY` và `LLM_MODEL` cấu hình endpoint tương thích OpenAI Chat Completions cho bóc claim, tổng hợp và phân xử entity. Endpoint nhận URL gốc API hoặc URL đầy đủ `/chat/completions`; client gửi API key trong header Bearer. Key chỉ nằm ở Worker, không trả về frontend. Job phân cụm gọi `/embeddings` cùng endpoint bằng `EMBEDDING_MODEL` và cùng API key.
+Chat và embedding đọc cấu hình từ bản ghi riêng trong bảng D1 `ai_settings`. Chat gửi key qua header Bearer tới API OpenAI-compatible. Embedding dùng chung endpoint và key của chat hoặc dùng provider riêng. Giao diện Settings chỉ trả trạng thái key đã lưu và yêu cầu mã chủ sở hữu để đọc hoặc sửa cấu hình.
 
 Client yêu cầu JSON object, giới hạn 8.192 token đầu ra và timeout 60 giây cả lúc đọc body. Không gửi tham số riêng của LLM. Prompt đưa schema cùng ví dụ JSON; code vẫn kiểm tra schema, ID và quote trước khi lưu. Provider cần hỗ trợ JSON mode, `temperature` và `max_tokens` theo hợp đồng Chat Completions này.
 
-- `LLM_MODEL` chọn đúng một model cho consumer, bộ lập lịch và trang trạng thái. Model mới được thêm vào `llm_models` với trần **100 request/ngày, 5 request/phút**. Nếu model đã có trong D1, giữ nguyên giới hạn, trạng thái bật/tắt, cooldown và usage. Các model cũ cùng lịch sử không bị xoá. Bỏ hẳn biến `LLM_MODEL` thì dùng chuỗi model bật trong D1; đặt chuỗi rỗng thì tạm dừng LLM.
+Model chat đã chọn giữ giới hạn và lịch sử usage của model đó trong D1. Model mới nhận giới hạn mặc định 5 request/phút và 100/ngày. Tắt **Enable AI processing** trong Settings để tạm dừng. Bản ghi vector phân biệt endpoint và model embedding để job phân cụm có thể làm mới cache khi đổi provider.
 - `budgeted-call` đặt chỗ trong `llm_usage` trước mỗi lần gọi. Mỗi phản hồi HTTP tính một lượt vào trần ứng dụng, kể cả 429/5xx; không nhận được phản hồi thì hoàn chỗ. `tokens_in` và `tokens_out` ghi usage nhà cung cấp trả về. Số lượt gọi không phải trần USD; token của request mất kết nối có thể không quan sát được trong sổ.
 - Sổ giữ ngày Pacific; sang ngày mới tự tạo dòng mới. Với trần 100/ngày, 80 lượt dành cho bóc claim, 20 lượt dùng chung cho tổng hợp/phân xử, không vay giữa hai phần. Backfill tối đa 25 lượt trong phần bóc claim. Mỗi lượt bóc claim gom tối đa 10 item.
 - Hết trần theo phút thì chờ 60 giây; hết phần ngân sách ngày thì để việc trong D1. HTTP 429 cho model nghỉ theo `Retry-After` trong khoảng 1–300 giây, mặc định 60 giây. Không suy ra quota ngày hoặc tự đổi `rpm`/`rpd` từ lỗi này. Mỗi lần transport chỉ gửi một request, không tự retry hoặc theo redirect.

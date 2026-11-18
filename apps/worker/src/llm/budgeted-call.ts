@@ -1,3 +1,4 @@
+import { getAiSettings, selectedChatModel } from "../db/ai-settings";
 import { insertLlmCall, type LlmCallInput, type LlmKind } from "../db/llm-repo";
 import type { Env } from "../env";
 import { commit, markRateLimited, release, restOverloaded } from "./budget-ledger";
@@ -5,7 +6,7 @@ import { circuitOpenUntil, pauseCircuit, recordFailure, recordSuccess } from "./
 import { generateJson } from "./custom-client";
 import { loadBudgetSettings, reserveOnChain } from "./model-chain";
 
-export type LlmEnv = Pick<Env, "DB" | "RAW" | "LLM_QUEUE" | "LLM_API_KEY" | "LLM_ENDPOINT" | "LLM_MODEL">;
+export type LlmEnv = Pick<Env, "DB" | "RAW" | "LLM_QUEUE">;
 
 export interface LlmDeps {
   now?: number;
@@ -44,6 +45,9 @@ export async function budgetedCall(env: LlmEnv, request: BudgetedRequest, deps: 
   const now = deps.now ?? Math.floor(Date.now() / 1000);
   if ((await circuitOpenUntil(env.DB, now)) !== null) return { status: "park" };
   const settings = await loadBudgetSettings(env.DB);
+  const provider = await getAiSettings(env.DB);
+  const modelSelection = selectedChatModel(provider);
+  if (modelSelection === "") return { status: "park" };
   const tried = new Set<string>();
   // Set once a model answered with a server error. Such a model is skipped for this call only:
   // an overloaded model says nothing about the others, and nothing about tomorrow.
@@ -52,7 +56,7 @@ export async function budgetedCall(env: LlmEnv, request: BudgetedRequest, deps: 
   const parkForAvailability = attempt >= MAX_AVAILABILITY_RETRIES;
 
   for (;;) {
-    const chain = await reserveOnChain(env.DB, request.kind, now, settings, tried, env.LLM_MODEL);
+    const chain = await reserveOnChain(env.DB, request.kind, now, settings, tried, modelSelection);
     if (!chain.ok) {
       // Only on the call that saw the errors itself. A later call that merely finds the models resting waits quietly.
       if (serverError !== null) {
@@ -65,7 +69,7 @@ export async function budgetedCall(env: LlmEnv, request: BudgetedRequest, deps: 
     const { model, reservation } = chain;
 
     const result = await generateJson({
-      apiKey: env.LLM_API_KEY ?? "", endpoint: env.LLM_ENDPOINT ?? "", model: model.model, system: request.system, user: request.user, schema: request.schema,
+      apiKey: provider.chat_key, endpoint: provider.chat_endpoint, model: model.model, system: request.system, user: request.user, schema: request.schema,
       ...(deps.fetcher ? { fetcher: deps.fetcher } : {}),
     });
     const log: LlmCallInput = { at: now, model: model.model, kind: request.kind, promptVersion: request.promptVersion, status: "ok", httpStatus: result.httpStatus, latencyMs: result.latencyMs, itemIds: request.subjectIds };

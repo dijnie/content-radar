@@ -2,7 +2,7 @@ import type { ClaimNode, CoreParams, VectorMatrix } from "@radar/core";
 import type { Env } from "../env";
 import type { EmbedFn } from "./embedding-client";
 
-export type ClusterEnv = Pick<Env, "DB" | "LLM_QUEUE" | "LLM_MODEL" | "EMBEDDING_MODEL" | "LLM_ENDPOINT" | "LLM_API_KEY">;
+export type ClusterEnv = Pick<Env, "DB" | "LLM_QUEUE">;
 
 export interface JobContext {
   env: ClusterEnv;

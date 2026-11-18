@@ -10,7 +10,7 @@ const read = async (before?: number) => {
   const url = new URL("https://radar.example.com/api/status/llm-calls");
   url.searchParams.set("model", model);
   if (before) url.searchParams.set("before", String(before));
-  return (await handleLlmCalls(new Request(url), env, now)).json() as Promise<{ calls: { id: number; status: string; httpStatus: number | null }[]; nextBefore: number | null; day: string }>;
+  return (await handleLlmCalls(new Request(url), env, now)).json() as Promise<{ calls: { id: number; status: string; httpStatus: number | null; reason: string | null }[]; nextBefore: number | null; day: string }>;
 };
 
 describe("AI request log", () => {
@@ -33,6 +33,15 @@ describe("AI request log", () => {
     expect(page.calls).toHaveLength(1);
     expect(page.calls[0]).toMatchObject({ id: runningId, status: "invalid_request", httpStatus: 400 });
     expect(JSON.stringify(page)).not.toContain("private");
+  });
+
+  it("reports which JSON layer failed and keeps legacy diagnostics readable", async () => {
+    const errors = ["llm_invalid_response_json", "llm_invalid_content_json", "llm_invalid_json", "private response body"];
+    await env.DB.batch(errors.map(error => env.DB.prepare(
+      "INSERT INTO llm_calls (at, model, kind, status, prompt_version, http_status, error) VALUES (?, ?, 'extract', 'invalid_output', 1, 200, ?)"
+    ).bind(now, model, error)));
+    const page = await read();
+    expect(page.calls.map(call => call.reason)).toEqual([null, "llm_invalid_json", "llm_invalid_content_json", "llm_invalid_response_json"]);
   });
 
   it("separates models and Pacific days, pages older calls, and marks missing outcomes", async () => {

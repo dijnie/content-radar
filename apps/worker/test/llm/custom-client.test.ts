@@ -83,6 +83,33 @@ describe("custom OpenAI-compatible JSON transport", () => {
     expect(retryAfterSeconds("unknown")).toBe(60);
   });
 
+  it.each(["```json\n", "```\n", "```JSON \r\n"])("reads one complete Markdown JSON block from a compatible provider", async opening => {
+    const decision = { decisions: [{ id: 7, decision: "same" }] };
+    const content = opening + JSON.stringify(decision, null, 2) + "\r\n```\n";
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(Response.json(answer(content)));
+    expect(await generateJson({ ...request, fetcher })).toMatchObject({
+      ok: true, data: decision, httpStatus: 200, tokensIn: 1840, tokensOut: 412,
+    });
+    expect(fetcher).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    "Here is the result:\n```json\n{}\n```", "```json\n{}\n```\nExtra text", "```json\n{}",
+    "```json\n{broken}\n```", "```json\n{}\n```\n```json\n{}\n```", "```js\n{}\n```",
+  ])("rejects ambiguous or malformed model text without exposing it", async content => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(Response.json(answer(content)));
+    const result = await generateJson({ ...request, fetcher });
+    expect(result).toMatchObject({ ok: false, message: "llm_invalid_content_json", tokensOut: 412 });
+    expect(JSON.stringify(result)).not.toContain(content);
+  });
+
+  it("distinguishes an unreadable HTTP body from malformed model text", async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response("<html>private provider response</html>"));
+    const result = await generateJson({ ...request, fetcher });
+    expect(result).toMatchObject({ ok: false, kind: "invalid_output", message: "llm_invalid_response_json", httpStatus: 200 });
+    expect(JSON.stringify(result)).not.toContain("private provider response");
+  });
+
   it("identifies output limits so extraction can split the batch, retaining usage", async () => {
     expect(await generateJson({ ...request, fetcher: (async () => Response.json(answer('{"items":[', "length"))) as typeof fetch }))
       .toMatchObject({ ok: false, kind: "invalid_output", message: "llm_output_limit", reached: true, tokensIn: 1840, tokensOut: 412 });

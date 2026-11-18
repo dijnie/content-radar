@@ -22,7 +22,8 @@ export async function handleLlmCalls(request: Request, env: Pick<Env, "DB">, now
       tokens_in AS tokensIn, tokens_out AS tokensOut,
       CASE WHEN json_valid(item_ids_json) THEN json_array_length(item_ids_json) END AS subjects, claims_accepted AS claimsAccepted,
       CASE WHEN error IN ('TimeoutError', 'AbortError', 'llm_output_limit', 'llm_invalid_json',
-        'llm_incomplete_response', 'llm_empty_response', 'llm_redirect_disallowed') THEN error END AS reason
+        'llm_invalid_response_json', 'llm_invalid_content_json', 'llm_unexpected_content_type',
+        'llm_expected_object', 'llm_incomplete_response', 'llm_empty_response', 'llm_redirect_disallowed') THEN error END AS reason
     FROM llm_calls WHERE model = ? AND at >= ? AND at < ? AND id < ?
     ORDER BY id DESC LIMIT ?`)
     .bind(now - 15 * 60, query.data.model, start, end, query.data.before ?? Number.MAX_SAFE_INTEGER, PAGE_SIZE + 1)

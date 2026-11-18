@@ -29,7 +29,7 @@ export function retryAfterSeconds(value: string | null, nowMs = Date.now()): num
   return Number.isFinite(seconds) ? Math.max(1, Math.min(300, Math.ceil(seconds))) : 60;
 }
 
-/** JSON mode guarantees JSON syntax only; callers still validate schemas and evidence quotes. */
+/** Read a complete JSON object. Callers validate task schemas and evidence quotes. */
 export async function generateJson(request: LlmRequest): Promise<LlmResult> {
   const started = Date.now();
   let status: number | null = null;
@@ -84,20 +84,32 @@ export async function generateJson(request: LlmRequest): Promise<LlmResult> {
   if (status >= 500 || status === 408) return fail("transient", true, `llm_http_${status}`);
   if (!response.ok) return fail("invalid_request", true, `llm_http_${status}`);
 
+  let body: {
+    choices?: { message?: { content?: unknown }; finish_reason?: string }[];
+    usage?: { prompt_tokens?: number; completion_tokens?: number };
+  } | null;
   try {
-    const body = JSON.parse(raw) as {
-      choices?: { message?: { content?: string | null }; finish_reason?: string }[];
-      usage?: { prompt_tokens?: number; completion_tokens?: number };
-    };
-    usage = { tokensIn: body.usage?.prompt_tokens ?? 0, tokensOut: body.usage?.completion_tokens ?? 0 };
-    const choice = body.choices?.[0];
-    if (choice?.finish_reason === "length") return fail("invalid_output", true, "llm_output_limit");
-    if (choice?.finish_reason !== "stop") return fail("invalid_output", true, "llm_incomplete_response");
-    if (!choice.message?.content?.trim()) return fail("invalid_output", true, "llm_empty_response");
-    const data: unknown = JSON.parse(choice.message.content);
-    if (data === null || typeof data !== "object" || Array.isArray(data)) return fail("invalid_output", true, "llm_expected_object");
-    return { ok: true, data, httpStatus: status, latencyMs: Date.now() - started, ...usage };
+    body = JSON.parse(raw);
   } catch {
-    return fail("invalid_output", true, "llm_invalid_json");
+    return fail("invalid_output", true, "llm_invalid_response_json");
   }
+  usage = { tokensIn: body?.usage?.prompt_tokens ?? 0, tokensOut: body?.usage?.completion_tokens ?? 0 };
+  const choice = body?.choices?.[0];
+  if (choice?.finish_reason === "length") return fail("invalid_output", true, "llm_output_limit");
+  if (choice?.finish_reason !== "stop") return fail("invalid_output", true, "llm_incomplete_response");
+  const content = choice.message?.content;
+  if (content != null && typeof content !== "string") return fail("invalid_output", true, "llm_unexpected_content_type");
+  const text = content?.trim();
+  if (!text) return fail("invalid_output", true, "llm_empty_response");
+
+  // Some compatible providers wrap even a JSON-mode answer in a single Markdown block.
+  const fenced = /^```(?:json)?[ \t]*\r?\n([\s\S]*?)\r?\n```$/i.exec(text);
+  let data: unknown;
+  try {
+    data = JSON.parse(fenced ? fenced[1]! : text);
+  } catch {
+    return fail("invalid_output", true, "llm_invalid_content_json");
+  }
+  if (data === null || typeof data !== "object" || Array.isArray(data)) return fail("invalid_output", true, "llm_expected_object");
+  return { ok: true, data, httpStatus: status, latencyMs: Date.now() - started, ...usage };
 }

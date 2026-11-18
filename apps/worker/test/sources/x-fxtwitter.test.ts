@@ -71,9 +71,9 @@ describe("fallback chain", () => {
     expect(requests).toHaveLength(1);
   });
 
-  it("falls back to the feed plus the status API", async () => {
+  it.each([404, 503])("uses the feed plus the status API when the timeline returns %i", async (status) => {
     const { ctx } = fakeContext({
-      [TIMELINE]: { status: 503 },
+      [TIMELINE]: { status },
       "https://fxtwitter.com/simonw/feed.xml": feedXml,
       "https://api.fxtwitter.com/simonw/status/2101028280673656854": statusJson,
     });
@@ -95,9 +95,9 @@ describe("fallback chain", () => {
     expect(result.metrics.find((metric) => metric.externalId === id)).toEqual({ externalId: id, likes: 3863, replies: 204 });
   });
 
-  it("does not fall back when the account is gone", async () => {
+  it("reports both upstream responses when both routes return 404", async () => {
     const { ctx, requests } = fakeContext({ [TIMELINE]: { status: 404 } });
-    await expect(xAdapter.poll(sourceRow("x", "simonw"), ctx)).rejects.toMatchObject({ kind: "not_found" });
-    expect(requests).toHaveLength(1);
+    await expect(xAdapter.poll(sourceRow("x", "simonw"), ctx)).rejects.toMatchObject({ kind: "not_found", reason: "timeline_http_404; feed_http_404" });
+    expect(requests).toHaveLength(2);
   });
 });

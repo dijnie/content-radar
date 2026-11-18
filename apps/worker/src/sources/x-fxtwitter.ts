@@ -128,6 +128,7 @@ export function syndicationToken(id: string): string {
  */
 async function pollViaFeed(handle: string, ctx: AdapterContext): Promise<PollResult> {
   const { text: xml } = await ctx.fetchText(urlOn(FEED_HOST, `/${assertHandle(handle)}/feed.xml`));
+  if (!/<(?:rss|feed)\b/i.test(xml)) throw new HttpError("transient", "invalid_x_feed");
   const result: PollResult = { items: [], metrics: [] };
 
   for (const entry of parseFeed(xml, FALLBACK_STATUS_LIMIT).entries) {
@@ -177,9 +178,14 @@ export const xAdapter: SourceAdapter = {
     try {
       return await fetchTimeline(source.key, ctx);
     } catch (err) {
-      // An invalid handle or a vanished account will not be fixed by a fallback.
-      if (!(err instanceof HttpError) || err.reason === "invalid_handle" || err.kind === "not_found") throw err;
-      return pollViaFeed(source.key, ctx);
+      if (!(err instanceof HttpError) || err.reason === "invalid_handle" || err.status === 410) throw err;
+      // FxTwitter can return a timeline 404 while the same handle's RSS feed still has posts.
+      try {
+        return await pollViaFeed(source.key, ctx);
+      } catch (feedError) {
+        if (!(feedError instanceof HttpError) || (err.status !== 404 && feedError.status !== 404)) throw feedError;
+        throw new HttpError(feedError.kind, `timeline_${err.reason}; feed_${feedError.reason}`, feedError.status);
+      }
     }
   },
 };

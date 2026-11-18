@@ -119,6 +119,15 @@
 .state--partial { background: #f7eedc; color: var(--amber); }
 .state--queued, .state--running { background: #edf1f8; color: #41618d; }
 .job-detail { padding: 0.25rem 1.3rem 1rem; }
+.job-log-toggle { text-decoration: underline; text-underline-offset: 0.15em; }
+.crawl-log h3 { margin: 0.6rem 0; font-size: 1rem; }
+.crawl-log h3 .caption { margin-left: 0.4rem; font-weight: 400; }
+.crawl-activity { margin: 0.4rem 0; overflow-wrap: anywhere; }
+.crawl-events { max-height: 18rem; overflow: auto; margin: 0.6rem 0 1rem; padding: 0.35rem 0.75rem; list-style: none; border: 1px solid var(--border); border-radius: 0.4rem; }
+.crawl-events li { display: flex; flex-wrap: wrap; gap: 0.15rem 0.75rem; padding: 0.35rem 0; font-size: 0.88rem; overflow-wrap: anywhere; }
+.crawl-events time { color: var(--text-muted); font-family: var(--mono); }
+.crawl-event-error { color: var(--red); }
+.job-sources > summary { cursor: pointer; padding: 0.25rem 0; }
 .job-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; }
 .job-card > .job-actions:not(:empty) { padding: 0 1.3rem 1rem; }
 .schedules { margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1rem; }

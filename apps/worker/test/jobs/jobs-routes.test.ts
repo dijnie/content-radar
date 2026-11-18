@@ -11,14 +11,14 @@ describe("Jobs API", () => {
     const source = (await env.DB.prepare("INSERT INTO sources (type, key, label) VALUES ('rss', 'jobs-api', 'Test source') RETURNING id").first<{ id: number }>())!.id;
     const run = (await env.DB.prepare("INSERT INTO crawl_runs (trigger, status, started_at, finished_at) VALUES ('manual', 'partial', ?, ?) RETURNING id").bind(NOW, NOW + 1).first<{ id: number }>())!.id;
     await env.DB.batch([
-      env.DB.prepare("INSERT INTO crawl_sources (crawl_id, source_id, status, error) VALUES (?, ?, 'failed', 'upstream timeout')").bind(run, source),
+      env.DB.prepare("INSERT INTO crawl_sources (crawl_id, source_id, status, error, finished_at) VALUES (?, ?, 'failed', 'upstream timeout', ?)").bind(run, source, NOW + 1),
       env.DB.prepare("INSERT INTO crawl_runs (trigger, status, started_at, finished_at) VALUES ('schedule', 'failed', ?, ?)").bind(NOW - 10 * 86400, NOW - 10 * 86400 + 1),
     ]);
     const result = await handleJobs(new Request("https://radar.example.com/api/jobs?failures=1&days=7"), env, NOW + 2);
     const body = await result.json() as JobsResponse;
     expect(body.total).toBe(1);
     expect(body.crawls[0]).toMatchObject({ id: run, sources: 1, sourcesProcessed: 1, sourcesRunning: 0, failures: 1, status: "partial" });
-    expect(await (await handleJobDetail(env, "crawl", run)).json()).toMatchObject({ sources: [{ label: "Test source", error: "upstream timeout" }] });
+    expect(await (await handleJobDetail(env, "crawl", run)).json()).toMatchObject({ sources: [{ sourceId: source, label: "Test source", error: "upstream timeout", finishedAt: NOW + 1 }] });
   });
   it("counts active crawl members and distinguishes staged entries from published entries", async () => {
     const crawl = (await env.DB.prepare("INSERT INTO crawl_runs (trigger, started_at) VALUES ('manual', ?) RETURNING id").bind(NOW).first<{ id: number }>())!.id;

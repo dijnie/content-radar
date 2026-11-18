@@ -60,7 +60,7 @@ export async function handleJobDetail(env: Env, kind: string, id: number): Promi
   if (kind === "crawl") {
     const run = await env.DB.prepare("SELECT * FROM crawl_runs WHERE id = ?").bind(id).first();
     if (!run) return jsonError(404, "job_not_found");
-    const sources = await env.DB.prepare(`SELECT s.label, s.type, cs.status, cs.items_new AS itemsNew,
+    const sources = await env.DB.prepare(`SELECT cs.source_id AS sourceId, s.label, s.type, cs.status, cs.items_new AS itemsNew, cs.finished_at AS finishedAt,
       cs.error, cs.attempts FROM crawl_sources cs JOIN sources s ON s.id = cs.source_id
       WHERE cs.crawl_id = ? ORDER BY CASE cs.status WHEN 'running' THEN 0 WHEN 'failed' THEN 1 WHEN 'ok' THEN 2 ELSE 3 END, s.label`).bind(id).all();
     return Response.json({ run, sources: sources.results });

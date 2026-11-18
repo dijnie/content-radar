@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { EditorialEntry, EditorialFeedResponse, JobsResponse } from "../../../../../packages/core/src/editorial-types";
@@ -64,10 +64,11 @@ describe("editorial pages", () => {
     vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
       if (init?.method === "POST") return Response.json({ id: 8, created: true });
       if (String(input).endsWith("/crawl/8")) return Response.json({ run: {}, sources: [
-        { label: "Example feed", type: "rss", status: complete ? "ok" : "running", itemsNew: complete ? 12 : 0, attempts: 1, error: null },
+        { sourceId: 1, label: "Example feed", type: "rss", status: complete ? "ok" : "running", finishedAt: complete ? 1790000003 : null, itemsNew: complete ? 12 : 0, attempts: 1, error: null },
+        { sourceId: 3, label: "Broken feed", type: "rss", status: "failed", finishedAt: 1790000001, itemsNew: 0, attempts: 1, error: "not_found:http_404" },
       ] });
-      return Response.json({ crawls: [{ id: 8, kind: "crawl", status: complete ? "ok" : "running", startedAt: 1790000000,
-        sources: 2, sourcesProcessed: complete ? 2 : 1, sourcesRunning: complete ? 0 : 1, failures: 0, posts: 0, articles: 0 }],
+      return Response.json({ crawls: [{ id: 8, kind: "crawl", status: complete ? "partial" : "running", trigger: "manual", startedAt: 1790000000, finishedAt: complete ? 1790000003 : null,
+        sources: 2, sourcesProcessed: complete ? 2 : 1, sourcesRunning: complete ? 0 : 1, failures: 1, posts: 0, articles: 0 }],
         builds: [], schedules: [], total: 1, page: 1, pageSize: 30, timezone: "UTC" });
     });
     try {
@@ -75,14 +76,19 @@ describe("editorial pages", () => {
       await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Run" })); });
       expect(screen.getByRole("status").textContent).toContain("Crawl #8 · running");
       const details = screen.getByText("crawl #8").closest("details")!;
-      await act(async () => { details.open = true; fireEvent(details, new Event("toggle")); });
-      expect(screen.getByRole("cell", { name: "running" })).toBeTruthy();
+      expect(details.open).toBe(true);
+      await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+      const log = screen.getByRole("region", { name: "Crawl #8 log" });
+      expect(log.textContent).toContain("Polling Example feed");
+      expect(log.textContent).toContain("Broken feed · Failed · not_found:http_404");
       expect(screen.getByRole("progressbar").getAttribute("value")).toBe("1");
       complete = true;
       await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
-      expect(screen.getByRole("status").textContent).toContain("Crawl #8 · ok");
+      expect(screen.getByRole("status").textContent).toContain("Crawl #8 · partial");
       expect(screen.getByRole("progressbar").getAttribute("value")).toBe("2");
-      expect(screen.getByRole("cell", { name: "12" })).toBeTruthy();
+      const lines = within(log).getAllByRole("listitem");
+      expect(lines.map((line) => line.textContent?.split(" · ").at(-1))).toEqual(["partial", "12 new items", "not_found:http_404", "manual"]);
+      expect(lines[1]?.querySelector("time")?.dateTime).toBe(new Date(1790000003000).toISOString());
     } finally {
       cleanup();
       vi.useRealTimers();

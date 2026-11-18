@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { FeedKind, FeedSchedule, JobRow, JobsResponse } from "../../../../../packages/core/src/editorial-types";
 import { ApiError, request } from "../../api-client";
 import { useResource, useSectionQuery } from "../../hooks/use-resource";
+import { CrawlLog, type CrawlSource } from "./crawl-log";
 import { dateTime, FEED_LABEL, Pagination, ResourceState } from "./shared";
 
 const defaults = { days: "7", failures: "0", page: "1" };
@@ -9,14 +10,7 @@ const JOB_POLL_MS = 5000;
 const FEEDS: FeedKind[] = ["news", "hands-on", "deep-dives"];
 
 type JobDetailResponse = {
-  sources?: {
-    label: string;
-    type: string;
-    status: string;
-    itemsNew: number;
-    error: string | null;
-    attempts: number;
-  }[];
+  sources?: CrawlSource[];
   run: { error?: string | null; awaitingEditorial?: number | null; candidates?: number | null };
 };
 
@@ -42,7 +36,7 @@ function feedProgress(job: JobRow) {
   }
 }
 
-function JobDetail({ job }: { job: JobRow }) {
+function JobDetail({ job, timezone }: { job: JobRow; timezone: string }) {
   const active = job.status === "running" || job.status === "queued";
   const resource = useResource<JobDetailResponse>(`/api/jobs/${job.kind}/${job.id}`, active ? JOB_POLL_MS : 0);
   const run = resource.data?.run;
@@ -51,24 +45,30 @@ function JobDetail({ job }: { job: JobRow }) {
     <ResourceState loading={resource.loading && !resource.data} error={resource.error} empty={false} reload={resource.reload}>
       <div className="job-detail">
         {resource.data?.sources ? (
-          <div className="table-scroll">
-            <table>
-              <thead>
-                <tr><th>Source</th><th>Status</th><th>New items</th><th>Attempts</th><th>Error</th></tr>
-              </thead>
-              <tbody>
-                {resource.data.sources.map((source, index) => (
-                  <tr key={index}>
-                    <td>{source.label} <span className="caption">{source.type}</span></td>
-                    <td>{source.status}</td>
-                    <td>{source.itemsNew}</td>
-                    <td>{source.attempts}</td>
-                    <td>{source.error ?? "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <>
+            <CrawlLog job={job} sources={resource.data.sources} timezone={timezone} />
+            <details className="job-sources">
+              <summary>All sources ({resource.data.sources.length})</summary>
+              <div className="table-scroll">
+                <table>
+                  <thead>
+                    <tr><th>Source</th><th>Status</th><th>New items</th><th>Attempts</th><th>Error</th></tr>
+                  </thead>
+                  <tbody>
+                    {resource.data.sources.map((source) => (
+                      <tr key={source.sourceId}>
+                        <td>{source.label} <span className="caption">{source.type}</span></td>
+                        <td>{source.status}</td>
+                        <td>{source.itemsNew}</td>
+                        <td>{source.attempts}</td>
+                        <td>{source.error ?? "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </details>
+          </>
         ) : (
           <p>
             Source crawl #{job.crawlId}. {run?.error ?? feedProgress(job)}.
@@ -83,12 +83,17 @@ function JobDetail({ job }: { job: JobRow }) {
 
 type JobProps = {
   job: JobRow;
+  revealLog?: boolean;
   timezone: string;
   onBuild: (feed: FeedKind, crawlId: number) => void;
   pending: boolean;
 };
 
-function Job({ job, timezone, onBuild, pending }: JobProps) {
+function Job({ job, timezone, onBuild, pending, revealLog }: JobProps) {
+  const details = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    if (revealLog && details.current) details.current.open = true;
+  }, [revealLog]);
   const [open, setOpen] = useState(false);
   const isCrawl = job.kind === "crawl";
   const jobLabel = job.kind === "crawl" ? "crawl" : FEED_LABEL[job.kind];
@@ -97,7 +102,9 @@ function Job({ job, timezone, onBuild, pending }: JobProps) {
 
   return (
     <div className="job-card">
-      <details onToggle={(event) => setOpen(event.currentTarget.open)}>
+      <details ref={details} onToggle={(event) => {
+        if (event.target === event.currentTarget) setOpen(event.currentTarget.open);
+      }}>
         <summary className="job-row">
           <strong>{jobLabel} #{job.id}</strong>
           <time>{dateTime(job.startedAt, timezone)}</time>
@@ -117,6 +124,7 @@ function Job({ job, timezone, onBuild, pending }: JobProps) {
             </div>
           )}
           <span className="job-duration">{duration(job)}</span>
+          {isCrawl && <span className="job-log-toggle">{open ? "Hide log" : "View log"}</span>}
           {isCrawl && (
             <div className="job-progress">
               {job.sources > 0 && <progress value={job.sourcesProcessed} max={job.sources} aria-label={`Crawl #${job.id} sources processed`} />}
@@ -124,7 +132,7 @@ function Job({ job, timezone, onBuild, pending }: JobProps) {
             </div>
           )}
         </summary>
-        {open && <JobDetail job={job} />}
+        {open && <JobDetail job={job} timezone={timezone} />}
       </details>
       {open && (
         <div className="job-actions">
@@ -261,7 +269,7 @@ export function JobsPage() {
       <ResourceState loading={resource.loading && !data} error={resource.error} empty={false} reload={resource.reload}>
         <div className="job-list">
           {data?.crawls.map((job) => (
-            <Job key={job.id} job={job} timezone={data.timezone} pending={pending} onBuild={(feed, id) => void run(feed, id)} />
+            <Job key={job.id} job={job} revealLog={submitted?.kind === "crawl" && submitted.id === job.id} timezone={data.timezone} pending={pending} onBuild={(feed, id) => void run(feed, id)} />
           ))}
           {data && !data.crawls.length && <p className="notice">No crawls in this view.</p>}
         </div>

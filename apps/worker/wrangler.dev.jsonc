@@ -1,5 +1,5 @@
 // Local development only (`npm run dev`); this file declares no deployed route.
-// Keep bindings in step with wrangler.template.json.
+// Deployment defaults are in the repository's root wrangler.json.
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "content-radar-dev",

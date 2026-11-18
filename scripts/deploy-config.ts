@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseEnv } from "node:util";
 import { z } from "zod";
-import type templateConfig from "../apps/worker/wrangler.template.json";
+import type templateConfig from "../wrangler.json";
 
 export const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const name = z.string().trim().min(1).regex(/^[a-z0-9][a-z0-9_-]*$/, "Use lowercase letters, numbers, hyphens or underscores");
@@ -17,21 +17,7 @@ const schema = z.object({
   POLL_QUEUE_NAME: name.default("radar-poll"),
   LLM_QUEUE_NAME: name.default("radar-llm"),
   DLQ_QUEUE_NAME: name.default("radar-dlq"),
-  LLM_ENDPOINT: z.string().trim().optional(),
-  LLM_MODEL: z.string().trim().optional(),
-  EMBEDDING_MODEL: z.string().trim().min(1).optional(),
 }).superRefine((values, ctx) => {
-  if ((values.LLM_ENDPOINT === undefined) !== (values.LLM_MODEL === undefined) || Boolean(values.LLM_ENDPOINT) !== Boolean(values.LLM_MODEL)) {
-    ctx.addIssue({ code: "custom", path: ["LLM_ENDPOINT", "LLM_MODEL"], message: "Omit both fields to keep dashboard values, fill both to override, or set both empty to pause LLM processing" });
-  }
-  if (values.LLM_ENDPOINT) {
-    try {
-      const url = new URL(values.LLM_ENDPOINT);
-      if (!["https:", "http:"].includes(url.protocol) || url.username || url.password || url.hash) throw new Error();
-    } catch {
-      ctx.addIssue({ code: "custom", path: ["LLM_ENDPOINT"], message: "Use an HTTP(S) API URL without embedded credentials or fragments; put the API key in LLM_API_KEY" });
-    }
-  }
   if (new Set([values.POLL_QUEUE_NAME, values.LLM_QUEUE_NAME, values.DLQ_QUEUE_NAME]).size !== 3) {
     ctx.addIssue({ code: "custom", path: ["POLL_QUEUE_NAME", "LLM_QUEUE_NAME", "DLQ_QUEUE_NAME"], message: "Use three different queue names" });
   }
@@ -50,42 +36,56 @@ export function readSetup(root = projectRoot, environment: NodeJS.ProcessEnv = p
 type DeployConfig = Omit<typeof templateConfig, "vars" | "d1_databases"> & {
   account_id?: string;
   vars: Record<string, string>;
-  d1_databases: { binding: string; migrations_dir: string; database_name?: string }[];
+  d1_databases: { binding: string; migrations_dir: string; database_name?: string; database_id?: string }[];
 };
 
 export function writeDeployConfig(root = projectRoot, environment: NodeJS.ProcessEnv = process.env, options: { databaseCommands?: boolean } = {}) {
   // Validate everything before touching an existing deployment configuration.
   const values = readSetup(root, environment);
-  if (options.databaseCommands && !values.D1_DATABASE_NAME) {
+  const template = JSON.parse(readFileSync(path.join(root, "wrangler.json"), "utf8")) as DeployConfig;
+  const db = template.d1_databases.find(binding => binding.binding === "DB");
+  if (!db) throw new Error("Missing DB binding in wrangler.json");
+  const provisioned = !!db.database_id && db.database_id !== "00000000-0000-0000-0000-000000000000";
+  if (!provisioned && options.databaseCommands && !values.D1_DATABASE_NAME) {
     throw new Error("Database CLI commands need D1_DATABASE_NAME set to the database attached as DB in Worker > Bindings. Deploy uses that binding directly and needs no database name or ID.");
   }
-  const template = JSON.parse(readFileSync(path.join(root, "apps/worker/wrangler.template.json"), "utf8")) as DeployConfig;
+  const workerDir = path.join(root, "apps/worker");
+  const fromWorker = (resource: string) => path.relative(workerDir, path.resolve(root, resource));
+  template.$schema = fromWorker(template.$schema);
+  template.main = fromWorker(template.main);
+  template.assets.directory = fromWorker(template.assets.directory);
+  db.migrations_dir = fromWorker(db.migrations_dir);
   if (values.CLOUDFLARE_ACCOUNT_ID) template.account_id = values.CLOUDFLARE_ACCOUNT_ID;
-  template.name = values.WORKER_NAME;
-  // No name or ID on deployment: Wrangler reuses the DB binding already selected on the Worker.
-  // Direct D1 CLI commands resolve by database name, not by a Worker's deployed binding.
-  if (options.databaseCommands && values.D1_DATABASE_NAME) template.d1_databases[0]!.database_name = values.D1_DATABASE_NAME;
-  template.r2_buckets[0]!.bucket_name = values.R2_BUCKET_NAME;
-  if (values.LLM_ENDPOINT !== undefined && values.LLM_MODEL !== undefined) {
-    template.vars.LLM_ENDPOINT = values.LLM_ENDPOINT;
-    template.vars.LLM_MODEL = values.LLM_MODEL;
+  if (!provisioned) {
+    // The original repository deploys to the existing dashboard binding.
+    delete db.database_id;
+    delete db.database_name;
+    if (options.databaseCommands && values.D1_DATABASE_NAME) db.database_name = values.D1_DATABASE_NAME;
+    template.name = values.WORKER_NAME;
+    template.r2_buckets[0]!.bucket_name = values.R2_BUCKET_NAME;
   }
-  if (values.EMBEDDING_MODEL !== undefined) template.vars.EMBEDDING_MODEL = values.EMBEDDING_MODEL;
-  template.vars.POLL_QUEUE_NAME = values.POLL_QUEUE_NAME;
-  template.vars.LLM_QUEUE_NAME = values.LLM_QUEUE_NAME;
-  template.vars.DLQ_QUEUE_NAME = values.DLQ_QUEUE_NAME;
-  const queues: Record<string, string> = {
-    "radar-poll": values.POLL_QUEUE_NAME,
-    "radar-llm": values.LLM_QUEUE_NAME,
-    "radar-dlq": values.DLQ_QUEUE_NAME,
-  };
-  for (const queue of [...template.queues.producers, ...template.queues.consumers]) {
-    const resolved = queues[queue.queue];
-    if (!resolved) throw new Error("Unknown queue in wrangler.template.json; update the setup mapping");
-    queue.queue = resolved;
-    if ("dead_letter_queue" in queue && queue.dead_letter_queue) queue.dead_letter_queue = values.DLQ_QUEUE_NAME;
+  const queueNames = new Map<string, string>();
+  const queueRoles = [
+    ["POLL_QUEUE", "POLL_QUEUE_NAME", "radar-poll"],
+    ["LLM_QUEUE", "LLM_QUEUE_NAME", "radar-llm"],
+    ["DLQ", "DLQ_QUEUE_NAME", "radar-dlq"],
+  ] as const;
+  for (const [binding, variable, defaultName] of queueRoles) {
+    const producer = template.queues.producers.find(q => q.binding === binding);
+    if (!producer) throw new Error(`Missing queue binding ${binding} in wrangler.json`);
+    const name = provisioned ? producer.queue : values[variable];
+    queueNames.set(defaultName, name);
+    producer.queue = name;
+    template.vars[variable] = name;
   }
-  const output = path.join(root, "apps/worker/wrangler.jsonc");
-  writeFileSync(output, `// Generated by npm run setup. Edit .env.setup or build variables, and wrangler.template.json.\n${JSON.stringify(template, null, 2)}\n`, { mode: 0o600 });
-  return { output, llmEnabled: values.LLM_MODEL === undefined ? null : Boolean(values.LLM_MODEL) };
+  for (const consumer of template.queues.consumers) {
+    // The template wizard can rename the queues. Use their producer bindings as the source of truth.
+    if (!provisioned || !template.queues.producers.some(q => q.queue === consumer.queue)) consumer.queue = queueNames.get(consumer.queue) ?? consumer.queue;
+    if (consumer.dead_letter_queue) consumer.dead_letter_queue = template.vars.DLQ_QUEUE_NAME!;
+  }
+  // The third producer exposes the dead-letter queue in the template form only.
+  if (!provisioned) template.queues.producers = template.queues.producers.filter(q => q.binding !== "DLQ");
+  const output = path.join(workerDir, "wrangler.jsonc");
+  writeFileSync(output, `// Generated by npm run setup from wrangler.json.\n${JSON.stringify(template, null, 2)}\n`, { mode: 0o600 });
+  return { output, provisioned };
 }

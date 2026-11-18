@@ -1,7 +1,7 @@
 {
-  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "content-radar",
-  "main": "src/index.ts",
+  "main": "apps/worker/src/index.ts",
   "compatibility_date": "2026-09-01",
   "workers_dev": true,
   "preview_urls": false,
@@ -15,7 +15,7 @@
     "DLQ_QUEUE_NAME": "radar-dlq"
   },
   "assets": {
-    "directory": "../web/dist",
+    "directory": "apps/web/dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
     "run_worker_first": true
@@ -23,7 +23,9 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "migrations_dir": "migrations"
+      "database_name": "content-radar",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "apps/worker/migrations"
     }
   ],
   "r2_buckets": [
@@ -41,6 +43,10 @@
       {
         "binding": "LLM_QUEUE",
         "queue": "radar-llm"
+      },
+      {
+        "binding": "DLQ",
+        "queue": "radar-dlq"
       }
     ],
     "consumers": [

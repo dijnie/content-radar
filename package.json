@@ -1,6 +1,13 @@
 {
   "name": "content-radar",
   "private": true,
+  "cloudflare": {
+    "label": "Content Radar",
+    "bindings": {
+      "OWNER_TOKEN": { "description": "Choose a random secret to unlock Settings in Radar. Configure your LLM and embedding providers there after deployment." },
+      "DB": { "description": "Stores the source catalog, stories and AI settings." }
+    }
+  },
   "type": "module",
   "engines": {
     "node": ">=22"

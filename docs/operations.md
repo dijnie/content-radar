@@ -1,6 +1,6 @@
 # Vận hành
 
-Setup tài khoản mới hoặc chuyển sang Cloudflare Builds: làm theo [template setup](setup.md) trước. Các ghi chép production bên dưới là lịch sử triển khai, không phải tài nguyên có sẵn cho mọi tài khoản. `apps/worker/wrangler.jsonc` nay được sinh từ `.env.setup`/build variables và `wrangler.template.json`; không sửa trực tiếp file sinh ra.
+Setup tài khoản mới hoặc chuyển sang Cloudflare Builds: làm theo [template setup](setup.md) trước. Các ghi chép production bên dưới là lịch sử triển khai, không phải tài nguyên có sẵn cho mọi tài khoản. `apps/worker/wrangler.jsonc` nay được sinh từ `.env.setup`/build variables và `wrangler.json`; không sửa trực tiếp file sinh ra.
 
 Cập nhật ngày 2026-10-05: ứng dụng mở công khai theo yêu cầu người dùng. Mọi người được xem và tương tác; trạng thái thẻ, trạng thái đọc, Jobs và lịch chạy dùng chung. Worker không còn xác thực Cloudflare Access hay giới hạn email chủ sở hữu. Ghi chép Access ngày 2026-09-21 trong `plans/reports` chỉ còn là lịch sử. Nếu Access vẫn đang bảo vệ hostname ở dashboard, tắt riêng lớp đó để URL thực sự công khai.
 
@@ -24,7 +24,7 @@ Cron khôi phục intent crawl/build bị mất queue và lease quá hạn. Khi 
 
 ## Deploy lần đầu
 
-1. Gắn D1 binding `DB` trên Worker theo [hướng dẫn setup](setup.md). Cloudflare Builds không cần `.env.setup`, D1 ID hoặc biến Access. Giữ `workers_dev: true` và `preview_urls: false` trong `apps/worker/wrangler.template.json`.
+1. Gắn D1 binding `DB` trên Worker theo [hướng dẫn setup](setup.md). Cloudflare Builds không cần `.env.setup`, D1 ID hoặc biến Access. Giữ `workers_dev: true` và `preview_urls: false` trong `wrangler.json`.
 
    Nếu đã bật Access, vào Worker → Settings → Domains & Routes (hoặc tab Domains), chọn **Disable Cloudflare Access** cho URL Content Radar. Giữ route `workers.dev` bật. Với Access self-hosted được tạo riêng, gỡ đúng hostname Content Radar khỏi ứng dụng đó, giữ cấu hình cho các ứng dụng khác. [Access trên workers.dev](https://developers.cloudflare.com/workers/configuration/routing/workers-dev/#manage-access-to-workersdev).
 
@@ -42,9 +42,7 @@ Cron khôi phục intent crawl/build bị mất queue và lease quá hạn. Khi 
 
    Migration đã áp sẽ được bỏ qua và `config:sync` là idempotent. Dùng `npx wrangler d1 migrations list DB --remote` từ `apps/worker` để kiểm tra migration chờ. Trên remote, `wrangler d1 execute --file` chỉ trả bản tóm tắt import; dùng `--command` hoặc `npm run soak-report -- --remote` để đọc kết quả truy vấn.
 
-3. Trong Worker → Settings → Variables and Secrets, đặt `LLM_API_KEY` và `GITHUB_TOKEN` là Secret; đặt `LLM_ENDPOINT`, `LLM_MODEL` và `EMBEDDING_MODEL` là Text. Deploy giữ endpoint/model trên dashboard khi build không truyền giá trị mới. `APP_ORIGIN` tùy chọn giúp loại hostname riêng của ứng dụng khỏi nội dung crawl nền. `OWNER_EMAIL`, `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD` không còn được sử dụng.
-
-   Model mới có trần 100 request/ngày Pacific, tối đa 5 request/phút; model đã tồn tại giữ giới hạn hiện có. Đặt cả endpoint và model thành chuỗi rỗng để tạm dừng LLM.
+3. Đặt GitHub PAT trong Worker secret `GITHUB_TOKEN` nếu dùng các nguồn GitHub. `APP_ORIGIN` là tùy chọn để loại hostname của ứng dụng khỏi nội dung crawl nền.
 
 4. Deploy **commit mới nhất** qua Cloudflare Builds (`npm run deploy`), rồi mở trang bằng cửa sổ riêng tư để kiểm tra truy cập không đăng nhập. Trang gốc và `/api/status` phải trả 200; thử lưu/khôi phục một thẻ hoặc đổi lịch feed để xác nhận thao tác ghi hoạt động. Kiểm tra frontend, API và dữ liệu cùng một deployment.
 
@@ -54,29 +52,13 @@ Cron khôi phục intent crawl/build bị mất queue và lease quá hạn. Khi 
 
 ## AI qua endpoint tùy chỉnh
 
-Cấu hình các biến sau trong Worker.
+Cấu hình AI trong **Settings** của Radar. Đặt hoặc đổi mã mở khóa bằng secret `OWNER_TOKEN` trong **Settings → Variables and Secrets** của Worker. Khi secret chưa được đặt, Settings bị khóa. Migration `0013` bỏ cột mã cũ và giữ cấu hình provider. D1 và bản sao lưu D1 vẫn chứa API key của provider.
 
-| Biến | Giá trị |
-|---|---|
-| `LLM_ENDPOINT` | URL gốc API, ví dụ `https://your-provider.example/v1`, hoặc URL đầy đủ `/chat/completions`. |
-| `LLM_API_KEY` | API key gửi trong header `Authorization: Bearer …`; lưu bằng Worker secret. |
-| `LLM_MODEL` | Tên model chính xác mà endpoint hỗ trợ, kể cả tên dạng `vendor/model`. |
-| `EMBEDDING_MODEL` | Tên model cho `/embeddings`, mặc định `text-embedding-3-small`. Để dùng lại vector BGE-M3 cũ, endpoint phải phục vụ đúng model với ID `@cf/baai/bge-m3`. |
+Chat cần API tương thích OpenAI Chat Completions với JSON mode. Embeddings cần API `/embeddings` trả vector 1.024 chiều. Có thể dùng chung endpoint và key, hoặc cấu hình provider embedding riêng. Nhập key mới khi đổi endpoint. Khi chỉ đổi model, để trống ô key để giữ key đã lưu. Bỏ chọn **Enable AI processing** và lưu để tạm dừng.
 
-Local: chép `.dev.vars.example` thành `apps/worker/.dev.vars` và điền các giá trị. Production: đặt endpoint/model và secret `LLM_API_KEY` trong Worker → Settings → Variables and Secrets. `.env.setup`/build variables chỉ dùng nếu muốn ghi đè cả endpoint và model; mặc định deploy giữ cấu hình dashboard. File local không tự trở thành secret production. Xem [Cloudflare Worker secrets](https://developers.cloudflare.com/workers/configuration/secrets/).
+Migration `0012` khởi tạo cấu hình ở trạng thái tắt. Sau khi nâng cấp, nhập lại các giá trị trước đây đặt trong biến môi trường vào **Settings**. Các tác vụ mới dùng giá trị đã lưu. Cấu hình mới giữ lịch sử usage, các giới hạn và cooldown theo model. Vector cũ được làm mới ở lượt phân cụm kế tiếp để tránh dùng lẫn dữ liệu của hai provider.
 
-Provider cần nhận OpenAI Chat Completions với `messages`, `response_format: { "type": "json_object" }`, `temperature: 0`, `max_tokens: 8192`, `stream: false`; trả JSON trong `choices[0].message.content` và `finish_reason: "stop"`. `usage.prompt_tokens` và `usage.completion_tokens` được lưu nếu có. Client không gửi `thinking` hoặc tùy chọn riêng của một hãng. Job phân cụm và probe `/api/admin/probe?target=embeddings` gọi `POST /embeddings` của cùng provider. Model phải trả vector 1.024 chiều. Khi đổi ID model, job tạo lại vector của entity và claim trong cửa sổ phân cụm, rồi tính lại các cạnh cosine liên quan. Các lần gọi embeddings tính phí theo provider, ngoài trần request của chat.
-
-Model mới tự được thêm vào D1 với trần 5/phút và 100/ngày. Model đã có giữ nguyên giới hạn, trạng thái tắt và cooldown. `LLM_MODEL` có giá trị chỉ chọn model đó, không fallback sang các tên cũ. Không truyền endpoint/model vào setup sẽ giữ cấu hình dashboard. Chủ động đặt cả hai thành chuỗi rỗng sẽ tạm dừng LLM. Nếu runtime không có `LLM_MODEL`, code vẫn dùng chuỗi model bật trong D1 như trước. Có thể chỉnh trần model trong bảng `llm_models`; không reset usage để lấy thêm lượt.
-
-Thiếu key/endpoint, URL sai hoặc HTTP 401/403/404 sẽ giữ việc trong D1 và mở ngắt mạch 15 phút. Sau khi sửa, đợi ngắt mạch hết hạn rồi cron rút backlog tiếp. Endpoint không được chứa user/password hoặc fragment; query string được giữ. Không tự theo redirect khi gửi key.
-
-## Chuyển từ cấu hình DeepSeek cũ
-
-1. Gắn D1 binding `DB` trên Worker; đặt `LLM_ENDPOINT`, `LLM_MODEL` và secret `LLM_API_KEY` ở dashboard theo [hướng dẫn setup](setup.md). Key BYOK từng lưu trên AI Gateway không tự trở thành Worker secret.
-2. Build/test rồi deploy. `AI_GATEWAY_ID`, `DEEPSEEK_API_KEY` và `DEEPSEEK_BASE_URL` không còn được đọc bởi code mới.
-3. Không cần migration mới cho việc đổi provider. Giữ nguyên migration đã áp, model cũ và lịch sử usage/call/claim. Sau khi đổi cấu hình, ngắt mạch đang mở vẫn chờ hết hạn.
-4. Kiểm tra `/api/admin/probe?target=llm`, trang System status và một lượt pipeline trong `llm_calls`: endpoint trả thành công, model đúng và claim có quote hợp lệ. Deploy thành công chưa chứng minh inference chạy được.
+Sau khi lưu, có thể kiểm tra chat và embedding qua `/api/admin/probe?target=llm` và `/api/admin/probe?target=embeddings`, rồi theo dõi backlog trong **System status**.
 
 ## Đọc trang trạng thái
 

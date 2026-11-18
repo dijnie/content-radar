@@ -1,5 +1,11 @@
 # Setup bằng binding trên Cloudflare
 
+## Tạo Radar mới từ template
+
+Nút **Deploy to Cloudflare** ở đầu README mở form tạo Worker và bản sao repo trong tài khoản của bạn. Chọn tên Worker, D1, R2 và các queue, nhập `OWNER_TOKEN`, rồi giữ các lệnh build và deploy được đề xuất. Cloudflare ghi tài nguyên đã cấp vào `wrangler.json` của repo mới. Lệnh deploy áp migration vào binding `DB` và nạp danh sách nguồn nếu bảng nguồn còn trống. Mở **Settings** trên web để khai báo provider. Cloudflare yêu cầu repo nguồn công khai để phân phối theo cách này. [Deploy to Cloudflare buttons](https://developers.cloudflare.com/workers/platform/deploy-buttons/)
+
+## Kết nối Worker đang dùng qua Git
+
 Cloudflare Builds deploy từ Git không cần terminal, file `.env.setup` hoặc biến `D1_DATABASE_ID`. Database được chọn trực tiếp trên Worker qua binding **`DB`**. Code truy cập database bằng `env.DB`.
 
 Ứng dụng mở công khai: mọi người đều xem nội dung và tương tác, không cần đăng nhập. Các thao tác lưu/ẩn/đã đọc và lịch chạy được dùng chung.
@@ -37,22 +43,13 @@ Giữ các tài nguyên sau trong cùng tài khoản với Worker:
 
 Nếu dùng tên khác, đặt `R2_BUCKET_NAME`, `POLL_QUEUE_NAME`, `LLM_QUEUE_NAME`, `DLQ_QUEUE_NAME` trong **Settings → Build → Build Variables and Secrets**. `WORKER_NAME` mặc định là `content-radar`, cần khớp Worker liên kết Git. Account ID được Cloudflare Builds cung cấp; không phải thêm lại trong setup.
 
-## 3. Biến và secrets của ứng dụng
+## 3. Cấu hình dịch vụ
 
-Tại **Worker → Settings → Variables and Secrets**, điền:
+Đặt `GITHUB_TOKEN` ở **Worker → Settings → Variables and Secrets** nếu dùng GitHub PAT. `APP_ORIGIN` là biến tùy chọn để bộ crawl loại hostname của ứng dụng.
 
-| Tên | Loại | Giá trị |
-|---|---|---|
-| `LLM_ENDPOINT` | Text | URL API tương thích OpenAI, ví dụ `https://your-provider.example/v1`. |
-| `LLM_MODEL` | Text | Tên model provider hỗ trợ. |
-| `EMBEDDING_MODEL` | Text | ID model embedding trả được vector 1.024 chiều, ví dụ `text-embedding-3-small`. |
-| `LLM_API_KEY` | Secret | API key dùng chung cho chat và embeddings. |
-| `GITHUB_TOKEN` | Secret | GitHub PAT đọc dữ liệu public. |
-| `APP_ORIGIN` | Text, tùy chọn | Origin ứng dụng để loại hostname của chính ứng dụng khỏi nội dung crawl nền. Không cần cho việc xem hay tương tác. |
+Ở **Worker → Settings → Variables and Secrets**, thêm `OWNER_TOKEN` dưới dạng **Secret** và đặt một giá trị ngẫu nhiên. Khi chạy local, đặt `OWNER_TOKEN` trong `apps/worker/.dev.vars`. Sau khi sao lưu và áp các migration D1 qua `0013`, dùng giá trị đó để mở khóa **Settings** trong Radar. Nhập endpoint, model và API key cho chat và embedding rồi bấm **Save settings**. Các job tiếp theo đọc cấu hình này ngay.
 
-Deploy giữ các runtime vars đã đặt trên dashboard (`keep_vars: true`). Khi không truyền endpoint/model vào build, setup không sinh giá trị rỗng để ghi đè chúng. Có thể truyền cả `LLM_ENDPOINT` và `LLM_MODEL` vào build để chủ động thay giá trị; đặt cả hai rỗng để tạm dừng LLM. Secrets được giữ lại và không ghi vào file Wrangler. [Wrangler configuration](https://developers.cloudflare.com/workers/wrangler/configuration/#top-level-only-keys), [Worker secrets](https://developers.cloudflare.com/workers/configuration/secrets/).
-
-`OWNER_EMAIL`, `ACCESS_TEAM_DOMAIN` và `ACCESS_AUD` không còn được code sử dụng. Nếu trước đây đã bật Access cho hostname này, vào **Worker → Settings → Domains & Routes** (hoặc tab **Domains**) và chọn **Disable Cloudflare Access** cho URL ứng dụng; giữ route `workers.dev` bật. Nếu dùng ứng dụng Access self-hosted riêng, gỡ hostname của Content Radar khỏi ứng dụng Access đó; giữ các hostname và policy dùng cho ứng dụng khác. [Access trên workers.dev](https://developers.cloudflare.com/workers/configuration/routing/workers-dev/#manage-access-to-workersdev).
+Nếu trước đây đã bật Access cho hostname này, vào **Worker → Settings → Domains & Routes** (hoặc tab **Domains**) và chọn **Disable Cloudflare Access** cho URL ứng dụng; giữ route `workers.dev` bật. Nếu dùng ứng dụng Access self-hosted riêng, gỡ hostname của Content Radar khỏi ứng dụng Access đó; giữ các hostname và policy dùng cho ứng dụng khác. [Access trên workers.dev](https://developers.cloudflare.com/workers/configuration/routing/workers-dev/#manage-access-to-workersdev).
 
 ## 4. Retry deployment
 
@@ -60,7 +57,7 @@ Trong **Settings → Build**, giữ root directory ở gốc repo, production br
 
 ## CLI và bảo trì database (tùy chọn)
 
-CLI deploy cũng dùng binding `DB` đã gắn trên Worker. File [`.env.setup.example`](../.env.setup.example) chỉ dành cho các giá trị muốn ghi đè. `npm run setup` sinh `apps/worker/wrangler.jsonc` từ [`wrangler.template.json`](../apps/worker/wrangler.template.json); cả `.env.setup` và file sinh ra đều được Git bỏ qua.
+CLI deploy cũng dùng binding `DB` đã gắn trên Worker. File [`.env.setup.example`](../.env.setup.example) chỉ dành cho các giá trị muốn ghi đè. `npm run setup` sinh `apps/worker/wrangler.jsonc` từ [`wrangler.json`](../wrangler.json); cả `.env.setup` và file sinh ra đều được Git bỏ qua.
 
 Các lệnh D1 trực tiếp như migrations, `config:sync -- --remote`, `soak-report -- --remote`, `sweep -- --remote` và backup không tự tra binding của Worker. Trước khi chạy chúng, điền **`D1_DATABASE_NAME`** bằng đúng tên database đã chọn ở bước 1 trong `.env.setup`, rồi dùng `npm run setup -- --database`. Các script remote sẽ từ chối chạy nếu thiếu tên này để tránh chọn nhầm database. Không cần UUID.
 
@@ -73,6 +70,6 @@ cd ../..
 npm run config:sync -- --remote
 ```
 
-Deploy kế tiếp tự sinh lại cấu hình chỉ có binding `DB`, nên tên dùng cho bảo trì không ghi đè binding trên dashboard. Deploy không tự áp migration hoặc đồng bộ `config/*.json`; database mới cần thực hiện hai bước này trước khi phục vụ ứng dụng.
+Với Worker kết nối theo cách thủ công, deploy kế tiếp tự sinh lại cấu hình chỉ có binding `DB`, nên tên dùng cho bảo trì không ghi đè binding trên dashboard. Luồng thủ công không tự áp migration hoặc đồng bộ `config/*.json`; database mới cần thực hiện hai bước này trước khi phục vụ ứng dụng.
 
 `npm test` dùng D1 giả lập, không cần tài khoản Cloudflare. `npm run dev` dùng `wrangler.dev.jsonc` và `.dev.vars`; xem [hướng dẫn local](../README.md#phát-triển-local).

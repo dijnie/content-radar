@@ -1,5 +1,9 @@
 # Content Radar
 
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/dijnie/content-radar)
+
+Để tạo Radar mới, chọn tài khoản Cloudflare, đặt `OWNER_TOKEN` trong form rồi bấm **Deploy**. Lần triển khai đầu khởi tạo schema và danh sách nguồn trong D1. Sau đó mở **Settings** trên web để cấu hình LLM và embedding.
+
 Radar cá nhân trả lời một câu hỏi: **giới nghiên cứu và ứng dụng AI/Agent (cùng System Design, Backend) đang có gì thú vị, và đang dịch chuyển về hướng nào?**
 
 Hệ thống crawl nguồn công khai (X qua FxTwitter, Hacker News, RSS, GitHub), dùng LLM qua endpoint tùy chỉnh bóc từng bài thành các claim có trích dẫn nguyên văn, gom claim thành câu chuyện bằng graph và phân cụm, chấm điểm 0–100, rồi hiển thị thành các thẻ lead. D1 đồng thời là kho dữ liệu để Claude hoặc Codex phân tích sâu hơn. Toàn bộ chạy trên một Cloudflare Worker; chi phí AI phụ thuộc nhà cung cấp, với trần mặc định cho chat là 100 request/ngày và 5 request/phút.
@@ -37,24 +41,13 @@ Trên Cloudflare: **Workers & Pages → content-radar → Bindings → Add bindi
 
 Với **Cloudflare Builds**, đặt root directory ở gốc repo và deploy command là `npm run deploy`, rồi chọn build của commit mới nhất. **Không cần terminal, file `.env.setup` hay biến `D1_DATABASE_ID`**. Wrangler dùng lại binding `DB` đã chọn; gắn database trước khi deploy để dùng đúng dữ liệu hiện có. Xem [hướng dẫn setup](docs/setup.md).
 
-Đặt endpoint/model và các secrets của ứng dụng ở **Worker → Settings → Variables and Secrets**. Các tên R2/Queue mặc định có trong hướng dẫn; chỉ dùng **Build variables and secrets** nếu muốn ghi đè tên tài nguyên. Với CLI, `.env.setup.example` là file tùy chọn; `npm run setup` sinh cấu hình deploy từ template.
+## Cấu hình AI trên web
 
-## Cấu hình AI
+Trong **Settings → Variables and Secrets** của Worker, thêm `OWNER_TOKEN` với loại **Secret** và đặt một giá trị ngẫu nhiên. Khi chạy local, đặt biến này trong `apps/worker/.dev.vars`. Sau khi sao lưu D1 và áp các migration, mở **Settings** trong Radar.
 
-Điền các biến trong `apps/worker/.dev.vars` khi chạy local:
+Dùng mã để mở khóa Settings, nhập endpoint tương thích OpenAI, model chat và API key. Chọn model embedding trả vector 1.024 chiều. Embedding có thể dùng chung endpoint và key với chat hoặc dùng một provider riêng. Bấm **Save settings** để áp dụng cho các tác vụ tiếp theo. Bỏ chọn **Enable AI processing** để tạm dừng.
 
-```dotenv
-LLM_ENDPOINT=https://your-provider.example/v1
-LLM_API_KEY=your-api-key
-LLM_MODEL=your-chat-model
-EMBEDDING_MODEL=text-embedding-3-small
-```
-
-`LLM_ENDPOINT` nhận URL gốc API hoặc URL đầy đủ kết thúc bằng `/chat/completions`. Provider cần hỗ trợ Chat Completions và JSON mode (`response_format: { "type": "json_object" }`). Model được gửi nguyên tên, không giới hạn hãng.
-
-Production: đặt `LLM_ENDPOINT`, `LLM_MODEL` và secret `LLM_API_KEY` trong **Worker → Settings → Variables and Secrets**. Deploy giữ các giá trị trên dashboard; chỉ ghi đè endpoint/model khi bạn truyền cả hai qua build variables hoặc `.env.setup`. Đặt thêm `EMBEDDING_MODEL` theo tên model embedding của provider (mặc định `text-embedding-3-small`). Embedding dùng chung endpoint và API key, gọi `/embeddings` và cần vector 1.024 chiều. Đổi tên model sẽ tạo lại các vector đang dùng ở lần phân cụm tiếp theo. Xem [hướng dẫn vận hành](docs/operations.md#ai-qua-endpoint-tùy-chỉnh).
-
-Model mới tự có trần 5 request/phút, 100 request/ngày Pacific; model đã tồn tại giữ nguyên giới hạn, cooldown và lịch sử. Bỏ cả endpoint/model khỏi build variables để giữ cấu hình dashboard; đặt cả hai thành chuỗi rỗng để chủ động tạm dừng LLM.
+Worker lưu cấu hình và key trong D1. API quản trị chỉ trả trạng thái đã có key. Khi nâng cấp từ bản dùng biến môi trường, nhập lại cấu hình trên web sau migration `0012`. Mỗi lần đổi endpoint hoặc model embedding, lần phân cụm kế tiếp sẽ làm mới các vector đang dùng. [Hướng dẫn vận hành](docs/operations.md#ai-qua-endpoint-tùy-chỉnh)
 
 ## Cấu trúc
 

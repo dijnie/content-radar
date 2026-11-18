@@ -51,18 +51,19 @@ export interface MentionInput {
  * Only that conflict is tolerated: `INSERT OR IGNORE` would also swallow CHECK
  * violations and silently drop a malformed claim.
  */
-export function insertClaim(db: D1Database, claim: ClaimInput): D1PreparedStatement {
+export function insertClaim(db: D1Database, claim: ClaimInput, itemHash: string | null = null): D1PreparedStatement {
   return db
     .prepare(
       `INSERT INTO claims (item_id, author_id, kind, text_vi, text_en, quote, has_numbers, first_hand,
          topics_json, published_at, content_hash, model, prompt_version, llm_call_id, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15
+       WHERE ?16 IS NULL OR EXISTS (SELECT 1 FROM items WHERE id = ?1 AND content_hash = ?16)
        ON CONFLICT(item_id, content_hash) DO NOTHING`,
     )
     .bind(
       claim.itemId, claim.authorId, claim.kind, claim.textVi, claim.textEn, claim.quote, claim.hasNumbers ? 1 : 0,
       claim.firstHand ? 1 : 0, JSON.stringify(claim.topics), claim.publishedAt, claim.contentHash, claim.model,
-      claim.promptVersion, claim.llmCallId, claim.createdAt,
+      claim.promptVersion, claim.llmCallId, claim.createdAt, itemHash,
     );
 }
 
@@ -70,16 +71,17 @@ export function insertClaim(db: D1Database, claim: ClaimInput): D1PreparedStatem
  * Attaches mentions to the claim identified by its natural key, and only when
  * that claim has none yet, so a replayed batch cannot duplicate mentions.
  */
-export function insertMentions(db: D1Database, itemId: number, contentHash: string, mentions: readonly MentionInput[]): D1PreparedStatement[] {
+export function insertMentions(db: D1Database, itemId: number, contentHash: string, mentions: readonly MentionInput[], itemHash: string | null = null): D1PreparedStatement[] {
   return mentions.map((mention, index) =>
     db
       .prepare(
         `INSERT INTO entity_mentions (claim_id, surface, normalized, surface_type)
          SELECT c.id, ?3, ?4, ?5 FROM claims c
          WHERE c.item_id = ?1 AND c.content_hash = ?2
+           AND (?7 IS NULL OR EXISTS (SELECT 1 FROM items WHERE id = ?1 AND content_hash = ?7))
            AND (SELECT COUNT(*) FROM entity_mentions m WHERE m.claim_id = c.id) = ?6`,
       )
-      .bind(itemId, contentHash, mention.surface, mention.normalized, mention.surfaceType, index),
+      .bind(itemId, contentHash, mention.surface, mention.normalized, mention.surfaceType, index, itemHash),
   );
 }
 

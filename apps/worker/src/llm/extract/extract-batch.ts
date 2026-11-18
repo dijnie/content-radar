@@ -1,7 +1,7 @@
 import { normalizeEntity } from "@radar/core";
 import { insertClaim, insertMentions, type ClaimInput, type MentionInput } from "../../db/claims-repo";
 import { chunkedBatch } from "../../db/batch";
-import { countExtractionAttempt, type ItemRow } from "../../db/items-repo";
+import { type ItemRow } from "../../db/items-repo";
 import { insertLlmCall, type LlmKind } from "../../db/llm-repo";
 import { TEXT_EXCERPT_MAX } from "../../sources/source-adapter";
 import { sha256Hex } from "../../util/hash";
@@ -114,10 +114,9 @@ export async function extractBatch(env: LlmEnv, items: ItemRow[], kind: Extract<
     attempt,
   );
   // Only a call that reached LLM counts against the item; a parked or postponed batch costs it nothing.
-  if (call.status === "ok" || call.status === "rejected") await chunkedBatch(env.DB, itemIds.flatMap((id) => [
-    countExtractionAttempt(env.DB, id),
-    env.DB.prepare("UPDATE items SET editorial_attempts = editorial_attempts + 1 WHERE id = ?").bind(id),
-  ]));
+  if (call.status === "ok" || call.status === "rejected") await chunkedBatch(env.DB, prepared.map(({ item }) =>
+    env.DB.prepare(`UPDATE items SET enqueue_attempts = enqueue_attempts + (status = 'queued'), editorial_attempts = editorial_attempts + 1
+      WHERE id = ? AND content_hash = ?`).bind(item.id, item.content_hash)));
   if (call.status === "rejected") return splitAndRetry(env, prepared, kind, deps, attempt);
   if (call.status !== "ok") return call;
 
@@ -152,15 +151,16 @@ export async function extractBatch(env: LlmEnv, items: ItemRow[], kind: Extract<
   for (const outcome of outcomes) {
     const { item } = outcome.prepared;
     await env.DB.batch([
-      ...outcome.accepted.flatMap(({ claim, mentions }) => [insertClaim(env.DB, { ...claim, llmCallId }), ...insertMentions(env.DB, item.id, claim.contentHash, mentions)]),
+      ...outcome.accepted.flatMap(({ claim, mentions }) => [insertClaim(env.DB, { ...claim, llmCallId }, item.content_hash), ...insertMentions(env.DB, item.id, claim.contentHash, mentions, item.content_hash)]),
       ...(outcome.editorial ? [env.DB.prepare(`INSERT INTO item_editorial (item_id, content_hash, category, pillar, summary_vi, question_vi, model, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(item_id) DO UPDATE SET content_hash = excluded.content_hash,
+        SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8 FROM items WHERE id = ?1 AND content_hash = ?2
+        ON CONFLICT(item_id) DO UPDATE SET content_hash = excluded.content_hash,
         category = excluded.category, pillar = excluded.pillar, summary_vi = excluded.summary_vi,
         question_vi = excluded.question_vi, model = excluded.model, updated_at = excluded.updated_at`)
         .bind(item.id, item.content_hash, outcome.editorial.category, outcome.editorial.pillar, outcome.editorial.summary_vi, outcome.editorial.question_vi, call.model, now)] : []),
       env.DB
-        .prepare("UPDATE items SET status = ?, claims_returned = ?, claims_accepted = ? WHERE id = ? AND status = 'queued'")
-        .bind(outcome.relevant ? "extracted" : "irrelevant", outcome.returned, outcome.accepted.length, item.id),
+        .prepare("UPDATE items SET status = ?, claims_returned = ?, claims_accepted = ? WHERE id = ? AND content_hash = ? AND status = 'queued'")
+        .bind(outcome.relevant ? "extracted" : "irrelevant", outcome.returned, outcome.accepted.length, item.id, item.content_hash),
     ]);
     done.push(item.id);
   }
@@ -171,7 +171,7 @@ export async function extractBatch(env: LlmEnv, items: ItemRow[], kind: Extract<
 async function splitAndRetry(env: LlmEnv, prepared: Prepared[], kind: Extract<LlmKind, "extract" | "extract_backfill">, deps: LlmDeps, attempt: number): Promise<BatchOutcome> {
   if (prepared.length === 1) {
     const { item } = prepared[0]!;
-    await env.DB.prepare("UPDATE items SET status = 'failed', filter_reason = 'llm_rejected' WHERE id = ? AND status = 'queued'").bind(item.id).run();
+    await env.DB.prepare("UPDATE items SET status = 'failed', filter_reason = 'llm_rejected' WHERE id = ? AND content_hash = ? AND status = 'queued'").bind(item.id, item.content_hash).run();
     return { status: "done", itemIds: [item.id] };
   }
   const middle = Math.ceil(prepared.length / 2);

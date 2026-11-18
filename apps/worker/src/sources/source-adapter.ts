@@ -1,6 +1,7 @@
 import type { Platform, RepositoryFacts } from "@radar/core";
 import type { ItemKind } from "../db/items-repo";
 import type { SourceRow } from "../db/sources-repo";
+import type { FeedEntry } from "./feed-parser";
 import type { HttpOptions, HttpTextResponse } from "./http-client";
 
 export interface NormalizedAuthor {
@@ -56,6 +57,8 @@ export interface AdapterContext {
   /** HTTP helpers pre-bound to the URL guard, the Worker's own hosts and the fetcher. */
   fetchText(url: string | URL, options?: HttpOptions): Promise<HttpTextResponse>;
   fetchJson<T>(url: string | URL, options?: HttpOptions): Promise<T>;
+  /** Last stored RSS payload, for reusing an article while its feed entry is unchanged. */
+  readFeedItem?(externalId: string, publishedAt: number | null): Promise<{ text: string; raw: FeedEntry } | null>;
   /** Article downloads still allowed for this poll message. */
   articleBudget: { remaining: number };
 }

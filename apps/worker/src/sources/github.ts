@@ -1,6 +1,6 @@
 import { canonicalizeUrl } from "./canonical-url";
 import { parseFeed } from "./feed-parser";
-import { FEED_ENTRIES_PER_POLL, mapFeedEntry } from "./rss-feed";
+import { FEED_ENTRIES_PER_POLL, FEED_MAX_BYTES, mapFeedEntry } from "./rss-feed";
 import { pollGithubTrending } from "./github-trending";
 import { cleanText, type AdapterContext, type NormalizedItem, type PollResult, type SourceAdapter } from "./source-adapter";
 
@@ -71,7 +71,7 @@ async function pollSearch(query: string, ctx: AdapterContext): Promise<PollResul
 
 /** `releases.atom` is served by github.com and does not count against the REST rate limit. */
 async function pollReleases(source: { id: number; key: string }, ctx: AdapterContext): Promise<PollResult> {
-  const { text: xml } = await ctx.fetchText(`https://github.com/${source.key}/releases.atom`);
+  const { text: xml } = await ctx.fetchText(`https://github.com/${source.key}/releases.atom`, { maxBytes: FEED_MAX_BYTES });
   const items: NormalizedItem[] = [];
   for (const entry of parseFeed(xml, FEED_ENTRIES_PER_POLL).entries) {
     const item = await mapFeedEntry({ ...entry, title: `${source.key} ${entry.title}` }, source, "release", ctx);

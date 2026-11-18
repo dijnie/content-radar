@@ -8,6 +8,7 @@ import { claimCrawlSource, finishCrawlSource } from "../jobs/crawl-runs";
 import { recordCrawlItems } from "../jobs/crawl-snapshots";
 import { extractionWindowStart } from "../llm/extraction-priority";
 import type { LlmMessage, PollMessage } from "../llm/messages";
+import type { FeedEntry } from "../sources/feed-parser";
 import { githubAdapter } from "../sources/github";
 import { hnAdapter } from "../sources/hacker-news";
 import { fetchJson, fetchText, HttpError, type HttpOptions } from "../sources/http-client";
@@ -51,6 +52,14 @@ export async function buildAdapterContext(env: IngestEnv, now: number, fetcher?:
       hnMinPoints: (settings.hn_min_points as number | undefined) ?? 20,
       fetchText: (url, options) => fetchText(url, bound(options)),
       fetchJson: (url, options) => fetchJson(url, bound(options)),
+      async readFeedItem(externalId, publishedAt) {
+        const key = publishedAt === null
+          ? await env.DB.prepare("SELECT raw_r2_key FROM items WHERE platform = 'rss' AND external_id = ?").bind(externalId).first<string>("raw_r2_key")
+          : rawKey("rss", publishedAt, await sha256Hex(externalId));
+        if (!key) return null;
+        const object = await env.RAW.get(key);
+        return object ? object.json<{ text: string; raw: FeedEntry }>() : null;
+      },
       articleBudget: { remaining: ARTICLE_DOWNLOADS_PER_POLL },
     },
     filter: {
@@ -85,7 +94,7 @@ export async function ingestPollResult(
   const known = await getItemStates(env.DB, platform, result.items.map((item) => item.externalId));
   const authorIds = new Map<string, number>();
   const statements: D1PreparedStatement[] = [];
-  const newQueued: string[] = [];
+  const wakeups: string[] = [];
   const since = await extractionWindowStart(env.DB, now);
   let itemsNew = 0;
 
@@ -107,22 +116,31 @@ export async function ingestPollResult(
     await env.RAW.put(key, JSON.stringify({ text: item.text, raw: item.raw }), { httpMetadata: { contentType: "application/json" } });
 
     const decision = cheapFilter(item, source, filter);
-    statements.push(
-      upsertItemStatement(env.DB, {
-        sourceId: source.id, platform, externalId: item.externalId, url: item.url, canonicalUrl: item.canonicalUrl,
-        authorId, title: item.title, textExcerpt: item.text.slice(0, TEXT_EXCERPT_MAX), lang: item.lang, kind: item.kind,
-        parentExternalId: item.parentExternalId, publishedAt: item.publishedAt, fetchedAt: now, rawR2Key: key, contentHash,
-        topicHint: decision.pass ? decision.topicHint : source.topic_hint, ingestMode,
-        status: decision.pass ? "queued" : "filtered_out",
-        filterReason: decision.pass ? (item.summaryOnly ? "summary_only" : null) : decision.reason,
-      }),
-      ...insertItemLinks(env.DB, platform, item.externalId, item.links),
-    );
-    if (!existing) {
-      itemsNew++;
+    const canReopen = existing && (existing.filter_reason === "summary_only" ||
+      (existing.status === "filtered_out" && (existing.filter_reason === "too_short" || existing.filter_reason === "no_topic_match")));
+    const enriched = platform === "rss" && item.summaryOnly === false && decision.pass && canReopen;
+    const write = upsertItemStatement(env.DB, {
+      sourceId: source.id, platform, externalId: item.externalId, url: item.url, canonicalUrl: item.canonicalUrl,
+      authorId, title: item.title, textExcerpt: item.text.slice(0, TEXT_EXCERPT_MAX), lang: item.lang, kind: item.kind,
+      parentExternalId: item.parentExternalId, publishedAt: item.publishedAt, fetchedAt: now, rawR2Key: key, contentHash,
+      topicHint: decision.pass ? decision.topicHint : source.topic_hint, ingestMode,
+      status: decision.pass ? "queued" : "filtered_out",
+      filterReason: decision.pass ? (item.summaryOnly ? "summary_only" : null) : decision.reason,
+    });
+    if (enriched) {
+      // Keep the new AI decision and its input in the same transaction, even at a chunk boundary.
+      await env.DB.batch([env.DB.prepare(`UPDATE items SET status = 'queued', filter_reason = NULL, queued_at = ?,
+        enqueue_attempts = 0, editorial_attempts = 0, claims_returned = NULL, claims_accepted = NULL
+        WHERE id = ? AND filter_reason = ? AND content_hash = ?`).bind(now, existing.id, existing.filter_reason, existing.content_hash), write]);
+    } else {
+      statements.push(write);
+    }
+    statements.push(...insertItemLinks(env.DB, platform, item.externalId, item.links));
+    if (!existing) itemsNew++;
+    if (!existing || enriched) {
       // Historical live items stay in D1 for a later drain. A source's first poll
       // must not spend the AI budget on its archive before other sources arrive.
-      if (decision.pass && (ingestMode === "backfill" || item.publishedAt >= since)) newQueued.push(item.externalId);
+      if (decision.pass && (ingestMode === "backfill" || item.publishedAt >= since)) wakeups.push(item.externalId);
     }
   }
   for (const metrics of result.metrics) statements.push(insertMetricSnapshot(env.DB, platform, { ...metrics, capturedAt: now }));
@@ -131,9 +149,8 @@ export async function ingestPollResult(
     .bind(now, JSON.stringify(item.repository), platform, item.externalId));
   await chunkedBatch(env.DB, statements);
 
-  // Only items that this poll created are announced; anything already known
-  // has either been announced before or is past `queued`.
-  const queued = await getItemStates(env.DB, platform, deferExtraction ? [] : newQueued);
+  // Wake newly queued items, including a first upgrade from a teaser to the full article.
+  const queued = await getItemStates(env.DB, platform, deferExtraction ? [] : wakeups);
   const messages = [...queued.values()]
     .filter((state) => state.status === "queued")
     .map((state) => ({ body: { kind: "extract", itemId: state.id, ...(ingestMode === "backfill" ? { backfill: true } : {}) } satisfies LlmMessage }));

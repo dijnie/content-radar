@@ -45,6 +45,43 @@ async function setup() {
 
 const count = async (sql: string, ...binds: unknown[]) => (await env.DB.prepare(sql).bind(...binds).first<{ n: number }>())!.n;
 
+describe("RSS article enrichment", () => {
+  it("upgrades teasers beyond the first five downloads and reopens the AI decision only once", async () => {
+    const { llm, testEnv } = await setup();
+    const feed = "https://articles.example/feed";
+    const sourceId = await seedSource(env.DB, "rss", feed);
+    await env.DB.prepare("UPDATE sources SET always_pass = 1 WHERE id = ?").bind(sourceId).run();
+    const entries = Array.from({ length: 6 }, (_, i) => `<item><title>Model ${i}</title><guid>${i}</guid><link>https://articles.example/${i}</link>
+      <description>Short introduction to the model release and benchmark results.</description></item>`);
+    const xml = `<rss><channel>${entries.join("")}</channel></rss>`;
+    const html = `<main><script>${"x".repeat(1_450_000)}</script><p>${"The full results measure inference on a production workload. ".repeat(12)}</p></main>`;
+    let downloads = 0;
+    const fetcher = (async (input) => {
+      if (String(input) === feed) return new Response(xml);
+      downloads++;
+      return new Response(html, { headers: { "Content-Type": "text/html" } });
+    }) as typeof fetch;
+    const rows = () => env.DB.prepare("SELECT id, status, filter_reason, text_excerpt FROM items WHERE source_id = ? ORDER BY url").bind(sourceId)
+      .all<{ id: number; status: string; filter_reason: string | null; text_excerpt: string }>();
+    await pollSource(testEnv, sourceId, { now: NOW, fetcher });
+    const first = (await rows()).results;
+    expect(downloads).toBe(5);
+    expect(first).toHaveLength(6);
+    expect(first[0]!.text_excerpt).toContain("full results");
+    expect(first[5]!.filter_reason).toBe("summary_only");
+    await env.DB.prepare("UPDATE items SET status = 'irrelevant' WHERE id = ?").bind(first[5]!.id).run();
+    llm.sent.length = 0;
+
+    await pollSource(testEnv, sourceId, { now: NOW + 86400, fetcher });
+    expect(downloads).toBe(6);
+    expect((await rows()).results.every((r) => r.text_excerpt.includes("full results") && r.filter_reason === null)).toBe(true);
+    expect(llm.sent).toEqual([{ kind: "extract", itemId: first[5]!.id }]);
+    await pollSource(testEnv, sourceId, { now: NOW + 86401, fetcher });
+    expect(downloads).toBe(6);
+    expect(llm.sent).toHaveLength(1);
+  });
+});
+
 describe("live extraction priority", () => {
   it.each([7, 14])("keeps historical articles but only immediately enqueues articles within %i days", async (windowDays) => {
     const { llm, testEnv } = await setup();

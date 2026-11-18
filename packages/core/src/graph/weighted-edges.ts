@@ -2,10 +2,46 @@ import type { CoreParams } from "../params.ts";
 import type { CosineEdge } from "./cosine-neighbours.ts";
 import { entityStats } from "./entity-idf.ts";
 
+interface MeasurementSubject {
+  modelIds: readonly number[];
+  output: "tokens" | "images" | null;
+}
+
+// Only explicit output units or generation tasks identify a workload. An image
+// prompt can contain tokens, and a language benchmark can mention input images.
+export function measurementSubject(text: string, modelIds: readonly number[]): MeasurementSubject {
+  const tokens = /\btokens?\s*(?:\/|per\s+)(?:s\b|sec(?:ond)?s?\b)|\b(?:text generation|time to first token)\b/i.test(text);
+  const images = /\bimages?\s*(?:\/|per\s+)(?:s\b|sec(?:ond)?s?\b|hours?\b|days?\b)|\b(?:image generation|text-to-image)\b/i.test(text);
+  return { modelIds, output: tokens === images ? null : tokens ? "tokens" : "images" };
+}
+
+function conflictingMeasurements(a?: MeasurementSubject | null, b?: MeasurementSubject | null): boolean {
+  if (!a || !b) return false;
+  if (a.output && b.output && a.output !== b.output) return true;
+  return a.modelIds.length > 0 && b.modelIds.length > 0 && !a.modelIds.some((id) => b.modelIds.includes(id));
+}
+
 export interface ClaimNode {
   id: number;
   itemId: number;
   publishedAt: number;
+  measurement?: MeasurementSubject | null;
+}
+
+/** An old community can be retired early only when every possible cross-item link is contradicted. */
+export function incompatibleBenchmarkGroup(members: readonly (ClaimNode | undefined)[]): boolean {
+  if (!members.length || !members.every((member) => member?.measurement)) return false;
+  let compared = false;
+  for (let i = 0; i < members.length; i++) {
+    const a = members[i]!;
+    for (let j = i + 1; j < members.length; j++) {
+      const b = members[j]!;
+      if (a.itemId === b.itemId) continue;
+      if (!conflictingMeasurements(a.measurement, b.measurement)) return false;
+      compared = true;
+    }
+  }
+  return compared;
 }
 
 export interface WeightedEdge {
@@ -60,6 +96,8 @@ export function weightedEdges(
     const a = byId.get(claimA)!;
     const b = byId.get(claimB)!;
     if (a.itemId === b.itemId || Math.abs(a.publishedAt - b.publishedAt) > maxGapSeconds) continue;
+
+    if (conflictingMeasurements(a.measurement, b.measurement)) continue;
 
     // IDF-weighted Jaccard: sharing a rare entity counts, sharing a common one barely does.
     const setB = new Set(entitiesOf.get(claimB)!);

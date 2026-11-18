@@ -7,7 +7,7 @@ import { HUGGINGFACE_PAPERS_URL, pollHuggingfacePapers } from "./huggingface-pap
 
 /** Some feeds carry their whole archive (OpenAI: 1,200 items); only the head is new. */
 export const FEED_ENTRIES_PER_POLL = 30;
-const FEED_MAX_BYTES = 5_000_000;
+export const FEED_MAX_BYTES = 5_000_000;
 /** Feed text shorter than this is treated as a summary and the article is fetched. */
 const SUMMARY_ONLY_BELOW = 600;
 /** Entries older than this are archive, not news. */
@@ -25,19 +25,30 @@ export async function mapFeedEntry(
   if (ctx.now - publishedAt > MAX_ENTRY_AGE_SECONDS) return null;
 
   const title = cleanText(entry.title);
-  let body = cleanText(htmlToText(entry.html));
+  const body = cleanText(htmlToText(entry.html));
+  const externalId = await feedExternalId(source.id, entry.guid);
+  let text = cleanText([title, body].filter(Boolean).join("\n"));
   let summaryOnly = false;
   if (kind === "article" && body.length < SUMMARY_ONLY_BELOW) {
-    const article = await fetchArticleText(entry.link, ctx);
-    if (article && article.length > body.length) body = article;
-    else summaryOnly = true;
+    const cached = await ctx.readFeedItem?.(externalId, entry.publishedAt);
+    const samePage = cached?.raw?.link === entry.link && cached.raw.title === entry.title;
+    const oldTeaser = samePage ? cleanText([title, htmlToText(cached.raw.html)].filter(Boolean).join("\n")) : null;
+    const fullText = samePage && oldTeaser !== null && cached.text.length > oldTeaser.length ? cached.text : null;
+    if (fullText && cached?.raw.html === entry.html) {
+      text = fullText;
+    } else {
+      const article = await fetchArticleText(entry.link, ctx);
+      if (article && article.length > body.length) text = cleanText([title, article].filter(Boolean).join("\n"));
+      else if (fullText) text = fullText;
+      else summaryOnly = true;
+    }
   }
 
   const platform = kind === "release" ? "github" : "rss";
   return {
     platform,
     // Scoped to the source: a guid is chosen by the feed and proves nothing about other feeds.
-    externalId: await feedExternalId(source.id, entry.guid),
+    externalId,
     url: entry.link,
     canonicalUrl,
     links: canonicalLinks(hrefsIn(entry.html), canonicalUrl),
@@ -45,7 +56,7 @@ export async function mapFeedEntry(
     kind,
     parentExternalId: null,
     title,
-    text: cleanText([title, body].filter(Boolean).join("\n")),
+    text,
     lang: null,
     publishedAt,
     summaryOnly,

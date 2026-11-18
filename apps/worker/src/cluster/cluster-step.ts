@@ -1,16 +1,19 @@
 import { entitySignature, entityStats, leidenClusterer, promoteSingletons, velocityZ, weightedEdges, type AuthorBaseline, type VectorMatrix } from "@radar/core";
 import { ENGAGEMENT_SQL, LATEST_SNAPSHOT_SQL } from "../db/engagement";
+import { MEASUREMENT_MODELS_SQL, storedMeasurement } from "../db/measurement-models";
 import { getSetting } from "../db/settings-repo";
 import type { ClusterOutput, JobContext, WindowClaim } from "./job-context";
 import { windowStart } from "./job-context";
 
 export async function loadWindowClaims(ctx: JobContext): Promise<WindowClaim[]> {
   const { results } = await ctx.db
-    .prepare("SELECT id, item_id, author_id, published_at, kind, has_numbers, first_hand, text_vi, topics_json, derived_from_claim_id FROM claims WHERE published_at >= ? ORDER BY id")
+    .prepare(`SELECT c.id, item_id, author_id, published_at, kind, has_numbers, first_hand, text_vi, text_en, topics_json, derived_from_claim_id,
+      ${MEASUREMENT_MODELS_SQL} AS models FROM claims c WHERE published_at >= ? ORDER BY c.id`)
     .bind(windowStart(ctx))
-    .all<{ id: number; item_id: number; author_id: number | null; published_at: number; kind: WindowClaim["kind"]; has_numbers: number; first_hand: number; text_vi: string; topics_json: string; derived_from_claim_id: number | null }>();
+    .all<{ id: number; item_id: number; author_id: number | null; published_at: number; kind: WindowClaim["kind"]; has_numbers: number; first_hand: number; text_vi: string; text_en: string; models: string | null; topics_json: string; derived_from_claim_id: number | null }>();
   return results.map((row) => ({
     id: row.id, itemId: row.item_id, authorId: row.author_id, publishedAt: row.published_at, kind: row.kind, hasNumbers: row.has_numbers === 1,
+    measurement: storedMeasurement(row.text_en, row.models),
     firstHand: row.first_hand === 1, textVi: row.text_vi, topics: JSON.parse(row.topics_json) as string[], derivedFromClaimId: row.derived_from_claim_id,
   }));
 }
@@ -62,7 +65,7 @@ export async function clusterStep(ctx: JobContext, vectors: VectorMatrix): Promi
     .bind(since)
     .all<{ claim_a: number; claim_b: number; cosine: number }>();
   const edges = weightedEdges(
-    claims.map((claim) => ({ id: claim.id, itemId: claim.itemId, publishedAt: claim.publishedAt })),
+    claims,
     stored.filter((edge) => inWindow.has(edge.claim_a) && inWindow.has(edge.claim_b)).map((edge) => ({ claimA: edge.claim_a, claimB: edge.claim_b, cosine: edge.cosine })),
     entityIdsByClaim, stopEntityIds, ctx.params,
   );

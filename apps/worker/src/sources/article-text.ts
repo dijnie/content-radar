@@ -1,7 +1,11 @@
+import { decodeEntities } from "./feed-parser";
 import { HttpError } from "./http-client";
 import { cleanText, type AdapterContext } from "./source-adapter";
 
-const BLOCKS = "p, h1, h2, h3, li, blockquote, pre";
+// Modern SSR pages can include more than 1 MB of scripts around a short article.
+export const ARTICLE_MAX_BYTES = 2_000_000;
+
+const BLOCKS = "p, h1, h2, h3, h4, h5, h6, li, blockquote, pre, th, td";
 const CHROME = "nav, aside, footer, header, form, script, style, noscript, template";
 /** An <article> or <main> body shorter than this is not trusted as the full text. */
 const MIN_FOCUSED_LENGTH = 500;
@@ -31,7 +35,7 @@ export async function extractArticleText(html: string): Promise<string> {
   const flush = () => {
     const block = current;
     current = null;
-    const text = block ? cleanText(block.text) : "";
+    const text = block ? cleanText(decodeEntities(block.text)) : "";
     if (!block || !text) return;
     everything.push(text);
     if (!block.chrome) clean.push(text);
@@ -87,7 +91,7 @@ export async function fetchArticleText(url: string, ctx: AdapterContext): Promis
   if (ctx.articleBudget.remaining <= 0) return null;
   ctx.articleBudget.remaining--;
   try {
-    const { text: html, headers } = await ctx.fetchText(url, { maxBytes: 1_000_000, timeoutMs: 10_000 });
+    const { text: html, headers } = await ctx.fetchText(url, { maxBytes: ARTICLE_MAX_BYTES, timeoutMs: 10_000 });
     if (!/html/i.test(headers.get("Content-Type") ?? "text/html")) return null;
     return (await extractArticleText(html)) || null;
   } catch (err) {

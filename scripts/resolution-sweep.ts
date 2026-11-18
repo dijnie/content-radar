@@ -7,6 +7,7 @@ import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { writeDeployConfig } from "./deploy-config.ts";
+import { MEASUREMENT_MODELS_SQL, storedMeasurement } from "../apps/worker/src/db/measurement-models.ts";
 import { leidenClusterer, resolutionSweep, resolveParams, weightedEdges } from "../packages/core/src/index.ts";
 
 const target = process.argv.slice(2).find((arg) => arg === "--local" || arg === "--remote");
@@ -27,7 +28,7 @@ const overrides = query<{ value_json: string }>("SELECT value_json FROM settings
 const params = resolveParams(overrides ? (JSON.parse(overrides.value_json) as Record<string, unknown>) : {});
 const since = Math.floor(Date.now() / 1000) - params.windowDays * 86_400;
 
-const claims = query<{ id: number; item_id: number; published_at: number }>(`SELECT id, item_id, published_at FROM claims WHERE published_at >= ${since}`);
+const claims = query<{ id: number; item_id: number; published_at: number; text_en: string; models: string | null }>(`SELECT c.id, item_id, published_at, text_en, ${MEASUREMENT_MODELS_SQL} AS models FROM claims c WHERE published_at >= ${since}`);
 const cosineEdges = query<{ claim_a: number; claim_b: number; cosine: number }>(
   `SELECT e.claim_a, e.claim_b, e.cosine FROM claim_edges e JOIN claims a ON a.id = e.claim_a JOIN claims b ON b.id = e.claim_b WHERE a.published_at >= ${since} AND b.published_at >= ${since}`,
 );
@@ -40,7 +41,7 @@ const stopIds = new Set(query<{ alias_normalized: string; entity_id: number }>("
 const entityIdsByClaim = new Map<number, number[]>(claims.map((claim) => [claim.id, []]));
 for (const mention of mentions) entityIdsByClaim.get(mention.claim_id)?.push(mention.entity_id);
 const edges = weightedEdges(
-  claims.map((claim) => ({ id: claim.id, itemId: claim.item_id, publishedAt: claim.published_at })),
+  claims.map((claim) => ({ id: claim.id, itemId: claim.item_id, publishedAt: claim.published_at, measurement: storedMeasurement(claim.text_en, claim.models) })),
   cosineEdges.map((edge) => ({ claimA: edge.claim_a, claimB: edge.claim_b, cosine: edge.cosine })),
   entityIdsByClaim, stopIds, params,
 );

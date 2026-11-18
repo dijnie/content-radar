@@ -2,6 +2,11 @@ import { describe, expect, it } from "vitest";
 import { extractArticleText } from "../../src/sources/article-text";
 
 describe("extractArticleText on real-world markup", () => {
+  it("keeps table evidence between paragraphs and decodes visible HTML entities", async () => {
+    const article = "<article><p>We&#x27;ve measured throughput:</p><table><tr><th>Model</th><th>Images/hour</th></tr><tr><td>Atlas</td><td>120</td></tr></table><p>Results &amp; caveats.</p></article>";
+    expect((await extractArticleText(article)).split("\n")).toEqual(["We've measured throughput:", "Model", "Images/hour", "Atlas", "120", "Results & caveats."]);
+  });
+
   it("keeps every block when end tags are omitted, which HTML allows for p and li", async () => {
     const html = "<html><body><article><p>First paragraph<p>Second paragraph<ul><li>alpha<li>beta</ul><p>After the list</article></body></html>";
     expect((await extractArticleText(html)).split("\n")).toEqual(["First paragraph", "Second paragraph", "alpha", "beta", "After the list"]);

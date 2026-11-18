@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { cosine, cosineNeighbours, DEFAULT_PARAMS, entityStats, weightedEdges, type ClaimNode, type VectorMatrix } from "../../src/index";
+import { cosine, cosineNeighbours, DEFAULT_PARAMS, entityStats, measurementSubject, weightedEdges, type ClaimNode, type VectorMatrix } from "../../src/index";
 
 const DIMS = 8;
 
@@ -135,6 +135,20 @@ describe("weightedEdges", () => {
     // Entity 1 is in every claim: a hub. Only the pair sharing the rare entity 50 survives.
     expect(edges.map((edge) => [edge.claimA, edge.claimB])).toEqual([[1, 2]]);
     expect(weightedEdges(claims, cosineEdges, entities, new Set([50]), DEFAULT_PARAMS)).toEqual([]);
+  });
+
+  it("checks measured models and explicit workloads before linking on shared hardware", () => {
+    const edge = [{ claimA: 1, claimB: 2, cosine: 0.99 }];
+    const entities = new Map([[1, [10]], [2, [10]]]);
+    const base = { ...node(1), measurement: measurementSubject("150 tokens/s per GPU", [21]) };
+    const edgesTo = (text: string, models: number[]) => weightedEdges(
+      [base, { ...node(2), measurement: measurementSubject(text, models) }], edge, entities, new Set(), DEFAULT_PARAMS,
+    );
+    expect(edgesTo("Median generation latency was 0.87 seconds", [22])).toHaveLength(0);
+    expect(edgesTo("200 images/hour on the same GPU", [21])).toHaveLength(0);
+    expect(edgesTo("Time to first token on different hardware", [21, 23])).toHaveLength(1);
+    expect(edgesTo("One benchmark ran on 4 GPUs", [])).toHaveLength(1);
+    expect(weightedEdges([base, node(2)], edge, entities, new Set(), DEFAULT_PARAMS)).toHaveLength(1);
   });
 
   it("never links two claims of the same item", () => {

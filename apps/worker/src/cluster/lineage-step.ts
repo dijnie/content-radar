@@ -1,4 +1,4 @@
-import { matchCommunities, type DeadStory, type LineageResult, type PreviousCommunity } from "@radar/core";
+import { incompatibleBenchmarkGroup, matchCommunities, type DeadStory, type LineageResult, type PreviousCommunity } from "@radar/core";
 import { chunkedBatch, chunkForParams, placeholders } from "../db/batch";
 import { sha256Hex } from "../util/hash";
 import type { ClusterOutput, JobContext } from "./job-context";
@@ -61,7 +61,11 @@ export async function lineageStep(ctx: JobContext, cluster: ClusterOutput): Prom
     .all<{ id: number; entity_signature_json: string; died_at: number }>();
   const deadStories: DeadStory[] = dead.map((row) => ({ storyId: row.id, signature: JSON.parse(row.entity_signature_json) as number[], diedAt: row.died_at }));
 
-  const lineage = matchCommunities(cluster.communities, previous, deadStories, new Set(cluster.claims.map((claim) => claim.id)), ctx.now, ctx.params);
+  const byId = new Map(cluster.claims.map((claim) => [claim.id, claim]));
+  for (const story of previous) {
+    story.invalidated = incompatibleBenchmarkGroup(story.members.map((id) => byId.get(id)));
+  }
+  const lineage = matchCommunities(cluster.communities, previous, deadStories, new Set(byId.keys()), ctx.now, ctx.params);
 
   const storyIdByIndex = new Map<number, number>();
   const membersHashByIndex = new Map<number, string>();

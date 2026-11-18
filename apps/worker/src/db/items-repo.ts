@@ -113,6 +113,7 @@ export async function upsertItem(db: D1Database, item: ItemInput): Promise<{ id:
 }
 
 export interface ItemState {
+  filter_reason: string | null;
   id: number;
   status: ItemStatus;
   content_hash: string;
@@ -123,10 +124,10 @@ export async function getItemStates(db: D1Database, platform: SourceType, extern
   const states = new Map<string, ItemState>();
   for (const chunk of chunkForParams(externalIds, 1, 1)) {
     const { results } = await db
-      .prepare(`SELECT id, external_id, status, content_hash FROM items WHERE platform = ? AND external_id IN (${placeholders(chunk.length)})`)
+      .prepare(`SELECT id, external_id, status, content_hash, filter_reason FROM items WHERE platform = ? AND external_id IN (${placeholders(chunk.length)})`)
       .bind(platform, ...chunk)
       .all<ItemState & { external_id: string }>();
-    for (const row of results) states.set(row.external_id, { id: row.id, status: row.status, content_hash: row.content_hash });
+    for (const row of results) states.set(row.external_id, { id: row.id, status: row.status, content_hash: row.content_hash, filter_reason: row.filter_reason });
   }
   return states;
 }
@@ -158,11 +159,6 @@ export function insertMetricSnapshot(db: D1Database, platform: SourceType, metri
 /** Records another wake-up message for an item that is still waiting. It does not count as an attempt: a wake-up may never reach the LLM. */
 export function touchEnqueued(db: D1Database, itemId: number, at: number): D1PreparedStatement {
   return db.prepare("UPDATE items SET queued_at = ? WHERE id = ? AND status = 'queued'").bind(at, itemId);
-}
-
-/** Counts one real extraction call against the item. */
-export function countExtractionAttempt(db: D1Database, itemId: number): D1PreparedStatement {
-  return db.prepare("UPDATE items SET enqueue_attempts = enqueue_attempts + 1 WHERE id = ? AND status = 'queued'").bind(itemId);
 }
 
 export async function getItemsByIds(db: D1Database, ids: readonly number[]): Promise<ItemRow[]> {

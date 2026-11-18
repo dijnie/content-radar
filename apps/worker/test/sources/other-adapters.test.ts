@@ -6,7 +6,7 @@ import storyJson from "../fixtures/hn/item-story.json?raw";
 import hnSearchJson from "../fixtures/hn/search-llm.json?raw";
 import atomSimon from "../fixtures/rss/atom-simonwillison.xml?raw";
 import rssOpenai from "../fixtures/rss/rss-openai.xml?raw";
-import { extractArticleText } from "../../src/sources/article-text";
+import { ARTICLE_MAX_BYTES, extractArticleText } from "../../src/sources/article-text";
 import { githubAdapter } from "../../src/sources/github";
 import { hnAdapter, mapComment } from "../../src/sources/hacker-news";
 import { rssAdapter } from "../../src/sources/rss-feed";
@@ -86,6 +86,23 @@ describe("rssAdapter", () => {
     expect(result.items[4]!.summaryOnly).toBe(true);
   });
 
+  it("keeps a previously hydrated article when a revised teaser points to an oversized page", async () => {
+    const url = "https://articles.example/story";
+    const old = { guid: "1", title: "Benchmark", link: url, html: "Short teaser", author: null, publishedAt: null };
+    const xml = `<rss><channel><item><guid>1</guid><title>Benchmark</title><link>${url}</link><description>Revised teaser</description></item></channel></rss>`;
+    const { ctx, requests } = fakeContext({
+      [FEED]: xml,
+      [url]: { status: 200, body: "x".repeat(ARTICLE_MAX_BYTES + 1), contentType: "text/html" },
+    });
+    const stored = { raw: old, text: "Benchmark\n" + "Measured inference on a real GPU. ".repeat(20) };
+    ctx.readFeedItem = async () => stored;
+    const { items } = await rssAdapter.poll(sourceRow("rss", FEED), ctx);
+    expect(requests.some((r) => r.url === url)).toBe(true);
+    expect(items[0]).toMatchObject({ text: stored.text, summaryOnly: false });
+    ctx.readFeedItem = async () => null;
+    expect((await rssAdapter.poll(sourceRow("rss", FEED), ctx)).items[0]).toMatchObject({ text: "Benchmark\nRevised teaser", summaryOnly: true });
+  });
+
   it("skips archive entries older than 30 days", async () => {
     const { ctx } = fakeContext({ [FEED]: atomSimon }, { now: Date.UTC(2027, 0, 1) / 1000 });
     expect((await rssAdapter.poll(sourceRow("rss", FEED), ctx)).items).toEqual([]);
@@ -93,6 +110,13 @@ describe("rssAdapter", () => {
 });
 
 describe("githubAdapter", () => {
+  it("accepts release feeds with more than one megabyte of notes", async () => {
+    const url = "https://github.com/duckdb/duckdb/releases.atom";
+    const xml = releasesAtom.replace("</feed>", `<!--${"x".repeat(1_000_000)}--></feed>`);
+    const { ctx } = fakeContext({ [url]: xml });
+    expect((await githubAdapter.poll(sourceRow("github", "duckdb/duckdb"), ctx)).items).toHaveLength(4);
+  });
+
   it("reads releases from the Atom feed without touching the REST API", async () => {
     const { ctx, requests } = fakeContext({ "https://github.com/vllm-project/vllm/releases.atom": releasesAtom });
     const result = await githubAdapter.poll(sourceRow("github", "vllm-project/vllm"), ctx);

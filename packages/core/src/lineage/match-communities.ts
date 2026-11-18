@@ -13,6 +13,8 @@ export interface PreviousCommunity {
   members: readonly number[];
   /** Epoch seconds of the most recent finished run that contained the story. */
   lastSeenAt: number;
+  /** The current evidence explicitly contradicts the old grouping. */
+  invalidated?: boolean;
 }
 
 export interface DeadStory {
@@ -36,7 +38,7 @@ export interface LineageResult {
   assignments: CommunityAssignment[];
   /** Stories absorbed by a merge: no longer alive, their members live on in `intoIndex`. */
   mergedAway: { storyId: number; intoIndex: number; jaccard: number }[];
-  /** Stories with no successor whose last sighting is older than the lookback. */
+  /** Stories with no successor whose evidence conflicts or whose last sighting is older than the lookback. */
   deaths: number[];
 }
 
@@ -154,6 +156,6 @@ export function matchCommunities(
   // A story missing from this run is only declared dead once the lookback has passed,
   // so a quiet hour does not cost it its identity.
   const deadline = now - params.lookbackHours * 3600;
-  const deaths = previousInWindow.filter((story) => !claimed.has(story.storyId) && story.lastSeenAt < deadline).map((story) => story.storyId);
+  const deaths = previousInWindow.filter((story) => !claimed.has(story.storyId) && (story.invalidated || story.lastSeenAt < deadline)).map((story) => story.storyId);
   return { assignments: assignments.sort((a, b) => a.index - b.index), mergedAway, deaths };
 }

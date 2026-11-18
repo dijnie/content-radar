@@ -1,4 +1,4 @@
-import type { CoreParams, VectorMatrix } from "@radar/core";
+import type { ClaimNode, CoreParams, VectorMatrix } from "@radar/core";
 import type { Env } from "../env";
 import type { EmbedFn } from "./embedding-client";
 
@@ -17,11 +17,8 @@ export interface JobContext {
   lastDoneRunStartedAt: number;
 }
 
-export interface WindowClaim {
-  id: number;
-  itemId: number;
+export interface WindowClaim extends ClaimNode {
   authorId: number | null;
-  publishedAt: number;
   kind: "measurement" | "experience" | "announcement" | "report" | "opinion";
   hasNumbers: boolean;
   firstHand: boolean;

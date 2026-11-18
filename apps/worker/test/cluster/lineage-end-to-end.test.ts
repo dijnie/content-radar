@@ -19,6 +19,22 @@ const sizeOf = async (storyId: number) => (await env.DB.prepare("SELECT COUNT(*)
 const eventsOf = async (runId: number) => (await env.DB.prepare("SELECT type, story_id, related_story_id FROM lineage_events WHERE run_id = ? ORDER BY id").bind(runId).all()).results;
 
 describe("lineage end to end", () => {
+  it("retires an existing two-benchmark story as soon as its model identities contradict the grouping", async () => {
+    const embedder = fakeEmbedder();
+    const [a, b] = await seedClaims(env.DB, ["Atlas", "Pico"].map((entity) => ({ tag: "S1", entity, publishedAt: T0 })));
+    await runClusterJob(testEnv, { now: T0, embed: embedder.embed });
+    const [story] = await alive();
+    expect(await sizeOf(story!.id)).toBe(2);
+
+    await env.DB.batch([
+      env.DB.prepare("UPDATE claims SET kind = 'measurement' WHERE id IN (?, ?)").bind(a!, b!),
+      env.DB.prepare("UPDATE entity_mentions SET surface_type = 'model' WHERE claim_id IN (?, ?)").bind(a!, b!),
+    ]);
+    await runClusterJob(testEnv, { now: T0 + HOUR, embed: embedder.embed });
+    expect(await alive()).toHaveLength(0);
+    expect(await sizeOf(story!.id)).toBe(0);
+  });
+
   it("a story born while a run was dying is born once, by the next run, and the orphan stays invisible", async () => {
     const embedder = fakeEmbedder();
     await seedClaims(env.DB, Array.from({ length: 6 }, (_, k) => ({ tag: "S1", publishedAt: T0 - (k + 1) * HOUR })));

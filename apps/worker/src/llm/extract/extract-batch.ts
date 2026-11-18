@@ -82,7 +82,7 @@ async function validateItem(prepared: Prepared, rawClaims: unknown[], topics: st
  * each item's result is written in its own D1 batch so one bad item cannot
  * take the others down.
  */
-export async function extractBatch(env: LlmEnv, items: ItemRow[], kind: Extract<LlmKind, "extract" | "extract_backfill">, deps: LlmDeps = {}, attempt = 0): Promise<BatchOutcome> {
+export async function extractBatch(env: LlmEnv, items: ItemRow[], kind: Extract<LlmKind, "extract" | "extract_backfill">, deps: LlmDeps = {}, attempt = 0, splitMalformedBatch = true): Promise<BatchOutcome> {
   const now = deps.now ?? Math.floor(Date.now() / 1000);
   if (items.length === 0) return { status: "done", itemIds: [] };
   const prepared: Prepared[] = [];
@@ -109,7 +109,7 @@ export async function extractBatch(env: LlmEnv, items: ItemRow[], kind: Extract<
   const itemIds = prepared.map((entry) => entry.item.id);
   const call = await budgetedCall(
     env,
-    { kind, promptVersion: EXTRACT_PROMPT_VERSION, system: extractSystemPrompt(topics), user: extractUserPrompt(promptItems), schema: EXTRACT_JSON_SCHEMA, subjectIds: itemIds },
+    { kind, promptVersion: EXTRACT_PROMPT_VERSION, system: extractSystemPrompt(topics), user: extractUserPrompt(promptItems), schema: EXTRACT_JSON_SCHEMA, subjectIds: itemIds, splitMalformedBatch },
     deps,
     attempt,
   );
@@ -177,7 +177,7 @@ async function splitAndRetry(env: LlmEnv, prepared: Prepared[], kind: Extract<Ll
   const middle = Math.ceil(prepared.length / 2);
   const done: number[] = [];
   for (const half of [prepared.slice(0, middle), prepared.slice(middle)]) {
-    const outcome = await extractBatch(env, half.map((entry) => entry.item), kind, deps, attempt);
+    const outcome = await extractBatch(env, half.map((entry) => entry.item), kind, deps, attempt, false);
     if (outcome.status !== "done") return done.length > 0 ? { status: "done", itemIds: done } : outcome;
     done.push(...outcome.itemIds);
   }

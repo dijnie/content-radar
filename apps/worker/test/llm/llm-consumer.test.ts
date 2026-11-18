@@ -122,6 +122,35 @@ describe("consumeLlmBatch", () => {
     expect(await env.DB.prepare("SELECT 1 FROM settings WHERE key = 'llm_circuit'").first()).toBeNull();
   });
 
+  it("recovers a malformed completed extraction in smaller calls without submitting the original batch twice", async () => {
+    const ids = await seedItems(10);
+    const provider = fakeDeepSeek((_call, _model, itemIds) => itemIds.length === 10 ? {
+      status: 200, body: { choices: [{ finish_reason: "stop", message: { content: '{"items":[{"itemId":1 "relevant":true}]}' } }],
+        usage: { prompt_tokens: 2555, completion_tokens: 2271 } },
+    } : null);
+    const delivery = fakeBatch(ids.map(itemId => ({ kind: "extract", itemId })));
+    await consumeLlmBatch(delivery.batch, testEnv, { now: NOW, fetcher: provider.fetcher });
+    expect(provider.calls.map(call => call.itemIds)).toEqual([ids, ids.slice(0, 5), ids.slice(5)]);
+    expect(delivery.outcomes()).toEqual(ids.map(() => "ack"));
+    expect(await statuses(ids)).toEqual({ extracted: 10 });
+    expect(await claimCount(ids)).toBe(10);
+    expect(await env.DB.prepare("SELECT SUM(requests) n, SUM(tokens_out) tokens FROM llm_usage").first())
+      .toEqual({ n: 3, tokens: 2271 + 2 * 412 });
+  });
+
+  it.each([1, 10])("bounds recovery when every response remains malformed for %i items", async count => {
+    const ids = await seedItems(count);
+    const provider = fakeDeepSeek(() => ({
+      status: 200, body: { choices: [{ finish_reason: "stop", message: { content: '{"items":[' } }] },
+    }));
+    const delivery = fakeBatch(ids.map(itemId => ({ kind: "extract", itemId })));
+    await consumeLlmBatch(delivery.batch, testEnv, { now: NOW, fetcher: provider.fetcher });
+    expect(provider.calls.map(call => call.itemIds.length)).toEqual(count === 1 ? [1] : [10, 5]);
+    expect(delivery.outcomes()).toEqual(ids.map(() => "retry:30"));
+    expect(await statuses(ids)).toEqual({ queued: count });
+    expect(await claimCount(ids)).toBe(0);
+  });
+
   it("keeps a single output-limited item queued instead of failing it or splitting forever", async () => {
     const ids = await seedItems(1);
     const deepseek = fakeDeepSeek(() => ({ status: 200, body: { choices: [{ finish_reason: "length", message: { content: '{"items":[' } }] } }));

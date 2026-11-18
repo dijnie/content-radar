@@ -21,6 +21,8 @@ export interface BudgetedRequest {
   schema: Record<string, unknown>;
   /** Ids recorded in `llm_calls.item_ids_json` for tracing. */
   subjectIds: number[];
+  /** An initial multi-item extraction may recover by asking for shorter answers. */
+  splitMalformedBatch?: boolean;
 }
 
 export type BudgetedResult =
@@ -29,7 +31,7 @@ export type BudgetedResult =
   | { status: "retry"; delaySeconds: number }
   /** Leave work in D1 for the next scheduler run: no budget, open circuit or prolonged unavailability. */
   | { status: "park" }
-  /** Invalid request or oversized extraction batch; retrying it unchanged is pointless. */
+  /** The caller can recover by isolating the affected subjects. */
   | { status: "rejected" };
 
 // Both queue configs allow five retries. Stop availability waits before that
@@ -110,10 +112,10 @@ export async function budgetedCall(env: LlmEnv, request: BudgetedRequest, deps: 
       continue;
     }
     if (result.kind === "invalid_request") return { status: "rejected" };
-    // A valid provider can truncate a large extraction response. Let extraction
-    // bisect that batch within the existing budget, without tripping the circuit.
-    // A single item cannot be split: keep the normal retry/park behavior for it.
-    if (result.message === "llm_output_limit" && request.subjectIds.length > 1 &&
+    // Truncated batches can shrink recursively. Other malformed output gets one
+    // split per delivery so a broken provider cannot fan out across every item.
+    const splitOutput = result.message === "llm_output_limit" || (request.splitMalformedBatch && result.message === "llm_invalid_content_json");
+    if (splitOutput && request.subjectIds.length > 1 &&
       (request.kind === "extract" || request.kind === "extract_backfill")) return { status: "rejected" };
     if (result.kind === "transient" && result.httpStatus !== null && result.httpStatus >= 500) {
       // Briefly rest the unavailable model before the next queue delivery.
@@ -122,7 +124,7 @@ export async function budgetedCall(env: LlmEnv, request: BudgetedRequest, deps: 
       tried.add(model.model);
       continue;
     }
-    // Network failures or invalid output wait without bisecting otherwise valid items.
+    // Further malformed replies and network failures follow the normal retry/circuit policy.
     await recordFailure(env.DB, result.kind, now);
     return parkForAvailability ? { status: "park" } : retryLater;
   }

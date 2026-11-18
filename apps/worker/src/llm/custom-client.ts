@@ -22,6 +22,46 @@ export type LlmResult =
 
 export const MAX_OUTPUT_TOKENS = 8192;
 
+// Some JSON-mode replies have a comma after the last member of a list or object.
+// Remove only these separators. Quotes and evidence inside strings stay byte-for-byte intact.
+function parseModelJson(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    const parts: string[] = [];
+    let start = 0;
+    let quoted = false;
+    let previous = "";
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i]!;
+      if (quoted) {
+        if (ch === "\\") i++;
+        else if (ch === '"') {
+          quoted = false;
+          previous = '"';
+        }
+        continue;
+      }
+      if (ch === '"') {
+        quoted = true;
+        continue;
+      }
+      if (/[ \t\r\n]/.test(ch)) continue;
+      if (ch === "," && !["", "{", "[", ":", ","].includes(previous)) {
+        let next = i + 1;
+        while (next < text.length && /[ \t\r\n]/.test(text[next]!)) next++;
+        if (text[next] === "}" || text[next] === "]") {
+          parts.push(text.slice(start, i));
+          start = i + 1;
+        }
+      }
+      previous = ch;
+    }
+    if (!parts.length) throw error;
+    return JSON.parse(parts.join("") + text.slice(start));
+  }
+}
+
 export function retryAfterSeconds(value: string | null, nowMs = Date.now()): number {
   if (!value?.trim()) return 60;
   const numeric = Number(value);
@@ -106,7 +146,7 @@ export async function generateJson(request: LlmRequest): Promise<LlmResult> {
   const fenced = /^```(?:json)?[ \t]*\r?\n([\s\S]*?)\r?\n```$/i.exec(text);
   let data: unknown;
   try {
-    data = JSON.parse(fenced ? fenced[1]! : text);
+    data = parseModelJson(fenced ? fenced[1]! : text);
   } catch {
     return fail("invalid_output", true, "llm_invalid_content_json");
   }

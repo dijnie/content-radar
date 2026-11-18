@@ -93,7 +93,18 @@ describe("custom OpenAI-compatible JSON transport", () => {
     expect(fetcher).toHaveBeenCalledOnce();
   });
 
+  it.each([false, true])("reads complete model JSON with trailing commas while preserving quotations (fenced=%s)", async (fenced) => {
+    const quote = 'The literal markers ,} and ,] and the string "end",} must survive, including a final backslash \\';
+    const content = '{"items":[{"itemId":3,"claims":[{"quote":' + JSON.stringify(quote) + '}, ],\n},],}';
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(Response.json(answer(fenced ? "```json\n" + content + "\n```" : content)));
+    expect(await generateJson({ ...request, fetcher })).toMatchObject({
+      ok: true, data: { items: [{ itemId: 3, claims: [{ quote }] }] }, tokensOut: 412,
+    });
+    expect(fetcher).toHaveBeenCalledOnce();
+  });
+
   it.each([
+    '{"items":[,]}', '{"items":[1,,]}', '{"items":[1,}', '{"items":,}', '{,}', '{"a":1 "b":2}',
     "Here is the result:\n```json\n{}\n```", "```json\n{}\n```\nExtra text", "```json\n{}",
     "```json\n{broken}\n```", "```json\n{}\n```\n```json\n{}\n```", "```js\n{}\n```",
   ])("rejects ambiguous or malformed model text without exposing it", async content => {

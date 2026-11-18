@@ -33,7 +33,6 @@ Giữ các tài nguyên sau trong cùng tài khoản với Worker:
 | `POLL_QUEUE` | Queue `radar-poll` |
 | `LLM_QUEUE` | Queue `radar-llm` |
 | Queue lỗi | `radar-dlq` |
-| `AI` | Workers AI cho embedding |
 | `ASSETS` | Web assets được upload khi build |
 
 Nếu dùng tên khác, đặt `R2_BUCKET_NAME`, `POLL_QUEUE_NAME`, `LLM_QUEUE_NAME`, `DLQ_QUEUE_NAME` trong **Settings → Build → Build Variables and Secrets**. `WORKER_NAME` mặc định là `content-radar`, cần khớp Worker liên kết Git. Account ID được Cloudflare Builds cung cấp; không phải thêm lại trong setup.
@@ -46,7 +45,8 @@ Tại **Worker → Settings → Variables and Secrets**, điền:
 |---|---|---|
 | `LLM_ENDPOINT` | Text | URL API tương thích OpenAI, ví dụ `https://your-provider.example/v1`. |
 | `LLM_MODEL` | Text | Tên model provider hỗ trợ. |
-| `LLM_API_KEY` | Secret | API key của provider. |
+| `EMBEDDING_MODEL` | Text | ID model embedding trả được vector 1.024 chiều, ví dụ `text-embedding-3-small`. |
+| `LLM_API_KEY` | Secret | API key dùng chung cho chat và embeddings. |
 | `GITHUB_TOKEN` | Secret | GitHub PAT đọc dữ liệu public. |
 | `APP_ORIGIN` | Text, tùy chọn | Origin ứng dụng để loại hostname của chính ứng dụng khỏi nội dung crawl nền. Không cần cho việc xem hay tương tác. |
 

@@ -12,7 +12,7 @@ import { loadClaimVectors } from "./vector-store";
  */
 export async function cosineEdgesStep(ctx: JobContext): Promise<{ vectors: VectorMatrix; newEdges: number }> {
   const since = windowStart(ctx);
-  const vectors = await loadClaimVectors(ctx.db, since);
+  const vectors = await loadClaimVectors(ctx.db, since, ctx.embeddingModel);
   const { results: fresh } = await ctx.db
     .prepare("SELECT e.claim_id AS id FROM claim_embeddings e JOIN claims c ON c.id = e.claim_id WHERE c.published_at >= ? AND e.created_at >= ?")
     .bind(since, ctx.lastDoneRunStartedAt)

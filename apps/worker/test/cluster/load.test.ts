@@ -30,7 +30,7 @@ describe("cluster job under load", () => {
         .bind(firstItem + n, firstAuthor + n, `Nhận định tải số ${n}.`, `${tagFor(n)} load claim ${n}`, `q${n}`, T0 - (n % 160) * 3600, `load-${n}`, T0)));
 
     const started = Date.now();
-    const result = await runClusterJob({ DB: db, AI: env.AI, LLM_QUEUE: fakeLlmQueue().queue }, { now: T0, embed: fakeEmbedder().embed });
+    const result = await runClusterJob({ DB: db, LLM_QUEUE: fakeLlmQueue().queue }, { now: T0, embed: fakeEmbedder().embed });
     const seconds = (Date.now() - started) / 1000;
 
     const counts = await db.prepare(

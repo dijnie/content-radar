@@ -28,7 +28,7 @@ function randomVector(seed: number, scale = 1): Float32Array {
 const NOISE_BY_TAG: Record<string, number> = { S: 0.15, E: 0.45, M: 0.75 };
 
 /**
- * Test-only stand-in for Workers AI. Text starting with a tag lands near that
+ * Test-only stand-in for the embedding API. Text starting with a tag lands near that
  * tag's direction: "S3 " very close (one story), "E7 " around cosine 0.83 (an
  * ambiguous entity name), "M1 " around 0.64 (related, but not enough to link on
  * its own). Untagged text is near-orthogonal to everything. Same text, same vector.

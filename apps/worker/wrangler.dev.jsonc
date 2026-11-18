@@ -22,7 +22,6 @@
     }
   ],
   "r2_buckets": [{ "binding": "RAW", "bucket_name": "content-radar-raw" }],
-  "ai": { "binding": "AI" },
   "queues": {
     "producers": [
       { "binding": "POLL_QUEUE", "queue": "radar-poll" },

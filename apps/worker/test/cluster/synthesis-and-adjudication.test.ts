@@ -24,7 +24,7 @@ beforeEach(async () => {
     env.DB.prepare("UPDATE llm_models SET rpd = 1000, rpm = 1000, exhausted_until = NULL"),
   ]);
   llm = fakeLlmQueue();
-  clusterEnv = { DB: env.DB, AI: env.AI, LLM_QUEUE: llm.queue };
+  clusterEnv = { DB: env.DB, LLM_QUEUE: llm.queue };
   llmEnv = { DB: env.DB, RAW: env.RAW, LLM_QUEUE: llm.queue, LLM_ENDPOINT: "https://llm.example/v1", LLM_API_KEY: "test-key" };
 });
 
@@ -48,7 +48,7 @@ async function deliver(messages: LlmMessage[], fetcher: typeof fetch, now: numbe
 }
 
 const story = (id: number) => env.DB.prepare("SELECT * FROM stories WHERE id = ?").bind(id).first<Record<string, unknown>>();
-const ctxAt = (now: number): JobContext => ({ env: clusterEnv, db: env.DB, runId: 0, holder: "test", now, params: { ...DEFAULT_PARAMS }, embed: fakeEmbedder().embed, lastDoneRunStartedAt: 0 });
+const ctxAt = (now: number): JobContext => ({ env: clusterEnv, embeddingModel: "test-embedding", db: env.DB, runId: 0, holder: "test", now, params: { ...DEFAULT_PARAMS }, embed: fakeEmbedder().embed, lastDoneRunStartedAt: 0 });
 
 describe("synthesis", () => {
   it("keeps a story eligible for synthesis when quota waits outlast queue retries", async () => {

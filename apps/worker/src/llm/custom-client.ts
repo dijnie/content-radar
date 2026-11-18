@@ -1,3 +1,5 @@
+import { providerUrl } from "./api-url";
+
 export type LlmErrorKind = "rate_limited" | "configuration_error" | "insufficient_balance" | "invalid_request" | "invalid_output" | "transient";
 
 export interface LlmRequest {
@@ -37,12 +39,7 @@ export async function generateJson(request: LlmRequest): Promise<LlmResult> {
   let endpoint: URL;
   if (!request.endpoint.trim()) return fail("configuration_error", false, "llm_endpoint_missing");
   try {
-    endpoint = new URL(request.endpoint.trim());
-    if (!["https:", "http:"].includes(endpoint.protocol) || endpoint.username || endpoint.password || endpoint.hash) {
-      return fail("configuration_error", false, "llm_endpoint_invalid");
-    }
-    const path = endpoint.pathname.replace(/\/+$/, "");
-    endpoint.pathname = path.endsWith("/chat/completions") ? path : `${path}/chat/completions`;
+    endpoint = providerUrl(request.endpoint, "chat/completions");
   } catch {
     return fail("configuration_error", false, "llm_endpoint_invalid");
   }

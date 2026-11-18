@@ -34,7 +34,7 @@ export async function resolveEntitiesStep(ctx: JobContext): Promise<{ resolved: 
   let resolved = 0;
   if (groups.length > 0) {
     const aliases = new Map((await db.prepare("SELECT alias_normalized, entity_id FROM entity_aliases").all<{ alias_normalized: string; entity_id: number }>()).results.map((row) => [row.alias_normalized, row.entity_id]));
-    const matrix = await loadEntityVectors(db);
+    const matrix = await loadEntityVectors(db, ctx.embeddingModel);
     const names = new Map((await db.prepare("SELECT id, canonical_name FROM entities").all<{ id: number; canonical_name: string }>()).results.map((row) => [row.id, normalizeEntity(row.canonical_name)]));
     const known: KnownEntity[] = matrix.ids.map((id, index) => ({ id, normalizedName: names.get(id) ?? "", vector: matrix.data.subarray(index * matrix.dims, (index + 1) * matrix.dims) }));
 
@@ -68,7 +68,7 @@ export async function resolveEntitiesStep(ctx: JobContext): Promise<{ resolved: 
         entityId = await createEntity(db, { canonicalName: group.surface, type, provisional, createdAt: now });
         await addAlias(db, entityId, group.normalized, "embedding").run();
         if (vector) {
-          await putVectors(db, "entity_embeddings", [{ id: entityId, vector }], now);
+          await putVectors(db, "entity_embeddings", [{ id: entityId, vector }], now, ctx.embeddingModel);
           // Later mentions in this same run can already match the entity just created.
           known.push({ id: entityId, normalizedName: group.normalized, vector });
         }

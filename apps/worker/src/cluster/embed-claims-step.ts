@@ -15,6 +15,6 @@ export async function embedClaimsStep(ctx: JobContext): Promise<number> {
     .all<{ id: number; text_en: string }>();
   if (results.length === 0) return 0;
   const vectors = await ctx.embed(results.map((row) => row.text_en));
-  await putVectors(ctx.db, "claim_embeddings", results.map((row, index) => ({ id: row.id, vector: vectors[index]! })), ctx.now);
+  await putVectors(ctx.db, "claim_embeddings", results.map((row, index) => ({ id: row.id, vector: vectors[index]! })), ctx.now, ctx.embeddingModel);
   return results.length;
 }

@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
-import { describe, expect, it } from "vitest";
-import { workersAiEmbedder } from "../../src/cluster/embedding-client";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { openAiEmbedder } from "../../src/cluster/embedding-client";
 import { acquireLease, releaseLeaseStatement, renewLease } from "../../src/cluster/job-lease";
 import { EMBEDDING_DIMS, loadClaimVectors, putVectors } from "../../src/cluster/vector-store";
 import { insertClaim } from "../../src/db/claims-repo";
@@ -44,10 +44,10 @@ describe("vector store", () => {
       ids.push((await env.DB.prepare("SELECT id FROM claims WHERE content_hash = ?").bind(`vec-hash-${n}`).first<{ id: number }>())!.id);
     }
     const vector = (seed: number) => Float32Array.from({ length: EMBEDDING_DIMS }, (_, d) => Math.fround(Math.sin(seed * 31 + d)));
-    await putVectors(env.DB, "claim_embeddings", ids.map((id, n) => ({ id, vector: vector(n) })), NOW);
-    await putVectors(env.DB, "claim_embeddings", [{ id: ids[0]!, vector: vector(7) }], NOW);
+    await putVectors(env.DB, "claim_embeddings", ids.map((id, n) => ({ id, vector: vector(n) })), NOW, "test");
+    await putVectors(env.DB, "claim_embeddings", [{ id: ids[0]!, vector: vector(7) }], NOW, "test");
 
-    const matrix = await loadClaimVectors(env.DB, NOW - 7 * 86_400);
+    const matrix = await loadClaimVectors(env.DB, NOW - 7 * 86_400, "test");
     const mine = matrix.ids.map((id, index) => ({ id, index })).filter((entry) => ids.includes(entry.id));
     expect(mine.map((entry) => entry.id)).toEqual([ids[0], ids[1]]);
     expect(matrix.data.subarray(mine[0]!.index * EMBEDDING_DIMS, (mine[0]!.index + 1) * EMBEDDING_DIMS)).toEqual(vector(7));
@@ -55,24 +55,47 @@ describe("vector store", () => {
   });
 });
 
-describe("workersAiEmbedder", () => {
-  it("batches by 50, retries a failed batch and reports token use", async () => {
+describe("openAiEmbedder", () => {
+  const config = { LLM_ENDPOINT: "https://provider.example/v1/chat/completions/?version=1", LLM_API_KEY: "key", EMBEDDING_MODEL: "text-embedding-3-small" };
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it("uses the embedding route, retries a failed batch and restores input order", async () => {
     const calls: number[] = [];
-    let failures = 1;
-    const ai = { run: async (_model: string, input: { text: string[] }) => {
-      calls.push(input.text.length);
-      if (failures-- > 0) throw new Error("upstream hiccup");
-      return { data: input.text.map(() => Array.from({ length: EMBEDDING_DIMS }, () => 0.5)) };
-    } } as unknown as Ai;
+    const fetcher = vi.fn<typeof fetch>(async (url, init) => {
+      expect(url).toBe("https://provider.example/v1/embeddings?version=1");
+      expect(init).toMatchObject({ method: "POST", headers: { Authorization: "Bearer key" }, redirect: "manual" });
+      const body = JSON.parse(String(init!.body));
+      expect(body).toMatchObject({ model: config.EMBEDDING_MODEL, dimensions: 1024, encoding_format: "float" });
+      const input = body.input as string[];
+      calls.push(input.length);
+      if (calls.length === 1) return new Response(null, { status: 503 });
+      const data = input.map((text, index) => ({ index, embedding: Array(EMBEDDING_DIMS).fill(Number(text)) })).reverse();
+      return Response.json({ data, usage: { prompt_tokens: 10 } });
+    });
+    vi.stubGlobal("fetch", fetcher);
     let tokens = 0;
-    const vectors = await workersAiEmbedder(ai, (n) => void (tokens += n))(Array.from({ length: 120 }, (_, n) => `claim text number ${n}`));
-    expect(vectors).toHaveLength(120);
+    const input = Array.from({ length: 120 }, (_, i) => String(i));
+    const vectors = await openAiEmbedder(config, n => { tokens += n; })(input);
+    expect(vectors.map(v => v[0])).toEqual(input.map(Number));
     expect(calls).toEqual([50, 50, 50, 20]);
-    expect(tokens).toBeGreaterThan(0);
+    expect(tokens).toBe(30);
   });
 
-  it("gives up after three attempts and rejects a malformed response", async () => {
-    const broken = { run: async () => ({ data: [[1, 2, 3]] }) } as unknown as Ai;
-    await expect(workersAiEmbedder(broken)(["x"])).rejects.toThrow("unexpected embedding shape");
+  it("rejects malformed dimensions and duplicate indices", async () => {
+    const vector = Array(EMBEDDING_DIMS).fill(0);
+    const fetcher = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(Response.json({ data: [{ index: 0, embedding: [1] }] }))
+      .mockResolvedValueOnce(Response.json({ data: [0, 0].map(index => ({ index, embedding: vector })) }));
+    vi.stubGlobal("fetch", fetcher);
+    await expect(openAiEmbedder(config)(["x"])).rejects.toThrow("1024-dimensional");
+    await expect(openAiEmbedder(config)(["x", "y"])).rejects.toThrow("index");
+  });
+
+  it("does not retry invalid credentials or send a request without a key", async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 401 }));
+    vi.stubGlobal("fetch", fetcher);
+    await expect(openAiEmbedder({ ...config, LLM_API_KEY: "" })(["x"])).rejects.toThrow("llm_api_key_missing");
+    await expect(openAiEmbedder(config)(["x"])).rejects.toThrow("embedding_http_401");
+    expect(fetcher).toHaveBeenCalledTimes(1);
   });
 });

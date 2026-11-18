@@ -4,13 +4,14 @@ import { clusterStep } from "./cluster-step";
 import { cosineEdgesStep } from "./cosine-edges-step";
 import { deriveRelationsStep } from "./derive-relations-step";
 import { embedClaimsStep } from "./embed-claims-step";
-import { workersAiEmbedder, type EmbedFn } from "./embedding-client";
+import { embeddingModel, openAiEmbedder, type EmbedFn } from "./embedding-client";
 import { enqueueSynthesisStep } from "./enqueue-synthesis-step";
 import { finalizeStep } from "./finalize-step";
 import type { ClusterEnv, JobContext } from "./job-context";
 import { acquireLease, CLUSTER_LEASE, releaseLeaseStatement, renewLease } from "./job-lease";
 import { lineageStep } from "./lineage-step";
 import { resolveEntitiesStep } from "./resolve-entities-step";
+import { refreshEmbeddingCache } from "./vector-store";
 import { scoreStep } from "./score-step";
 
 export interface ClusterJobDeps {
@@ -52,7 +53,8 @@ export async function runClusterJob(env: ClusterEnv, deps: ClusterJobDeps = {}):
   let tokens = 0;
   const ctx: JobContext = {
     env, db, runId: run!.id, holder, now, params, lastDoneRunStartedAt: lastDone?.at ?? 0,
-    embed: deps.embed ?? workersAiEmbedder(env.AI, (count) => void (tokens += count)),
+    embeddingModel: embeddingModel(env),
+    embed: deps.embed ?? openAiEmbedder(env, (count) => void (tokens += count)),
   };
   const holdLease = async (where: string) => {
     if (!(await renewLease(db, CLUSTER_LEASE, holder, clock()))) throw new LeaseLost(`lease lost ${where}`);
@@ -68,6 +70,7 @@ export async function runClusterJob(env: ClusterEnv, deps: ClusterJobDeps = {}):
   };
 
   try {
+    await stage("refresh_embedding_cache", () => refreshEmbeddingCache(ctx));
     await stage("resolve_entities", () => resolveEntitiesStep(ctx));
     await stage("embed_claims", () => embedClaimsStep(ctx));
     await stage("derive_relations", () => deriveRelationsStep(ctx));

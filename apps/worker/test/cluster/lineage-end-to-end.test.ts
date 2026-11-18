@@ -11,7 +11,7 @@ let testEnv: ClusterEnv;
 
 beforeEach(async () => {
   await wipeClusterState(env.DB);
-  testEnv = { DB: env.DB, AI: env.AI, LLM_QUEUE: fakeLlmQueue().queue };
+  testEnv = { DB: env.DB, LLM_QUEUE: fakeLlmQueue().queue };
 });
 
 const alive = async () => (await env.DB.prepare("SELECT id, status, independent_sources, user_state FROM stories WHERE alive = 1 ORDER BY id").all<{ id: number; status: string; independent_sources: number; user_state: string }>()).results;

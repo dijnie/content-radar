@@ -16,7 +16,7 @@ beforeEach(async () => {
   await wipeClusterState(env.DB);
   await env.DB.prepare("UPDATE llm_models SET rpd = 1000, rpm = 1000, exhausted_until = NULL").run();
   llm = fakeLlmQueue();
-  testEnv = { DB: env.DB, AI: env.AI, LLM_QUEUE: llm.queue };
+  testEnv = { DB: env.DB, LLM_QUEUE: llm.queue };
 });
 
 const stories = async () =>
@@ -64,6 +64,25 @@ describe("runClusterJob", () => {
     expect(run).toMatchObject({ status: "done", stage: "done", node_count: 160, community_count: 5 });
     expect(JSON.parse(String(run!.params_json))).toMatchObject({ version: 1, params: { resolution: 0.25, seed: 42, quality: "cpm" } });
     expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM job_leases").first()).toEqual({ n: 0 });
+  });
+
+  it("refreshes cached claim and entity vectors on model change and removes obsolete cosine edges", async () => {
+    const ids = await seedClaims(env.DB, [
+      { tag: "S1", publishedAt: T0, entity: "example entity" }, { tag: "S1", publishedAt: T0 },
+    ]);
+    await runClusterJob({ ...testEnv, EMBEDDING_MODEL: "@cf/baai/bge-m3" }, { now: T0, embed: fakeEmbedder().embed });
+    expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM claim_edges").first()).toEqual({ n: 1 });
+    const next = { ...testEnv, EMBEDDING_MODEL: "new-model" };
+    const orthogonal = fakeEmbedder();
+    const embed = (texts: readonly string[]) => orthogonal.embed(texts.map(t => "unrelated " + t));
+    await runClusterJob(next, { now: T0 + HOUR, embed });
+    expect(orthogonal.texts).toHaveLength(3);
+    const refreshed = await env.DB.prepare("SELECT claim_id FROM claim_embeddings WHERE model = 'new-model' ORDER BY claim_id").all();
+    expect(refreshed.results.map(row => row.claim_id)).toEqual(ids);
+    expect(await env.DB.prepare("SELECT model FROM entity_embeddings").first()).toEqual({ model: "new-model" });
+    expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM claim_edges").first()).toEqual({ n: 0 });
+    await runClusterJob(next, { now: T0 + 2 * HOUR, embed });
+    expect(orthogonal.texts).toHaveLength(3);
   });
 
   it("skips when another run holds the lease", async () => {

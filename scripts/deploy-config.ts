@@ -19,6 +19,7 @@ const schema = z.object({
   DLQ_QUEUE_NAME: name.default("radar-dlq"),
   LLM_ENDPOINT: z.string().trim().optional(),
   LLM_MODEL: z.string().trim().optional(),
+  EMBEDDING_MODEL: z.string().trim().min(1).optional(),
 }).superRefine((values, ctx) => {
   if ((values.LLM_ENDPOINT === undefined) !== (values.LLM_MODEL === undefined) || Boolean(values.LLM_ENDPOINT) !== Boolean(values.LLM_MODEL)) {
     ctx.addIssue({ code: "custom", path: ["LLM_ENDPOINT", "LLM_MODEL"], message: "Omit both fields to keep dashboard values, fill both to override, or set both empty to pause LLM processing" });
@@ -69,6 +70,7 @@ export function writeDeployConfig(root = projectRoot, environment: NodeJS.Proces
     template.vars.LLM_ENDPOINT = values.LLM_ENDPOINT;
     template.vars.LLM_MODEL = values.LLM_MODEL;
   }
+  if (values.EMBEDDING_MODEL !== undefined) template.vars.EMBEDDING_MODEL = values.EMBEDDING_MODEL;
   template.vars.POLL_QUEUE_NAME = values.POLL_QUEUE_NAME;
   template.vars.LLM_QUEUE_NAME = values.LLM_QUEUE_NAME;
   template.vars.DLQ_QUEUE_NAME = values.DLQ_QUEUE_NAME;

@@ -42,29 +42,30 @@ Cron khôi phục intent crawl/build bị mất queue và lease quá hạn. Khi 
 
    Migration đã áp sẽ được bỏ qua và `config:sync` là idempotent. Dùng `npx wrangler d1 migrations list DB --remote` từ `apps/worker` để kiểm tra migration chờ. Trên remote, `wrangler d1 execute --file` chỉ trả bản tóm tắt import; dùng `--command` hoặc `npm run soak-report -- --remote` để đọc kết quả truy vấn.
 
-3. Trong Worker → Settings → Variables and Secrets, đặt `LLM_API_KEY` và `GITHUB_TOKEN` là Secret; đặt `LLM_ENDPOINT` và `LLM_MODEL` là Text. Deploy giữ endpoint/model trên dashboard khi build không truyền giá trị mới. `APP_ORIGIN` tùy chọn giúp loại hostname riêng của ứng dụng khỏi nội dung crawl nền. `OWNER_EMAIL`, `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD` không còn được sử dụng.
+3. Trong Worker → Settings → Variables and Secrets, đặt `LLM_API_KEY` và `GITHUB_TOKEN` là Secret; đặt `LLM_ENDPOINT`, `LLM_MODEL` và `EMBEDDING_MODEL` là Text. Deploy giữ endpoint/model trên dashboard khi build không truyền giá trị mới. `APP_ORIGIN` tùy chọn giúp loại hostname riêng của ứng dụng khỏi nội dung crawl nền. `OWNER_EMAIL`, `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD` không còn được sử dụng.
 
    Model mới có trần 100 request/ngày Pacific, tối đa 5 request/phút; model đã tồn tại giữ giới hạn hiện có. Đặt cả endpoint và model thành chuỗi rỗng để tạm dừng LLM.
 
 4. Deploy **commit mới nhất** qua Cloudflare Builds (`npm run deploy`), rồi mở trang bằng cửa sổ riêng tư để kiểm tra truy cập không đăng nhập. Trang gốc và `/api/status` phải trả 200; thử lưu/khôi phục một thẻ hoặc đổi lịch feed để xác nhận thao tác ghi hoạt động. Kiểm tra frontend, API và dữ liệu cùng một deployment.
 
-5. Có thể dùng `GET /api/admin/probe?target=llm` để kiểm tra key và kết nối. Các target nguồn: `fxtwitter-timeline`, `fxtwitter-status`, `syndication`, `hn-algolia`, `hn-firebase`, `github-api`, `github-atom`, `rss-uber`, `rss-medium`, `workers-ai-embed`.
+5. Có thể dùng `GET /api/admin/probe?target=llm` để kiểm tra key và kết nối. Các target nguồn: `fxtwitter-timeline`, `fxtwitter-status`, `syndication`, `hn-algolia`, `hn-firebase`, `github-api`, `github-atom`, `rss-uber`, `rss-medium`, `embeddings`.
 
    Probe AI gọi API thật ngoài sổ ngân sách tự động; không chạy lặp để đo quota. 401/403/404 cần kiểm tra key/model/endpoint, 402 cần kiểm tra số dư.
 
 ## AI qua endpoint tùy chỉnh
 
-Cấu hình ba giá trị:
+Cấu hình các biến sau trong Worker.
 
 | Biến | Giá trị |
 |---|---|
 | `LLM_ENDPOINT` | URL gốc API, ví dụ `https://your-provider.example/v1`, hoặc URL đầy đủ `/chat/completions`. |
 | `LLM_API_KEY` | API key gửi trong header `Authorization: Bearer …`; lưu bằng Worker secret. |
 | `LLM_MODEL` | Tên model chính xác mà endpoint hỗ trợ, kể cả tên dạng `vendor/model`. |
+| `EMBEDDING_MODEL` | Tên model cho `/embeddings`, mặc định `text-embedding-3-small`. Để dùng lại vector BGE-M3 cũ, endpoint phải phục vụ đúng model với ID `@cf/baai/bge-m3`. |
 
-Local: chép `.dev.vars.example` thành `apps/worker/.dev.vars` và điền ba giá trị. Production: đặt endpoint/model và secret `LLM_API_KEY` trong Worker → Settings → Variables and Secrets. `.env.setup`/build variables chỉ dùng nếu muốn ghi đè cả endpoint và model; mặc định deploy giữ cấu hình dashboard. File local không tự trở thành secret production. Xem [Cloudflare Worker secrets](https://developers.cloudflare.com/workers/configuration/secrets/).
+Local: chép `.dev.vars.example` thành `apps/worker/.dev.vars` và điền các giá trị. Production: đặt endpoint/model và secret `LLM_API_KEY` trong Worker → Settings → Variables and Secrets. `.env.setup`/build variables chỉ dùng nếu muốn ghi đè cả endpoint và model; mặc định deploy giữ cấu hình dashboard. File local không tự trở thành secret production. Xem [Cloudflare Worker secrets](https://developers.cloudflare.com/workers/configuration/secrets/).
 
-Provider cần nhận OpenAI Chat Completions với `messages`, `response_format: { "type": "json_object" }`, `temperature: 0`, `max_tokens: 8192`, `stream: false`; trả JSON trong `choices[0].message.content` và `finish_reason: "stop"`. `usage.prompt_tokens` và `usage.completion_tokens` được lưu nếu có. Client không gửi `thinking` hoặc tùy chọn riêng của một hãng. Binding `AI` tiếp tục dùng cho embedding.
+Provider cần nhận OpenAI Chat Completions với `messages`, `response_format: { "type": "json_object" }`, `temperature: 0`, `max_tokens: 8192`, `stream: false`; trả JSON trong `choices[0].message.content` và `finish_reason: "stop"`. `usage.prompt_tokens` và `usage.completion_tokens` được lưu nếu có. Client không gửi `thinking` hoặc tùy chọn riêng của một hãng. Job phân cụm và probe `/api/admin/probe?target=embeddings` gọi `POST /embeddings` của cùng provider. Model phải trả vector 1.024 chiều. Khi đổi ID model, job tạo lại vector của entity và claim trong cửa sổ phân cụm, rồi tính lại các cạnh cosine liên quan. Các lần gọi embeddings tính phí theo provider, ngoài trần request của chat.
 
 Model mới tự được thêm vào D1 với trần 5/phút và 100/ngày. Model đã có giữ nguyên giới hạn, trạng thái tắt và cooldown. `LLM_MODEL` có giá trị chỉ chọn model đó, không fallback sang các tên cũ. Không truyền endpoint/model vào setup sẽ giữ cấu hình dashboard. Chủ động đặt cả hai thành chuỗi rỗng sẽ tạm dừng LLM. Nếu runtime không có `LLM_MODEL`, code vẫn dùng chuỗi model bật trong D1 như trước. Có thể chỉnh trần model trong bảng `llm_models`; không reset usage để lấy thêm lượt.
 
@@ -155,4 +156,4 @@ Cập nhật baseline tác giả; dựng lại `story_daily` và `entity_daily` 
 
 ## Chi phí dự kiến
 
-Ước tính từ bảng giá của Cloudflare, **chưa được đo**; tuần chạy thử là lúc kiểm chứng. Workers Paid là 5 USD mỗi tháng và gồm 10 triệu request cùng 30 triệu CPU-ms. D1 (5 GB, 25 tỉ dòng đọc, 50 triệu dòng ghi), R2 (10 GB, 1 triệu thao tác Class A), Queues (1 triệu thao tác), Workers AI (10.000 neuron mỗi ngày) và Access (50 người dùng) đều có mức miễn phí mà quy mô một người dùng nằm gọn bên trong. Điểm dễ vượt nhất là thao tác Class A của R2; vì vậy consumer chỉ ghi R2 cho item mới hoặc có nội dung đổi, thay vì ghi lại mọi item ở mỗi lần poll. Chi phí AI phụ thuộc endpoint và model đã cấu hình. Trần 100 request/ngày và tối đa 8.192 token đầu ra/request giúp giới hạn mức dùng nhưng không phải trần tiền. Đối chiếu usage với dashboard nhà cung cấp. Hệ thống chỉ gửi nội dung công khai.
+Ước tính từ bảng giá của Cloudflare, **chưa được đo**; tuần chạy thử là lúc kiểm chứng. Workers Paid là 5 USD mỗi tháng và gồm 10 triệu request cùng 30 triệu CPU-ms. D1 (5 GB, 25 tỉ dòng đọc, 50 triệu dòng ghi), R2 (10 GB, 1 triệu thao tác Class A), Queues (1 triệu thao tác) và Access (50 người dùng) đều có mức miễn phí mà quy mô một người dùng nằm gọn bên trong. Điểm dễ vượt nhất là thao tác Class A của R2; vì vậy consumer chỉ ghi R2 cho item mới hoặc có nội dung đổi, thay vì ghi lại mọi item ở mỗi lần poll. Chi phí AI phụ thuộc endpoint và model đã cấu hình. Trần 100 request/ngày và tối đa 8.192 token đầu ra/request giúp giới hạn mức dùng nhưng không phải trần tiền. Đối chiếu usage với dashboard nhà cung cấp. Hệ thống chỉ gửi nội dung công khai.

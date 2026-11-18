@@ -25,6 +25,8 @@ test("dashboard deployments need no account or database IDs and preserve runtime
   assert.equal(config.keep_vars, true);
   assert.equal(config.vars.LLM_ENDPOINT, undefined);
   assert.equal(config.vars.LLM_MODEL, undefined);
+  assert.equal(config.vars.EMBEDDING_MODEL, undefined);
+  assert.equal(config.ai, undefined);
   assert.equal(llmEnabled, null);
 });
 
@@ -76,7 +78,7 @@ test("CI overrides the local setup file, including explicit blanks; secrets stay
 
 test("custom resources keep producers, consumers and dead-letter queues connected", (t) => {
   const { output, llmEnabled } = writeDeployConfig(fixture(t), {
-    ...valid, D1_DATABASE_NAME: "custom-db", R2_BUCKET_NAME: "custom-raw",
+    ...valid, EMBEDDING_MODEL: "my-embedding-model", D1_DATABASE_NAME: "custom-db", R2_BUCKET_NAME: "custom-raw",
     POLL_QUEUE_NAME: "custom-poll", LLM_QUEUE_NAME: "custom-llm", DLQ_QUEUE_NAME: "custom-dlq",
     LLM_ENDPOINT: "https://provider.example/v1?api-version=1", LLM_MODEL: 'vendor/model-"quoted"',
   });
@@ -93,6 +95,7 @@ test("custom resources keep producers, consumers and dead-letter queues connecte
   assert.equal(config.vars.DLQ_QUEUE_NAME, "custom-dlq");
   assert.equal(config.vars.LLM_MODEL, 'vendor/model-"quoted"');
   assert.equal(config.vars.LLM_ENDPOINT, "https://provider.example/v1?api-version=1");
+  assert.equal(config.vars.EMBEDDING_MODEL, "my-embedding-model");
   assert.equal(config.define, undefined);
   assert.equal(config.assets.run_worker_first, true);
   assert.equal(llmEnabled, true);

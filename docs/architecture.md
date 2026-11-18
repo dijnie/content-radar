@@ -27,7 +27,7 @@ flowchart TD
     C[run-cluster-job]
   end
   D1 --> C
-  C -->|Workers AI bge-m3| E[embedding]
+  C -->|API /embeddings| E[embedding]
   C -->|stories, story_claims, lineage_events| D1
   C -->|radar-llm: synthesize, adjudicate| L
   subgraph "Cron 20 8 * * *"
@@ -81,7 +81,7 @@ Thiếu số liệu nhận 0 điểm ở thành phần đó và vẫn giữ giá
 
 ## Ngân sách AI
 
-`LLM_ENDPOINT`, `LLM_API_KEY` và `LLM_MODEL` cấu hình endpoint tương thích OpenAI Chat Completions cho bóc claim, tổng hợp và phân xử entity. Endpoint nhận URL gốc API hoặc URL đầy đủ `/chat/completions`; client gửi API key trong header Bearer. Key chỉ nằm ở Worker, không trả về frontend. Binding Workers AI chỉ dùng cho embedding.
+`LLM_ENDPOINT`, `LLM_API_KEY` và `LLM_MODEL` cấu hình endpoint tương thích OpenAI Chat Completions cho bóc claim, tổng hợp và phân xử entity. Endpoint nhận URL gốc API hoặc URL đầy đủ `/chat/completions`; client gửi API key trong header Bearer. Key chỉ nằm ở Worker, không trả về frontend. Job phân cụm gọi `/embeddings` cùng endpoint bằng `EMBEDDING_MODEL` và cùng API key.
 
 Client yêu cầu JSON object, giới hạn 8.192 token đầu ra và timeout 60 giây cả lúc đọc body. Không gửi tham số riêng của LLM. Prompt đưa schema cùng ví dụ JSON; code vẫn kiểm tra schema, ID và quote trước khi lưu. Provider cần hỗ trợ JSON mode, `temperature` và `max_tokens` theo hợp đồng Chat Completions này.
 

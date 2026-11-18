@@ -7,7 +7,7 @@ export default defineConfig(async () => {
     plugins: [
       cloudflareTest({
         wrangler: { configPath: "./wrangler.template.json" },
-        // Tests never reach remote resources such as Workers AI.
+        // Tests use local bindings.
         remoteBindings: false,
         miniflare: {
           bindings: {

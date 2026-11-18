@@ -2,7 +2,7 @@
 
 Radar cá nhân trả lời một câu hỏi: **giới nghiên cứu và ứng dụng AI/Agent (cùng System Design, Backend) đang có gì thú vị, và đang dịch chuyển về hướng nào?**
 
-Hệ thống crawl nguồn công khai (X qua FxTwitter, Hacker News, RSS, GitHub), dùng LLM qua endpoint tùy chỉnh bóc từng bài thành các claim có trích dẫn nguyên văn, gom claim thành câu chuyện bằng graph và phân cụm, chấm điểm 0–100, rồi hiển thị thành các thẻ lead. D1 đồng thời là kho dữ liệu để Claude hoặc Codex phân tích sâu hơn. Toàn bộ chạy trên một Cloudflare Worker; chi phí AI phụ thuộc nhà cung cấp, với trần mặc định 100 request/ngày và 5 request/phút.
+Hệ thống crawl nguồn công khai (X qua FxTwitter, Hacker News, RSS, GitHub), dùng LLM qua endpoint tùy chỉnh bóc từng bài thành các claim có trích dẫn nguyên văn, gom claim thành câu chuyện bằng graph và phân cụm, chấm điểm 0–100, rồi hiển thị thành các thẻ lead. D1 đồng thời là kho dữ liệu để Claude hoặc Codex phân tích sâu hơn. Toàn bộ chạy trên một Cloudflare Worker; chi phí AI phụ thuộc nhà cung cấp, với trần mặc định cho chat là 100 request/ngày và 5 request/phút.
 
 Giao diện gồm **Stories**, **News**, **Hands-on**, **Deep dives** và **Jobs**. Jobs ghi lịch sử crawl, lỗi từng nguồn và lịch dựng riêng từng feed. Hands-on có Community toolbox, Field tests, Playbooks; Deep dives có bộ lọc thời gian/chủ đề, tìm kiếm và trạng thái đã đọc lưu trong D1. Mọi thẻ lấy từ nguồn thật và bản công bố đã hoàn tất.
 
@@ -14,7 +14,7 @@ Giao diện gồm **Stories**, **News**, **Hands-on**, **Deep dives** và **Jobs
 ## Yêu cầu
 
 - Node 22 trở lên và npm.
-- Để deploy: tài khoản Cloudflare có Workers Paid, endpoint tương thích OpenAI Chat Completions, API key và tên model, và một GitHub PAT fine-grained chỉ đọc dữ liệu public.
+- Để deploy: tài khoản Cloudflare có Workers Paid, endpoint hỗ trợ OpenAI Chat Completions và Embeddings, API key và tên model, và một GitHub PAT fine-grained chỉ đọc dữ liệu public.
 
 Không cần gì trong số đó để chạy test.
 
@@ -41,17 +41,18 @@ Với **Cloudflare Builds**, đặt root directory ở gốc repo và deploy com
 
 ## Cấu hình AI
 
-Điền ba biến trong `apps/worker/.dev.vars` khi chạy local:
+Điền các biến trong `apps/worker/.dev.vars` khi chạy local:
 
 ```dotenv
 LLM_ENDPOINT=https://your-provider.example/v1
 LLM_API_KEY=your-api-key
-LLM_MODEL=your-model-id
+LLM_MODEL=your-chat-model
+EMBEDDING_MODEL=text-embedding-3-small
 ```
 
 `LLM_ENDPOINT` nhận URL gốc API hoặc URL đầy đủ kết thúc bằng `/chat/completions`. Provider cần hỗ trợ Chat Completions và JSON mode (`response_format: { "type": "json_object" }`). Model được gửi nguyên tên, không giới hạn hãng.
 
-Production: đặt `LLM_ENDPOINT`, `LLM_MODEL` và secret `LLM_API_KEY` trong **Worker → Settings → Variables and Secrets**. Deploy giữ các giá trị trên dashboard; chỉ ghi đè endpoint/model khi bạn truyền cả hai qua build variables hoặc `.env.setup`. Binding `AI` vẫn phục vụ embedding; các lượt LLM gọi endpoint trực tiếp. Xem [hướng dẫn vận hành](docs/operations.md#ai-qua-endpoint-tùy-chỉnh).
+Production: đặt `LLM_ENDPOINT`, `LLM_MODEL` và secret `LLM_API_KEY` trong **Worker → Settings → Variables and Secrets**. Deploy giữ các giá trị trên dashboard; chỉ ghi đè endpoint/model khi bạn truyền cả hai qua build variables hoặc `.env.setup`. Đặt thêm `EMBEDDING_MODEL` theo tên model embedding của provider (mặc định `text-embedding-3-small`). Embedding dùng chung endpoint và API key, gọi `/embeddings` và cần vector 1.024 chiều. Đổi tên model sẽ tạo lại các vector đang dùng ở lần phân cụm tiếp theo. Xem [hướng dẫn vận hành](docs/operations.md#ai-qua-endpoint-tùy-chỉnh).
 
 Model mới tự có trần 5 request/phút, 100 request/ngày Pacific; model đã tồn tại giữ nguyên giới hạn, cooldown và lịch sử. Bỏ cả endpoint/model khỏi build variables để giữ cấu hình dashboard; đặt cả hai thành chuỗi rỗng để chủ động tạm dừng LLM.
 

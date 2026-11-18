@@ -32,9 +32,6 @@
       "bucket_name": "content-radar-raw"
     }
   ],
-  "ai": {
-    "binding": "AI"
-  },
   "queues": {
     "producers": [
       {

@@ -1,3 +1,4 @@
+import { EmbeddingHttpError, openAiEmbedder } from "../cluster/embedding-client";
 import type { Env } from "../env";
 import { generateJson } from "../llm/custom-client";
 import { listEnabledModels } from "../db/llm-repo";
@@ -15,7 +16,8 @@ export const PROBE_TARGETS = [
   "github-atom",
   "rss-uber",
   "rss-medium",
-  "workers-ai-embed",
+  "embeddings",
+  "workers-ai-embed", // Existing probe URLs.
 ] as const;
 
 export type ProbeTarget = (typeof PROBE_TARGETS)[number];
@@ -70,6 +72,7 @@ function httpRequestFor(target: ProbeTarget, env: Env): Request | null {
       return new Request("https://www.uber.com/blog/engineering/rss/", { headers });
     case "rss-medium":
       return new Request("https://medium.com/feed/airbnb-engineering", { headers });
+    case "embeddings":
     case "workers-ai-embed":
       return null;
   }
@@ -95,15 +98,15 @@ export async function runProbe(target: ProbeTarget, env: Env, colo: string | nul
     }
     const request = httpRequestFor(target, env);
     if (request === null) {
-      const output = await env.AI.run("@cf/baai/bge-m3", { text: ["content radar probe"] });
-      const length = JSON.stringify(output).length;
-      return { ...base, status: 200, ms: Date.now() - started, length };
+      const [vector] = await openAiEmbedder(env, undefined, PROBE_TIMEOUT_MS)(["content radar probe"]);
+      return { ...base, status: 200, ms: Date.now() - started, length: vector!.byteLength };
     }
     const response = await fetch(request, { signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) });
     const body = await response.text();
     const result: ProbeResult = { ...base, status: response.status, ms: Date.now() - started, length: body.length };
     return result;
   } catch (err) {
+    if (err instanceof EmbeddingHttpError) return { ...base, status: err.status, ms: Date.now() - started, length: 0, error: err.message };
     const error = err instanceof Error ? err.name : "unknown_error";
     return { ...base, status: 0, ms: Date.now() - started, length: 0, error };
   }

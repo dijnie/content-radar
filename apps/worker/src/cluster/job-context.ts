@@ -2,7 +2,7 @@ import type { CoreParams, VectorMatrix } from "@radar/core";
 import type { Env } from "../env";
 import type { EmbedFn } from "./embedding-client";
 
-export type ClusterEnv = Pick<Env, "DB" | "AI" | "LLM_QUEUE" | "LLM_MODEL">;
+export type ClusterEnv = Pick<Env, "DB" | "LLM_QUEUE" | "LLM_MODEL" | "EMBEDDING_MODEL" | "LLM_ENDPOINT" | "LLM_API_KEY">;
 
 export interface JobContext {
   env: ClusterEnv;
@@ -12,6 +12,7 @@ export interface JobContext {
   now: number;
   params: CoreParams;
   embed: EmbedFn;
+  embeddingModel: string;
   /** Start of the most recent finished run; claims embedded since then still need their neighbours. */
   lastDoneRunStartedAt: number;
 }
